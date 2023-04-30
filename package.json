@@ -14,12 +14,16 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,mdx}\" --cache"
   },
   "dependencies": {
+    "@radix-ui/react-label": "^2.0.1",
     "class-variance-authority": "^0.4.0",
     "clsx": "^1.2.1",
     "cmdk": "^0.2.0",
+    "docx": "^8.0.3",
+    "docxtemplater": "^3.37.2",
     "lucide-react": "0.105.0-alpha.4",
     "next": "^13.3.0",
     "next-themes": "^0.2.1",
+    "pizzip": "^3.1.4",
     "react": "^18.2.0",
     "react-day-picker": "^8.6.0",
     "react-dom": "^18.2.0",

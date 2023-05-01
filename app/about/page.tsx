@@ -18,7 +18,9 @@ const About = () => {
           startups and countless non-YC startups as the main instrument for
           early-stage fundraising.
         </p>
-        <p>There are two types of YC SAFE notes: Discount and Valuation Cap.</p>
+        <p className="mt-4">
+          There are two types of YC SAFE notes: Discount and Valuation Cap.
+        </p>
         <p className="mt-4">
           A Discount SAFE gives investors the right to purchase equity at a
           discount to the valuation of the next round of funding. This means

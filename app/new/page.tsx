@@ -102,7 +102,7 @@ export default function Safe() {
     // Create a download link and click it to start the download
     const link = document.createElement("a")
     link.href = URL.createObjectURL(updatedContent)
-    link.download = "YC-Postmoney-SAFE-Modified.docx"
+    link.download = "YC-SAFE.docx"
     link.click()
 
     // Clean up the download URL
@@ -203,6 +203,8 @@ export default function Safe() {
             </Label>
             <Input
               type="currency"
+              min="0"
+              step="0.01"
               id="purchase-amount"
               value={purchaseAmount}
               onChange={(event) => setPurchaseAmount(event.target.value)}
@@ -245,6 +247,8 @@ export default function Safe() {
                 </Label>
                 <Input
                   type="currency"
+                  min="0"
+                  step="0.01"
                   id="valuation-cap"
                   value={valuationCap}
                   onChange={(event) => setValuationCap(event.target.value)}

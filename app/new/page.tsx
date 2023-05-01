@@ -1,10 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { Document, Packer, Paragraph } from "docx"
 import Docxtemplater from "docxtemplater"
 import PizZip from "pizzip"
 import PizZipUtils from "pizzip/utils/index.js"
+import toast, { Toaster } from "react-hot-toast"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,24 +19,22 @@ export default function Safe() {
   const [purchaseAmount, setPurchaseAmount] = useState("")
   const [stateOfIncorporation, setStateOfIncorporation] = useState("")
   const [valuationCap, setValuationCap] = useState("")
+  const [discount, setDiscount] = useState("")
   const [formStep, setFormStep] = useState(1)
+  const [investmentType, setInvestmentType] = useState("")
 
-  async function createWordDocument(content) {
-    // Split the content by line breaks and add each line as a paragraph
-    const paragraphs = content.split("\n").map((line) => new Paragraph(line))
-
-    const doc = new Document({
-      sections: [
-        {
-          properties: {},
-          children: paragraphs,
-        },
-      ],
-    })
-
-    // Convert the document to a binary buffer
-    const buffer = await Packer.toBuffer(doc)
-    return buffer
+  const resetForm = () => {
+    setName("")
+    setTitle("")
+    setDate("")
+    setCompanyName("")
+    setInvestorName("")
+    setPurchaseAmount("")
+    setStateOfIncorporation("")
+    setValuationCap("")
+    setDiscount("")
+    setFormStep(1)
+    setInvestmentType("")
   }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -67,8 +65,15 @@ export default function Safe() {
       }
     }
 
-    // Load the docx template
-    const response = await fetch("/SAFE-Template.docx")
+    // Load the docx template based on the investment type
+    let templateFileName = ""
+    if (investmentType === "valuation-cap") {
+      templateFileName = "SAFE-Valuation-Cap.docx"
+    } else if (investmentType === "discount") {
+      templateFileName = "SAFE-Discount.docx"
+    }
+    console.log(templateFileName)
+    const response = await fetch(`/${templateFileName}`)
     const arrayBuffer = await response.arrayBuffer()
     const zip = new PizZip(arrayBuffer)
 
@@ -85,6 +90,7 @@ export default function Safe() {
       date: formattedDate,
       name: name,
       title: title,
+      discount: (100 - Number(discount)).toString(),
     })
 
     // Render the document
@@ -103,10 +109,17 @@ export default function Safe() {
     setTimeout(() => {
       URL.revokeObjectURL(link.href)
     }, 100)
+
+    // Toast and reset form
+    toast.success("Your SAFE has been generated!")
+    resetForm()
   }
 
   return (
     <div className="flex flex-col items-center min-h-screen pt-20 py-2">
+      <div>
+        <Toaster />
+      </div>
       <h1 className="text-4xl font-bold mb-4">Your Information</h1>
       <h3 className="text-base mb-10">
         We just need a few details to get started
@@ -165,7 +178,7 @@ export default function Safe() {
             <Button
               type="button"
               onClick={() => setFormStep(2)}
-              className="bg-[#EA99D5] text-white font-bold py-2 px-4 rounded w-full"
+              className="bg-[#21D4FD] text-white font-bold py-2 px-4 rounded w-full"
             >
               Next
             </Button>
@@ -186,7 +199,7 @@ export default function Safe() {
               className="border border-gray-400 rounded px-4 py-2 w-full"
             />
             <Label htmlFor="purchase-amount" className="font-bold">
-              Purchase Amount
+              Purchase Amount ($)
             </Label>
             <Input
               type="currency"
@@ -196,17 +209,51 @@ export default function Safe() {
               required
               className="border border-gray-400 rounded px-4 py-2 w-full"
             />
-            <Label htmlFor="valuation-cap" className="font-bold">
-              Valuation Cap
+            <Label htmlFor="investment-type" className="font-bold">
+              Investment Type
             </Label>
-            <Input
-              type="currency"
-              id="valuation-cap"
-              value={valuationCap}
-              onChange={(event) => setValuationCap(event.target.value)}
-              required
+            <select
+              id="investment-type"
+              value={investmentType}
+              onChange={(event) => setInvestmentType(event.target.value)}
               className="border border-gray-400 rounded px-4 py-2 w-full"
-            />
+            >
+              <option value="" disabled>
+                Choose an option
+              </option>
+              <option value="valuation-cap">Valuation Cap</option>
+              <option value="discount">Discount</option>
+            </select>
+            {investmentType === "discount" ? (
+              <>
+                <Label htmlFor="discount" className="font-bold">
+                  Discount (%)
+                </Label>
+                <Input
+                  type="number"
+                  id="discount"
+                  value={discount}
+                  onChange={(event) => setDiscount(event.target.value)}
+                  required
+                  className="border border-gray-400 rounded px-4 py-2 w-full"
+                />
+              </>
+            ) : (
+              <>
+                <Label htmlFor="valuation-cap" className="font-bold">
+                  Valuation Cap ($)
+                </Label>
+                <Input
+                  type="currency"
+                  id="valuation-cap"
+                  value={valuationCap}
+                  onChange={(event) => setValuationCap(event.target.value)}
+                  required
+                  className="border border-gray-400 rounded px-4 py-2 w-full"
+                />
+              </>
+            )}
+
             <Label htmlFor="date" className="font-bold">
               Date
             </Label>
@@ -220,9 +267,16 @@ export default function Safe() {
             />
             <Button
               type="submit"
-              className="bg-[#EA99D5] text-white font-bold py-2 px-4 rounded w-full"
+              className="bg-[#21D4FD] text-white font-bold py-2 px-4 rounded w-full"
             >
               Generate SAFE
+            </Button>
+            <Button
+              type="button"
+              onClick={() => setFormStep(1)}
+              className="bg-slate-700 text-white font-bold py-2 px-4 rounded w-full"
+            >
+              Back
             </Button>
           </>
         )}

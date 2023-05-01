@@ -1,23 +1,23 @@
-# next-template
+# Safely
 
-A Next.js 13 template for building apps with Radix UI and Tailwind CSS.
+Safely is a simple application that allows you to generate a standard YC SAFE for your startup in seconds. Just give us the details and go back to building!
 
-## Usage
+## Getting Started
 
-```bash
-npx create-next-app -e https://github.com/shadcn/next-template
-```
+### Clone the repository
 
-## Features
+`git clone https://github.com/alanagoyal/safely`
 
-- Radix UI Primitives
-- Tailwind CSS
-- Fonts with `next/font`
-- Icons from [Lucide](https://lucide.dev)
-- Dark mode with `next-themes`
-- Automatic import sorting with `@ianvs/prettier-plugin-sort-imports`
-- Tailwind CSS class sorting, merging and linting.
+### Install dependencies
 
-## License
+`npm install`
 
-Licensed under the [MIT license](https://github.com/shadcn/ui/blob/main/LICENSE.md).
+### Run the application
+
+Run the application in the command line and it will be available at http://localhost:3000.
+
+`npm run dev`
+
+### Deploy
+
+Deploy using [Vercel](https://vercel.com)

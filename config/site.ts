@@ -6,6 +6,10 @@ export const siteConfig = {
       title: "Home",
       href: "/",
     },
+    {
+      title: "About",
+      href: "/about",
+    },
   ],
   links: {
     twitter: "https://twitter.com/alanaagoyal",

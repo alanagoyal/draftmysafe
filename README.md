@@ -2,6 +2,8 @@
 
 Safely is a simple application that allows you to generate a standard YC SAFE for your startup in seconds. Just give us the details and go back to building!
 
+I'm using @shadcn's template and UI components: https://github.com/shadcn/next-template
+
 ## Getting Started
 
 ### Clone the repository

@@ -22,7 +22,7 @@ export default function IndexPage() {
           </div>
           <div className="flex gap-4">
             <Button
-              className="bg-base-case-pink-500 text-white h-15 w-64 px-8 py-4 rounded-md text-xl"
+              className=" text-white px-8 py-4 rounded-md text-base"
               onClick={() => router.push("/new")}
               style={{
                 background: "linear-gradient(19deg, #21D4FD 0%, #B721FF 100%)",

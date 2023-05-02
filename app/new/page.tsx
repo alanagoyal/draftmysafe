@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import { useState } from "react"
 import Docxtemplater from "docxtemplater"
 import PizZip from "pizzip"
@@ -9,6 +10,15 @@ import toast, { Toaster } from "react-hot-toast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export default function Safe() {
   const [name, setName] = useState("")
@@ -22,6 +32,7 @@ export default function Safe() {
   const [discount, setDiscount] = useState("")
   const [formStep, setFormStep] = useState(1)
   const [investmentType, setInvestmentType] = useState("")
+  console.log(purchaseAmount)
 
   const resetForm = () => {
     setName("")
@@ -39,6 +50,48 @@ export default function Safe() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    // Check if required fields are filled out
+    if (!name) {
+      toast.error("You missed the Signatory Name")
+      return
+    }
+    if (!title) {
+      toast.error("You missed the Signatory Title")
+      return
+    }
+    if (!companyName) {
+      toast.error("You missed the Company Name")
+      return
+    }
+    if (!stateOfIncorporation) {
+      toast.error("You missed the State of Incorporation")
+      return
+    }
+    if (!investorName) {
+      toast.error("You missed the Investor Name")
+      return
+    }
+    if (!purchaseAmount) {
+      toast.error("You missed the Purchase Amount")
+      return
+    }
+    if (!investmentType) {
+      toast.error("You missed the Investment Type")
+      return
+    }
+    if (investmentType === "discount" && !discount) {
+      toast.error("You missed the Discount")
+      return
+    }
+    if (investmentType === "valuation-cap" && !valuationCap) {
+      toast.error("You missed the Valuation Cap")
+      return
+    }
+    if (!dateOfIncorporation) {
+      toast.error("You missed the Date")
+      return
+    }
+
     // Format date
     const date = new Date(dateOfIncorporation)
     const monthName = new Intl.DateTimeFormat("en-US", {
@@ -84,9 +137,9 @@ export default function Safe() {
     doc.setData({
       company_name: companyName,
       investor_name: investorName,
-      purchase_amount: Number(purchaseAmount).toLocaleString(),
+      purchase_amount: purchaseAmount,
       state_of_incorporation: stateOfIncorporation,
-      valuation_cap: Number(valuationCap).toLocaleString(),
+      valuation_cap: valuationCap,
       date: formattedDate,
       name: name,
       title: title,
@@ -121,9 +174,10 @@ export default function Safe() {
         <Toaster />
       </div>
       <h1 className="text-4xl font-bold mb-4">Your Information</h1>
-      <h3 className="text-base mb-10">
+      <h3 className="text-base mb-4">
         We just need a few details to get started
       </h3>
+      <h4 className="text-xs text-slate mb-10">We don&apos;t store any data</h4>
       <form
         onSubmit={handleSubmit}
         className="flex flex-col items-center space-y-4"
@@ -132,7 +186,7 @@ export default function Safe() {
           <>
             <h2 className="text-xl font-bold mb-2">Company Details</h2>
             <Label htmlFor="name" className="font-bold">
-              Name
+              Signatory Name
             </Label>
             <Input
               type="text"
@@ -143,7 +197,7 @@ export default function Safe() {
               className="border border-gray-400 rounded px-4 py-2 w-full"
             />
             <Label htmlFor="title" className="font-bold">
-              Title
+              Signatory Title
             </Label>
             <Input
               type="text"
@@ -202,12 +256,14 @@ export default function Safe() {
               Purchase Amount ($)
             </Label>
             <Input
-              type="currency"
-              min="0"
-              step="0.01"
+              type="text"
               id="purchase-amount"
               value={purchaseAmount}
-              onChange={(event) => setPurchaseAmount(event.target.value)}
+              onChange={(event) =>
+                setPurchaseAmount(
+                  Number(event.target.value.replace(/,/g, "")).toLocaleString()
+                )
+              }
               required
               className="border border-gray-400 rounded px-4 py-2 w-full"
             />
@@ -251,7 +307,13 @@ export default function Safe() {
                   step="0.01"
                   id="valuation-cap"
                   value={valuationCap}
-                  onChange={(event) => setValuationCap(event.target.value)}
+                  onChange={(event) =>
+                    setValuationCap(
+                      Number(
+                        event.target.value.replace(/,/g, "")
+                      ).toLocaleString()
+                    )
+                  }
                   required
                   className="border border-gray-400 rounded px-4 py-2 w-full"
                 />

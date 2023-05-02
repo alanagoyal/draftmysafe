@@ -10,7 +10,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 
 export const metadata: Metadata = {
   title: {
-    default: "Safely",
+    default: "Safely | Skip the paperwork",
     template: `%s - Safely`,
   },
   description: "Generate a SAFE",

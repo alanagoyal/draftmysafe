@@ -17,7 +17,7 @@ export default function IndexPage() {
             </h1>
             <p className="max-w-[700px] text-lg text-muted-foreground sm:text-xl">
               Give us a few details about your startup and we&apos;ll generate a
-              fully customized YC Post-Money SAFE for you
+              fully customized YC SAFE for you
             </p>
           </div>
           <div className="flex gap-4">

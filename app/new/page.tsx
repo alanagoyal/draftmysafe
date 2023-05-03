@@ -10,6 +10,12 @@ import toast, { Toaster } from "react-hot-toast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 export default function Safe() {
   const [name, setName] = useState("")
@@ -166,9 +172,17 @@ export default function Safe() {
       </div>
       <h1 className="text-4xl font-bold mb-4">Your Information</h1>
       <h3 className="text-base mb-4">
-        We just need a few details to get started
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              We just need a few details to get started
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>We don&apos;t store any data</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </h3>
-      <h4 className="text-xs text-slate mb-10">We don&apos;t store any data</h4>
       <form
         onSubmit={handleSubmit}
         className="flex flex-col items-center space-y-4"
@@ -177,7 +191,14 @@ export default function Safe() {
           <>
             <h2 className="text-xl font-bold mb-2">Company Details</h2>
             <Label htmlFor="name" className="font-bold">
-              Signatory Name
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>Name</TooltipTrigger>
+                  <TooltipContent>
+                    <p>The full name name of the signatory</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </Label>
             <Input
               type="text"
@@ -188,7 +209,14 @@ export default function Safe() {
               className="border border-gray-400 rounded px-4 py-2 w-full"
             />
             <Label htmlFor="title" className="font-bold">
-              Signatory Title
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>Title</TooltipTrigger>
+                  <TooltipContent>
+                    <p>The title of the signatory</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </Label>
             <Input
               type="text"
@@ -199,7 +227,16 @@ export default function Safe() {
               className="border border-gray-400 rounded px-4 py-2 w-full"
             />
             <Label htmlFor="company-name" className="font-bold">
-              Company Name
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>Company Name</TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      Make sure to use the legal name from your incorporation
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </Label>
             <Input
               type="text"
@@ -210,7 +247,14 @@ export default function Safe() {
               className="border border-gray-400 rounded px-4 py-2 w-full"
             />
             <Label htmlFor="state-of-incorporation" className="font-bold">
-              State of Incorporation
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>State of Incorporation</TooltipTrigger>
+                  <TooltipContent>
+                    <p>For US-based companies, this is usually Delaware</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </Label>
             <Input
               type="text"
@@ -233,7 +277,14 @@ export default function Safe() {
           <>
             <h2 className="text-xl font-bold mb-2">Investment Details</h2>
             <Label htmlFor="investor-name" className="font-bold">
-              Investor Name
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>Investor Name</TooltipTrigger>
+                  <TooltipContent>
+                    <p>The name of the entity making the investment</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </Label>
             <Input
               type="text"
@@ -244,7 +295,14 @@ export default function Safe() {
               className="border border-gray-400 rounded px-4 py-2 w-full"
             />
             <Label htmlFor="purchase-amount" className="font-bold">
-              Purchase Amount ($)
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>Purchase Amount</TooltipTrigger>
+                  <TooltipContent>
+                    <p>In USD</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </Label>
             <Input
               type="text"
@@ -259,7 +317,16 @@ export default function Safe() {
               className="border border-gray-400 rounded px-4 py-2 w-full"
             />
             <Label htmlFor="investment-type" className="font-bold">
-              Investment Type
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>Investment Type</TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      This can be a valuation cap or discount to the next round
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </Label>
             <select
               id="investment-type"
@@ -276,7 +343,14 @@ export default function Safe() {
             {investmentType === "discount" ? (
               <>
                 <Label htmlFor="discount" className="font-bold">
-                  Discount (%)
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>Discount</TooltipTrigger>
+                      <TooltipContent>
+                        <p>% discount to next priced round</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </Label>
                 <Input
                   type="number"
@@ -290,7 +364,14 @@ export default function Safe() {
             ) : (
               <>
                 <Label htmlFor="valuation-cap" className="font-bold">
-                  Valuation Cap ($)
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>Valuation Cap</TooltipTrigger>
+                      <TooltipContent>
+                        <p>In USD</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </Label>
                 <Input
                   type="currency"
@@ -312,7 +393,14 @@ export default function Safe() {
             )}
 
             <Label htmlFor="date" className="font-bold">
-              Date
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>Date</TooltipTrigger>
+                  <TooltipContent>
+                    <p>Approximate date of investment</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </Label>
             <Input
               type="date"

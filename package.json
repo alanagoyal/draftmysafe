@@ -17,6 +17,7 @@
     "@radix-ui/react-label": "^2.0.1",
     "@radix-ui/react-select": "^1.2.1",
     "@radix-ui/react-toast": "^1.1.3",
+    "@radix-ui/react-tooltip": "^1.0.5",
     "@vercel/og": "^0.5.4",
     "class-variance-authority": "^0.4.0",
     "clsx": "^1.2.1",

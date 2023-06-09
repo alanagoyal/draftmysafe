@@ -10,8 +10,8 @@ import { ThemeProvider } from "@/components/theme-provider"
 
 export const metadata: Metadata = {
   title: {
-    default: "Safely | Skip the paperwork",
-    template: `%s - Safely`,
+    default: "SafeBase | Skip the paperwork",
+    template: `%s - SafeBase`,
   },
   description: "Generate a SAFE",
   themeColor: [

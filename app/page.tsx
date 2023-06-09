@@ -12,12 +12,11 @@ export default function IndexPage() {
       <main className="container mx-auto my-48 flex-grow">
         <section className="container grid items-center gap-6 pb-8 pt-6 md:py-10">
           <div className="flex max-w-[980px] flex-col items-start gap-2">
-            <h1 className="text-3xl font-extrabold leading-tight tracking-tighter sm:text-3xl md:text-5xl lg:text-6xl">
-              Skip the paperwork
-            </h1>
+            <div className="text-3xl font-extrabold leading-tight tracking-tighter sm:text-3xl md:text-5xl lg:text-6xl">
+              <span className="text-[#9c5fff]">Safe</span>Base
+            </div>
             <p className="max-w-[700px] text-lg text-muted-foreground sm:text-xl">
-              Give us a few details about your startup and we&apos;ll generate a
-              fully customized YC SAFE for you
+              Skip the paperwork & generate a YC SAFE in minutes
             </p>
           </div>
           <div className="flex gap-4">

@@ -1,6 +1,6 @@
-# Safely
+# SafeBase
 
-Safely is a simple application that allows you to generate a standard YC SAFE for your startup in seconds. Just give us the details and go back to building!
+SafeBase is a simple application that allows you to generate a standard YC SAFE for your startup in seconds. Just give us the details and go back to building!
 
 I'm using @shadcn's template and UI components: https://github.com/shadcn/next-template
 
@@ -8,7 +8,7 @@ I'm using @shadcn's template and UI components: https://github.com/shadcn/next-t
 
 ### Clone the repository
 
-`git clone https://github.com/alanagoyal/safely`
+`git clone https://github.com/alanagoyal/safebase`
 
 ### Install dependencies
 
@@ -23,3 +23,7 @@ Run the application in the command line and it will be available at http://local
 ### Deploy
 
 Deploy using [Vercel](https://vercel.com)
+
+## License
+
+Licensed under the [MIT license](https://github.com/alanagoyal/safely/blob/main/LICENSE.md).

@@ -11,6 +11,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -345,18 +352,19 @@ export default function Safe() {
                 </Tooltip>
               </TooltipProvider>
             </Label>
-            <select
-              id="investment-type"
-              value={investmentType}
-              onChange={(event) => setInvestmentType(event.target.value)}
-              className="border border-gray-400 rounded px-4 py-2 w-full"
-            >
-              <option value="" disabled>
-                Choose an option
-              </option>
-              <option value="valuation-cap">Valuation Cap</option>
-              <option value="discount">Discount</option>
-            </select>
+            <div className="w-full">
+              <Select
+                value={investmentType}
+                onValueChange={(value) => setInvestmentType(value)}>
+                <SelectTrigger className=" w-full border border-gray-400 rounded px-4 py-2 w-full">
+                  <SelectValue placeholder="Investment Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="valuation-cap">Valuation Cap</SelectItem>
+                  <SelectItem value="discount">Discount</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             {investmentType === "discount" ? (
               <>
                 <Label htmlFor="discount" className="font-bold">

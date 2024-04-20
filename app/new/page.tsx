@@ -23,13 +23,13 @@ export default function Safe() {
   const [dateOfIncorporation, setDate] = useState("")
   const [companyName, setCompanyName] = useState("")
   const [investorName, setInvestorName] = useState("")
+  const [byline, setByline] = useState("")
   const [purchaseAmount, setPurchaseAmount] = useState("")
   const [stateOfIncorporation, setStateOfIncorporation] = useState("")
   const [valuationCap, setValuationCap] = useState("")
   const [discount, setDiscount] = useState("")
   const [formStep, setFormStep] = useState(1)
   const [investmentType, setInvestmentType] = useState("")
-  console.log(purchaseAmount)
 
   const resetForm = () => {
     setName("")
@@ -122,7 +122,6 @@ export default function Safe() {
     } else if (investmentType === "discount") {
       templateFileName = "SAFE-Discount.docx"
     }
-    console.log(templateFileName)
     const response = await fetch(`/${templateFileName}`)
     const arrayBuffer = await response.arrayBuffer()
     const zip = new PizZip(arrayBuffer)
@@ -134,6 +133,7 @@ export default function Safe() {
     doc.setData({
       company_name: companyName,
       investor_name: investorName,
+      byline: byline,
       purchase_amount: purchaseAmount,
       state_of_incorporation: stateOfIncorporation,
       valuation_cap: valuationCap,
@@ -292,6 +292,23 @@ export default function Safe() {
               value={investorName}
               onChange={(event) => setInvestorName(event.target.value)}
               required
+              className="border border-gray-400 rounded px-4 py-2 w-full"
+            />
+            <Label htmlFor="investor-byline" className="font-bold">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>Byline (Optional)</TooltipTrigger>
+                  <TooltipContent>
+                    <p>The name of the entity making the investment</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </Label>
+            <Input
+              type="text"
+              id="byline"
+              value={byline}
+              onChange={(event) => setByline(event.target.value)}
               className="border border-gray-400 rounded px-4 py-2 w-full"
             />
             <Label htmlFor="purchase-amount" className="font-bold">

@@ -2,14 +2,23 @@
 
 import * as React from "react"
 import { useState } from "react"
+import { format } from "date-fns"
 import Docxtemplater from "docxtemplater"
+import { Calendar as CalendarIcon } from "lucide-react"
 import PizZip from "pizzip"
 import PizZipUtils from "pizzip/utils/index.js"
 import toast, { Toaster } from "react-hot-toast"
 
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import {
   Select,
   SelectContent,
@@ -179,16 +188,7 @@ export default function Safe() {
       </div>
       <h1 className="text-4xl font-bold mb-4">Your Information</h1>
       <h3 className="text-base mb-4">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger>
-              We just need a few details to get started
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>We don&apos;t store any data</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        We just need a few details to get started
       </h3>
       <form
         onSubmit={handleSubmit}
@@ -198,14 +198,7 @@ export default function Safe() {
           <>
             <h2 className="text-xl font-bold mb-2">Company Details</h2>
             <Label htmlFor="name" className="font-bold">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>Name</TooltipTrigger>
-                  <TooltipContent>
-                    <p>The full name name of the signatory</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              Name
             </Label>
             <Input
               type="text"
@@ -216,14 +209,7 @@ export default function Safe() {
               className="border border-gray-400 rounded px-4 py-2 w-full"
             />
             <Label htmlFor="title" className="font-bold">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>Title</TooltipTrigger>
-                  <TooltipContent>
-                    <p>The title of the signatory</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              Title
             </Label>
             <Input
               type="text"
@@ -234,16 +220,7 @@ export default function Safe() {
               className="border border-gray-400 rounded px-4 py-2 w-full"
             />
             <Label htmlFor="company-name" className="font-bold">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>Company Name</TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      Make sure to use the legal name from your incorporation
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              Company Name
             </Label>
             <Input
               type="text"
@@ -254,14 +231,7 @@ export default function Safe() {
               className="border border-gray-400 rounded px-4 py-2 w-full"
             />
             <Label htmlFor="state-of-incorporation" className="font-bold">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>State of Incorporation</TooltipTrigger>
-                  <TooltipContent>
-                    <p>For US-based companies, this is usually Delaware</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              State of Incorporation
             </Label>
             <Input
               type="text"
@@ -284,14 +254,7 @@ export default function Safe() {
           <>
             <h2 className="text-xl font-bold mb-2">Investment Details</h2>
             <Label htmlFor="investor-name" className="font-bold">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>Investor Name</TooltipTrigger>
-                  <TooltipContent>
-                    <p>The name of the entity making the investment</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              Investor Name
             </Label>
             <Input
               type="text"
@@ -302,14 +265,7 @@ export default function Safe() {
               className="border border-gray-400 rounded px-4 py-2 w-full"
             />
             <Label htmlFor="investor-byline" className="font-bold">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>Byline (Optional)</TooltipTrigger>
-                  <TooltipContent>
-                    <p>The name of the entity making the investment</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              Byline (Optional)
             </Label>
             <Input
               type="text"
@@ -319,14 +275,7 @@ export default function Safe() {
               className="border border-gray-400 rounded px-4 py-2 w-full"
             />
             <Label htmlFor="purchase-amount" className="font-bold">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>Purchase Amount</TooltipTrigger>
-                  <TooltipContent>
-                    <p>In USD</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              Purchase Amount
             </Label>
             <Input
               type="text"
@@ -341,21 +290,13 @@ export default function Safe() {
               className="border border-gray-400 rounded px-4 py-2 w-full"
             />
             <Label htmlFor="investment-type" className="font-bold">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>Investment Type</TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      This can be a valuation cap or discount to the next round
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              Investment Type
             </Label>
             <div className="w-full">
               <Select
                 value={investmentType}
-                onValueChange={(value) => setInvestmentType(value)}>
+                onValueChange={(value) => setInvestmentType(value)}
+              >
                 <SelectTrigger className=" w-full border border-gray-400 rounded px-4 py-2 w-full">
                   <SelectValue placeholder="Investment Type" />
                 </SelectTrigger>
@@ -365,17 +306,10 @@ export default function Safe() {
                 </SelectContent>
               </Select>
             </div>
-            {investmentType === "discount" ? (
+            {investmentType === "discount" && (
               <>
                 <Label htmlFor="discount" className="font-bold">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger>Discount</TooltipTrigger>
-                      <TooltipContent>
-                        <p>% discount to next priced round</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  Discount
                 </Label>
                 <Input
                   type="number"
@@ -386,22 +320,14 @@ export default function Safe() {
                   className="border border-gray-400 rounded px-4 py-2 w-full"
                 />
               </>
-            ) : (
+            )}
+            {investmentType === "valuation-cap" && (
               <>
                 <Label htmlFor="valuation-cap" className="font-bold">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger>Valuation Cap</TooltipTrigger>
-                      <TooltipContent>
-                        <p>In USD</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  Valuation Cap
                 </Label>
                 <Input
-                  type="currency"
-                  min="0"
-                  step="0.01"
+                  type="text"
                   id="valuation-cap"
                   value={valuationCap}
                   onChange={(event) =>
@@ -416,25 +342,36 @@ export default function Safe() {
                 />
               </>
             )}
-
             <Label htmlFor="date" className="font-bold">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>Date</TooltipTrigger>
-                  <TooltipContent>
-                    <p>Approximate date of investment</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              Date
             </Label>
-            <Input
-              type="date"
-              id="date"
-              value={dateOfIncorporation}
-              onChange={(event) => setDate(event.target.value)}
-              required
-              className="border border-gray-400 rounded px-4 py-2 w-full"
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className="w-[280px] justify-start text-left font-normal"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateOfIncorporation ? (
+                    format(new Date(dateOfIncorporation), "PPP")
+                  ) : (
+                    <span>Pick a date</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={
+                    dateOfIncorporation
+                      ? new Date(dateOfIncorporation)
+                      : undefined
+                  }
+                  onSelect={(date: Date) => setDate(format(date, "yyyy-MM-dd"))}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
             <Button
               type="submit"
               className="bg-[#21D4FD] text-white font-bold py-2 px-4 rounded w-full"

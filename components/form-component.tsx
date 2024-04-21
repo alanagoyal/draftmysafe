@@ -74,6 +74,20 @@ export default function FormComponent() {
 
   const [step, setStep] = useState(1) 
 
+  const formDescriptions = {
+    founderName: "The name of the company's signatory",
+    founderTitle: "The title of the company's signatory",
+    companyName: "The name of the company",
+    stateOfIncorporation: "The state of incorporation of the company",
+    date: "The approximate date of the SAFE agreement",
+    investorName: "The name of the investing entity",
+    investorByline: "The byline for the investing entity (optional)",
+    purchaseAmount: "The amount being invested",
+    investmentType: "The type of SAFE agreement (valuation cap or discount)",
+    valuationCap: "The valuation cap of the investment",
+    discount: "The discount of the investment",
+  }
+
   async function onSubmit(values: FormComponentValues) {
     console.log(values)
 
@@ -182,7 +196,7 @@ export default function FormComponent() {
                       <Input {...field} />
                     </FormControl>
                     <FormDescription>
-                      The name of the company's signatory
+                      {formDescriptions.founderName}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -198,7 +212,7 @@ export default function FormComponent() {
                       <Input {...field} />
                     </FormControl>
                     <FormDescription>
-                      The title of the company's signatory
+                      {formDescriptions.founderTitle}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -213,7 +227,9 @@ export default function FormComponent() {
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
-                    <FormDescription>The name of the company</FormDescription>
+                    <FormDescription>
+                      {formDescriptions.companyName}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -228,7 +244,7 @@ export default function FormComponent() {
                       <Input {...field} />
                     </FormControl>
                     <FormDescription>
-                      The state of incorporation of the company
+                      {formDescriptions.stateOfIncorporation}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -270,7 +286,7 @@ export default function FormComponent() {
                       </PopoverContent>
                     </Popover>
                     <FormDescription>
-                      The approximate date of the SAFE agreement
+                      {formDescriptions.date}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -296,7 +312,9 @@ export default function FormComponent() {
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
-                    <FormDescription>The name of the investor</FormDescription>
+                    <FormDescription>
+                      {formDescriptions.investorName}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -311,7 +329,7 @@ export default function FormComponent() {
                       <Input {...field} />
                     </FormControl>
                     <FormDescription>
-                      The byline of the investor (optional)
+                      {formDescriptions.investorByline}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -337,7 +355,9 @@ export default function FormComponent() {
                         }}
                       />
                     </FormControl>
-                    <FormDescription>The amount being invested</FormDescription>
+                    <FormDescription>
+                      {formDescriptions.purchaseAmount}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -368,7 +388,7 @@ export default function FormComponent() {
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      Choose the placement of the word to include
+                      {formDescriptions.investmentType}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -396,7 +416,7 @@ export default function FormComponent() {
                         />
                       </FormControl>
                       <FormDescription>
-                        The valuation cap of the investment
+                        {formDescriptions.valuationCap}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -414,7 +434,7 @@ export default function FormComponent() {
                         <Input {...field} />
                       </FormControl>
                       <FormDescription>
-                        The discount of the investment
+                        {formDescriptions.discount}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

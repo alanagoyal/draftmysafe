@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import "@/styles/globals.css"
 import { Inter } from "next/font/google"
 
+import { siteConfig } from "@/config/site"
 import { cn } from "@/lib/utils"
 import { Toaster } from "@/components/ui/toaster"
 import { SiteHeader } from "@/components/site-header"
@@ -14,11 +15,6 @@ const inter = Inter({
   variable: "--font-inter",
 })
 
-export const metadata: Metadata = {
-  title: "Safely",
-  description: "Skip the paperwork & generate a YC SAFE in minutes",
-}
-
 export default async function RootLayout({
   children,
 }: {
@@ -27,11 +23,27 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta property="og:title" content="Safely"></meta>
+      <title>{siteConfig.name}</title> 
+        <meta property="twitter:card" content="summary_large_image"></meta>
+        <meta
+          property="twitter:description"
+          content={siteConfig.description}
+        ></meta>
+        <meta
+          property="twitter:image"
+          content={`${siteConfig.url}/opengraph-image`}
+        ></meta>
+        <meta property="og:title" content={siteConfig.name}></meta>
         <meta
           property="og:description"
-          content="Skip the paperwork & generate a YC SAFE in minutes"
+          content={siteConfig.description}
         ></meta>
+        <meta
+          property="og:image"
+          content={`${siteConfig.url}/opengraph-image`}
+        />
+        <meta property="og:url" content={siteConfig.url}></meta>
+        <meta property="og:image" content={`${siteConfig.url}/opengraph-image`} />
       </head>
       <body
         className={cn(

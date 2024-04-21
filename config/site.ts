@@ -3,8 +3,7 @@ export type SiteConfig = typeof siteConfig
 export const siteConfig = {
   name: "Safely | Skip the paperwork",
   description: "A simple SAFE generator",
-  url: "https://safe-ly.vercel.app", // Don't end with a slash /
-  ogImage: "https://safe-ly.vercel.app/opengraph-image",
+  url: "https://safe-ly.vercel.app", 
   mainNav: [
     {
       title: "Home",

@@ -89,8 +89,6 @@ export default function FormComponent() {
   }
 
   async function onSubmit(values: FormComponentValues) {
-    console.log(values)
-
     // Format date
     const date = new Date(values.date)
     const monthName = new Intl.DateTimeFormat("en-US", {

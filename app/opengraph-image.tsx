@@ -16,7 +16,7 @@ export default async function handler() {
           alignItems: "center",
         }}
       >
-        Draft My Safe | Generate a YC SAFE agreement in seconds 📃
+        Generate a YC SAFE agreement in seconds 📃
       </div>
     ),
     {

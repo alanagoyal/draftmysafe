@@ -11,7 +11,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 w-full border-b bg-background">
       <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0">
         <a className="text-xl font-bold pr-6" href="/">
-        <span className="text-[#9c5fff]">Draft</span>mysafe
+          Draftmysafe
         </a>
         <MainNav items={siteConfig.mainNav} />
         <div className="flex flex-1 items-center justify-end space-x-4">

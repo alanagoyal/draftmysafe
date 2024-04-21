@@ -23,6 +23,7 @@ import {
   FormMessage,
 } from "./ui/form"
 import { Input } from "./ui/input"
+import { Label } from "./ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import {
   Select,
@@ -77,7 +78,7 @@ export default function FormComponent() {
     },
   })
 
-  const [step, setStep] = useState(1) 
+  const [step, setStep] = useState(1)
 
   const formDescriptions = {
     founderName: "The name of the company's signatory",
@@ -151,7 +152,9 @@ export default function FormComponent() {
       founder_email: values.founderEmail || "",
       company_address_1: values.companyStreet || "",
       company_address_2: values.companyCityStateZip || "",
-      discount: values.discount ? (100 - Number(values.discount)).toString() : "",
+      discount: values.discount
+        ? (100 - Number(values.discount)).toString()
+        : "",
     })
 
     // Render the document
@@ -163,7 +166,10 @@ export default function FormComponent() {
     // Create a download link and click it to start the download
     const link = document.createElement("a")
     link.href = URL.createObjectURL(updatedContent)
-    link.download = values.type === "valuation-cap" ? "YC-SAFE-Valuation-Cap.docx" : "YC-SAFE-Discount.docx";
+    link.download =
+      values.type === "valuation-cap"
+        ? "YC-SAFE-Valuation-Cap.docx"
+        : "YC-SAFE-Discount.docx"
     link.click()
 
     // Clean up the download URL
@@ -186,15 +192,19 @@ export default function FormComponent() {
   }
 
   return (
-    <div className="flex flex-col items-center min-h-screen pt-20 py-2 w-full">
+    <div className="flex flex-col items-center min-h-screen py-2 w-2/3 mx-auto">
       <h1 className="text-4xl font-bold mb-4">Your Information</h1>
-      <h3 className="text-base mb-4">
+      <h3 className="text-sm text-gray-500 mb-4">
         We just need a few details to get started
       </h3>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="space-y-4 w-full"
+        >
           {step === 1 && (
             <>
+              <Label className="text-md font-bold">Founder Information</Label>
               <FormField
                 control={form.control}
                 name="founderName"
@@ -243,6 +253,9 @@ export default function FormComponent() {
                   </FormItem>
                 )}
               />
+              <div className="pt-4">
+                <Label className="text-md font-bold">Company Information</Label>
+              </div>
               <FormField
                 control={form.control}
                 name="companyName"
@@ -307,48 +320,6 @@ export default function FormComponent() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => date < new Date()}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormDescription>
-                      {formDescriptions.date}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               <Button
                 type="button"
                 className="mt-4 w-full"
@@ -360,6 +331,9 @@ export default function FormComponent() {
           )}
           {step === 2 && (
             <>
+              <div className="pt-4">
+                <Label className="text-md font-bold">Investor Information</Label>
+              </div>
               <FormField
                 control={form.control}
                 name="investorName"
@@ -392,6 +366,9 @@ export default function FormComponent() {
                   </FormItem>
                 )}
               />
+              <div className="pt-4">
+                <Label className="text-md font-bold">Deal Information</Label>
+              </div>
               <FormField
                 control={form.control}
                 name="purchaseAmount"
@@ -498,6 +475,46 @@ export default function FormComponent() {
                   )}
                 />
               )}
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) => date < new Date()}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormDescription>{formDescriptions.date}</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <div className="flex flex-col gap-2">
                 <Button type="submit" className="w-full">
                   Submit

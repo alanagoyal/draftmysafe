@@ -1,13 +1,13 @@
 export type SiteConfig = typeof siteConfig
 
 export const siteConfig = {
-  name: "Safely | Skip the paperwork",
-  description: "A simple SAFE generator",
-  url: "https://safe-ly.vercel.app", 
+  name: "Draft My Safe | Skip the paperwork and generate a YC SAFE agreement in seconds",
+  description: "Skip the paperwork and generate a YC SAFE agreement in seconds",
+  url: "https:draftmysafe.com", 
   mainNav: [
     {
-      title: "Home",
-      href: "/",
+      title: "New",
+      href: "/new",
     },
     {
       title: "About",

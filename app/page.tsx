@@ -8,15 +8,15 @@ export default function IndexPage() {
   const router = useRouter()
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen w-full">
       <main className="container mx-auto my-48 flex-grow">
         <section className="container grid items-center gap-6 pb-8 pt-6 md:py-10">
           <div className="flex max-w-[980px] flex-col items-start gap-2">
             <div className="text-3xl font-extrabold leading-tight tracking-tighter sm:text-3xl md:text-5xl lg:text-6xl">
-              <span className="text-[#9c5fff]">Safe</span>Base
+              <span className="text-[#9c5fff]">Draft</span>mysafe
             </div>
             <p className="max-w-[700px] text-lg text-muted-foreground sm:text-xl">
-              Skip the paperwork & generate a YC SAFE in minutes
+              Skip the paperwork & generate a YC SAFE agreement in minutes
             </p>
           </div>
           <div className="flex gap-4">

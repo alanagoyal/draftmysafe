@@ -40,9 +40,8 @@ const FormComponentSchema = z.object({
   founderTitle: z.string({ required_error: "Title is required" }),
   founderEmail: z.string().email().optional(),
   companyName: z.string({ required_error: "Company name is required" }),
-  // companyAddress: z.string().optional(), // This line is commented out as per instructions
-  companyStreet: z.string({ required_error: "Street address is required" }),
-  companyCityStateZip: z.string({ required_error: "City, State, and Zip code are required" }),
+  companyStreet: z.string().optional(),
+  companyCityStateZip: z.string().optional(),
   stateOfIncorporation: z.string({
     required_error: "State of incorporation is required",
   }),
@@ -142,17 +141,17 @@ export default function FormComponent() {
     doc.setData({
       company_name: values.companyName,
       investor_name: values.investorName,
-      byline: values.investorByline,
+      byline: values.investorByline || "",
       purchase_amount: values.purchaseAmount,
       state_of_incorporation: values.stateOfIncorporation,
-      valuation_cap: values.valuationCap,
+      valuation_cap: values.valuationCap || "",
       date: formattedDate,
       founder_name: values.founderName,
       founder_title: values.founderTitle,
-      founder_email: values.founderEmail,
-      company_address_1: values.companyStreet,
-      company_address_2: values.companyCityStateZip,
-      discount: (100 - Number(values.discount)).toString(),
+      founder_email: values.founderEmail || "",
+      company_address_1: values.companyStreet || "",
+      company_address_2: values.companyCityStateZip || "",
+      discount: values.discount ? (100 - Number(values.discount)).toString() : "",
     })
 
     // Render the document
@@ -164,7 +163,7 @@ export default function FormComponent() {
     // Create a download link and click it to start the download
     const link = document.createElement("a")
     link.href = URL.createObjectURL(updatedContent)
-    link.download = "YC-SAFE.docx"
+    link.download = values.type === "valuation-cap" ? "YC-SAFE-Valuation-Cap.docx" : "YC-SAFE-Discount.docx";
     link.click()
 
     // Clean up the download URL
@@ -174,8 +173,8 @@ export default function FormComponent() {
 
     // Toast and reset form
     toast({
-      title: "Your SAFE has been generated!",
-      description: "Download your SAFE and start your next step.",
+      title: "Your SAFE agreement has been generated",
+      description: "You can find it in your Downloads",
     })
     resetForm()
   }

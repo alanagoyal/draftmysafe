@@ -1,9 +1,8 @@
 "use client"
 
 import React, { useState } from "react"
-// Import useState
 import { zodResolver } from "@hookform/resolvers/zod"
-import { CalendarIcon, CaretSortIcon, CheckIcon } from "@radix-ui/react-icons"
+import { CalendarIcon } from "@radix-ui/react-icons"
 import { format } from "date-fns"
 import Docxtemplater from "docxtemplater"
 import PizZip from "pizzip"
@@ -39,7 +38,11 @@ import { toast } from "./ui/use-toast"
 const FormComponentSchema = z.object({
   founderName: z.string().min(3, { message: "Name is required" }),
   founderTitle: z.string({ required_error: "Title is required" }),
+  founderEmail: z.string().email().optional(),
   companyName: z.string({ required_error: "Company name is required" }),
+  // companyAddress: z.string().optional(), // This line is commented out as per instructions
+  companyStreet: z.string({ required_error: "Street address is required" }),
+  companyCityStateZip: z.string({ required_error: "City, State, and Zip code are required" }),
   stateOfIncorporation: z.string({
     required_error: "State of incorporation is required",
   }),
@@ -60,7 +63,10 @@ export default function FormComponent() {
     defaultValues: {
       founderName: "",
       founderTitle: "",
+      founderEmail: "",
       companyName: "",
+      companyStreet: "",
+      companyCityStateZip: "",
       stateOfIncorporation: "",
       date: new Date(),
       investorName: "",
@@ -77,7 +83,10 @@ export default function FormComponent() {
   const formDescriptions = {
     founderName: "The name of the company's signatory",
     founderTitle: "The title of the company's signatory",
+    founderEmail: "The email of the company's signatory",
     companyName: "The name of the company",
+    companyStreet: "The street address of the company",
+    companyCityStateZip: "The city, state, and ZIP code of the company",
     stateOfIncorporation: "The state of incorporation of the company",
     date: "The approximate date of the SAFE agreement",
     investorName: "The name of the investing entity",
@@ -138,8 +147,11 @@ export default function FormComponent() {
       state_of_incorporation: values.stateOfIncorporation,
       valuation_cap: values.valuationCap,
       date: formattedDate,
-      name: values.founderName,
-      title: values.founderTitle,
+      founder_name: values.founderName,
+      founder_title: values.founderTitle,
+      founder_email: values.founderEmail,
+      company_address_1: values.companyStreet,
+      company_address_2: values.companyCityStateZip,
       discount: (100 - Number(values.discount)).toString(),
     })
 
@@ -218,6 +230,22 @@ export default function FormComponent() {
               />
               <FormField
                 control={form.control}
+                name="founderEmail"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Founder Email</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {formDescriptions.founderEmail}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
                 name="companyName"
                 render={({ field }) => (
                   <FormItem>
@@ -227,6 +255,38 @@ export default function FormComponent() {
                     </FormControl>
                     <FormDescription>
                       {formDescriptions.companyName}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="companyStreet"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Street Address</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {formDescriptions.companyStreet}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="companyCityStateZip"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>City, State, ZIP</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {formDescriptions.companyCityStateZip}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

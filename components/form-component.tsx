@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from "./ui/select"
 import { toast } from "./ui/use-toast"
+import { Textarea } from "./ui/textarea"
 
 const FormComponentSchema = z.object({
   companyName: z.string({ required_error: "Company name is required" }),
@@ -43,7 +44,7 @@ const FormComponentSchema = z.object({
   }),
   investingEntityByline: z.string().optional(),
   purchaseAmount: z.string({ required_error: "Purchase amount is required" }),
-  type: z.enum(["valuation-cap", "discount"]),
+  type: z.enum(["valuation-cap", "discount", "mfn"]),
   valuationCap: z.string().optional(),
   discount: z.string().optional(),
   stateOfIncorporation: z.string({
@@ -97,7 +98,7 @@ export default function FormComponent() {
     investingEntityName: "The name of the investing entity",
     investingEntityByline: "The byline for the investing entity",
     purchaseAmount: "The amount being invested",
-    investmentType: "The type of SAFE agreement (valuation cap or discount)",
+    investmentType: "The type of SAFE agreement (Valuation Cap, Discount, or MFN)",
     valuationCap: "The valuation cap of the investment",
     discount: "The discount of the investment",
     stateOfIncorporation: "The state of incorporation of the company",
@@ -148,6 +149,8 @@ export default function FormComponent() {
       templateFileName = "SAFE-Valuation-Cap.docx"
     } else if (values.type === "discount") {
       templateFileName = "SAFE-Discount.docx"
+    } else if (values.type === "mfn") {
+      templateFileName = "SAFE-MFN.docx"
     }
     const response = await fetch(`/${templateFileName}`)
     const arrayBuffer = await response.arrayBuffer()
@@ -279,6 +282,7 @@ export default function FormComponent() {
                             Valuation Cap
                           </SelectItem>
                           <SelectItem value="discount">Discount</SelectItem>
+                          <SelectItem value="mfn">MFN</SelectItem>
                         </SelectGroup>
                       </SelectContent>
                     </Select>
@@ -551,7 +555,7 @@ export default function FormComponent() {
                   <FormItem>
                     <FormLabel>Byline (Optional)</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Textarea {...field} />
                     </FormControl>
                     <FormDescription>
                       {formDescriptions.investingEntityByline}
@@ -651,7 +655,7 @@ export default function FormComponent() {
                 <Button
                   variant="secondary"
                   className="w-full"
-                  onClick={() => setStep(1)}
+                  onClick={() => setStep(2)}
                 >
                   Back
                 </Button>

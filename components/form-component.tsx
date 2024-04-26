@@ -6,11 +6,13 @@ import { CalendarIcon } from "@radix-ui/react-icons"
 import { format } from "date-fns"
 import Docxtemplater from "docxtemplater"
 import PizZip from "pizzip"
+import Confetti from "react-confetti"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
 import { cn } from "@/lib/utils"
 
+import ConfettiComponent from "./confetti"
 import { Button } from "./ui/button"
 import { Calendar } from "./ui/calendar"
 import {
@@ -34,8 +36,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select"
-import { toast } from "./ui/use-toast"
 import { Textarea } from "./ui/textarea"
+import { toast } from "./ui/use-toast"
 
 const FormComponentSchema = z.object({
   companyName: z.string({ required_error: "Company name is required" }),
@@ -92,13 +94,15 @@ export default function FormComponent() {
   })
 
   const [step, setStep] = useState(1)
+  const [showConfetti, setShowConfetti] = useState(false)
 
   const formDescriptions = {
     companyName: "The name of the company",
     investingEntityName: "The name of the investing entity",
     investingEntityByline: "The byline for the investing entity",
     purchaseAmount: "The amount being invested",
-    investmentType: "The type of SAFE agreement (Valuation Cap, Discount, or MFN)",
+    investmentType:
+      "The type of SAFE agreement (Valuation Cap, Discount, or MFN)",
     valuationCap: "The valuation cap of the investment",
     discount: "The discount of the investment",
     stateOfIncorporation: "The state of incorporation of the company",
@@ -203,10 +207,19 @@ export default function FormComponent() {
       URL.revokeObjectURL(link.href)
     }, 100)
 
+    // Start confetti
+    setShowConfetti(true)
+
+    // Stop confetti after 3 seconds
+    setTimeout(() => {
+      setShowConfetti(false)
+    }, 10000)
+
     // Toast and reset form
     toast({
-      title: "Your SAFE agreement has been generated",
-      description: "You can find it in your Downloads",
+      title: "Congratulations!",
+      description:
+        "Your SAFE agreement has been generated and can be found in your Downloads",
     })
     resetForm()
   }
@@ -219,6 +232,7 @@ export default function FormComponent() {
 
   return (
     <div className="flex flex-col items-center min-h-screen py-2 w-2/3 mx-auto">
+      {showConfetti && <Confetti />}
       <h1 className="text-4xl font-bold mb-4">Get Started</h1>
       <h3 className="text-sm text-gray-500 mb-4">
         Your next unicorn investment is just a few clicks away

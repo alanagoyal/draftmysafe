@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/button"
 const About = () => {
   const router = useRouter()
   return (
-    <div className="flex flex-col items-center min-h-screen pt-20 py-2">
+    <div className="flex flex-col items-center min-h-screen py-2 w-2/3 mx-auto">
       <h1 className="text-4xl font-bold mb-4">About</h1>
-      <div className="text-xl font-base mb-6 max-w-lg text-center">
+      <div className="text-base mb-6 max-w-lg text-center">
         <p>
           Y Combinator introduced the safe (simple agreement for future equity)
           in late 2013, and since then, it has been used by almost all YC
@@ -37,8 +37,7 @@ const About = () => {
       </div>
       <Link href="https://www.ycombinator.com/documents">
         <Button
-          type="button"
-          className="bg-[#21D4FD] text-white font-bold py-2 px-4 rounded"
+          variant="ghost"
         >
           Learn More
         </Button>

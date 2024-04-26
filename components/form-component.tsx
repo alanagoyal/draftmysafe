@@ -9,10 +9,7 @@ import PizZip from "pizzip"
 import Confetti from "react-confetti"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-
 import { cn } from "@/lib/utils"
-
-import ConfettiComponent from "./confetti"
 import { Button } from "./ui/button"
 import { Calendar } from "./ui/calendar"
 import {
@@ -196,10 +193,11 @@ export default function FormComponent() {
     // Create a download link and click it to start the download
     const link = document.createElement("a")
     link.href = URL.createObjectURL(updatedContent)
-    link.download =
-      values.type === "valuation-cap"
+    link.download = values.type === "valuation-cap"
         ? "YC-SAFE-Valuation-Cap.docx"
-        : "YC-SAFE-Discount.docx"
+        : values.type === "discount"
+        ? "YC-SAFE-Discount.docx"
+        : "YC-SAFE-MFN.docx"
     link.click()
 
     // Clean up the download URL

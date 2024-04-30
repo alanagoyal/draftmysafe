@@ -218,11 +218,6 @@ export default function FormComponent({ userData }: { userData: any }) {
       setShowConfetti(false)
     }, 10000)
 
-    // Find type of created_by and determine whether to add to db or not
-    const createdByType = userData.type
-
- 
-
     // Insert into investments table
     try {
       // Check if the investor already exists

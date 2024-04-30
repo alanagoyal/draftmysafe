@@ -17,6 +17,9 @@ export async function signup(formData: SignupFormData) {
     },
   })
 
+  console.log(data)
+  console.log(error)
+
   // User exists, but is fake. See https://supabase.com/docs/reference/javascript/auth-signup
   let authError: { name: string; message: string } | null = null
   if (data.user && data.user.identities && data.user.identities.length === 0) {

@@ -1,5 +1,3 @@
-"use client"
-
 import FormComponent from "@/components/form-component"
 
 

@@ -1,13 +1,11 @@
-import type { Metadata } from "next"
-
 import "@/styles/globals.css"
 import { Inter } from "next/font/google"
-
 import { siteConfig } from "@/config/site"
 import { cn } from "@/lib/utils"
 import { Toaster } from "@/components/ui/toaster"
-import { SiteHeader } from "@/components/site-header"
 import { ThemeProvider } from "@/components/theme-provider"
+import { createClient } from "@/utils/supabase/server"
+import { SiteHeader } from "@/components/site-header"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -20,6 +18,12 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const supabase = createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -59,7 +63,7 @@ export default async function RootLayout({
         >
           <div vaul-drawer-wrapper="">
             <div className="relative flex flex-col bg-background">
-              <SiteHeader />
+              <SiteHeader user={user} />
               <main className="flex-1">
                 <div className="flex flex-col items-center pt-10 py-2 max-w-7xl mx-auto">
                   {children}

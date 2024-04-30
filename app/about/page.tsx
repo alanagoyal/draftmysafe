@@ -1,13 +1,9 @@
-"use client"
-
 import React from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 
-const About = () => {
-  const router = useRouter()
+export default function AboutPage() {
   return (
     <div className="flex flex-col items-center min-h-screen py-2 w-2/3 mx-auto">
       <h1 className="text-4xl font-bold mb-4">About</h1>
@@ -36,14 +32,8 @@ const About = () => {
         </p>
       </div>
       <Link href="https://www.ycombinator.com/documents">
-        <Button
-          variant="ghost"
-        >
-          Learn More
-        </Button>
+        <Button variant="ghost">Learn More</Button>
       </Link>
     </div>
   )
 }
-
-export default About

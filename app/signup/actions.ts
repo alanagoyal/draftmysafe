@@ -7,7 +7,6 @@ import { SignupFormData } from "@/components/signup-form"
 
 export async function signup(formData: SignupFormData) {
   const supabase = createClient()
-  console.log(supabase)
   const { email, password } = formData
   const { data, error } = await supabase.auth.signUp({
     email,

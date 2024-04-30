@@ -1,11 +1,8 @@
-"use client"
+import Link from "next/link"
 
-import { useRouter } from "next/navigation"
-
-import { Button, buttonVariants } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
 
 export default function IndexPage() {
-  const router = useRouter()
 
   return (
     <div className="flex flex-col min-h-screen w-full">
@@ -20,12 +17,11 @@ export default function IndexPage() {
             </p>
           </div>
           <div className="flex gap-4">
-            <Button
-              className=" text-white px-8 py-4 rounded-md text-base"
-              onClick={() => router.push("/new")}
-            >
-              Get Started
-            </Button>
+            <Link href="/new">
+              <Button className=" text-white px-8 py-4 rounded-md text-base">
+                Get Started
+              </Button>
+            </Link>
           </div>
         </section>
       </main>

@@ -11,6 +11,7 @@ export async function login(formData: LoginFormData) {
   const { email, password } = formData;
   const { error } = await supabase.auth.signInWithPassword({email, password})
 
+  console.log(`email: ${email}, password: ${password}`)
   if (error) {
     const isAlreadyUser = await supabase.rpc('checkIfUser', { given_mail: email })
     if (isAlreadyUser.data === false)  {

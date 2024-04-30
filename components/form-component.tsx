@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
+import { createClient } from "@/utils/supabase/client"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { CalendarIcon } from "@radix-ui/react-icons"
 import { format } from "date-fns"
@@ -10,6 +11,7 @@ import Confetti from "react-confetti"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { cn } from "@/lib/utils"
+
 import { Button } from "./ui/button"
 import { Calendar } from "./ui/calendar"
 import {
@@ -38,10 +40,10 @@ import { toast } from "./ui/use-toast"
 
 const FormComponentSchema = z.object({
   companyName: z.string({ required_error: "Company name is required" }),
-  investingEntityName: z.string({
+  fundName: z.string({
     required_error: "Investing entity name is required",
   }),
-  investingEntityByline: z.string().optional(),
+  fundByline: z.string().optional(),
   purchaseAmount: z.string({ required_error: "Purchase amount is required" }),
   type: z.enum(["valuation-cap", "discount", "mfn"]),
   valuationCap: z.string().optional(),
@@ -53,8 +55,8 @@ const FormComponentSchema = z.object({
   investorName: z.string().optional(),
   investorTitle: z.string().optional(),
   investorEmail: z.string().email().optional(),
-  investorStreet: z.string().optional(),
-  investorCityStateZip: z.string().optional(),
+  fundStreet: z.string().optional(),
+  fundCityStateZip: z.string().optional(),
   founderName: z.string().min(3, { message: "Name is required" }),
   founderTitle: z.string({ required_error: "Title is required" }),
   founderEmail: z.string().email().optional(),
@@ -65,12 +67,14 @@ const FormComponentSchema = z.object({
 type FormComponentValues = z.infer<typeof FormComponentSchema>
 
 export default function FormComponent() {
+  const supabase = createClient()
+
   const form = useForm<FormComponentValues>({
     resolver: zodResolver(FormComponentSchema),
     defaultValues: {
       companyName: "",
-      investingEntityName: "",
-      investingEntityByline: "",
+      fundName: "",
+      fundByline: "",
       purchaseAmount: "",
       type: "valuation-cap",
       valuationCap: "",
@@ -80,8 +84,8 @@ export default function FormComponent() {
       investorName: "",
       investorTitle: "",
       investorEmail: "",
-      investorStreet: "",
-      investorCityStateZip: "",
+      fundStreet: "",
+      fundCityStateZip: "",
       founderName: "",
       founderTitle: "",
       founderEmail: "",
@@ -95,8 +99,8 @@ export default function FormComponent() {
 
   const formDescriptions = {
     companyName: "The name of the company",
-    investingEntityName: "The name of the investing entity",
-    investingEntityByline: "The byline for the investing entity",
+    fundName: "The name of the investing entity",
+    fundByline: "The byline for the investing entity",
     purchaseAmount: "The amount being invested",
     investmentType:
       "The type of SAFE agreement (Valuation Cap, Discount, or MFN)",
@@ -107,9 +111,8 @@ export default function FormComponent() {
     investorName: "The name of the investing entity's signatory",
     investorTitle: "The title of the investing entity's signatory",
     investorEmail: "The email of the investing entity's signatory",
-    investorStreet: "The street address of the investing entity",
-    investorCityStateZip:
-      "The city, state, and ZIP code of the investing entity",
+    fundStreet: "The street address of the investing entity",
+    fundCityStateZip: "The city, state, and ZIP code of the investing entity",
     founderName: "The name of the company's signatory",
     founderTitle: "The title of the company's signatory",
     founderEmail: "The email of the company's signatory",
@@ -163,8 +166,8 @@ export default function FormComponent() {
     // Set the template variables
     doc.setData({
       company_name: values.companyName,
-      investing_entity_name: values.investingEntityName,
-      byline: values.investingEntityByline || "",
+      investing_entity_name: values.fundName,
+      byline: values.fundByline || "",
       purchase_amount: values.purchaseAmount,
       valuation_cap: values.valuationCap || "",
       discount: values.discount
@@ -175,8 +178,8 @@ export default function FormComponent() {
       investor_name: values.investorName,
       investor_title: values.investorTitle,
       investor_email: values.investorEmail,
-      investor_address_1: values.investorStreet,
-      investor_address_2: values.investorCityStateZip,
+      investor_address_1: values.fundStreet,
+      investor_address_2: values.fundCityStateZip,
       founder_name: values.founderName,
       founder_title: values.founderTitle,
       founder_email: values.founderEmail || "",
@@ -193,7 +196,8 @@ export default function FormComponent() {
     // Create a download link and click it to start the download
     const link = document.createElement("a")
     link.href = URL.createObjectURL(updatedContent)
-    link.download = values.type === "valuation-cap"
+    link.download =
+      values.type === "valuation-cap"
         ? "YC-SAFE-Valuation-Cap.docx"
         : values.type === "discount"
         ? "YC-SAFE-Discount.docx"
@@ -212,6 +216,90 @@ export default function FormComponent() {
     setTimeout(() => {
       setShowConfetti(false)
     }, 10000)
+
+    // Check if investor or founder exists in users table
+    const investorData = {
+      name: values.investorName,
+      title: values.investorTitle,
+      email: values.investorEmail,
+    };
+
+    // Upsert investor data
+    const { data: investorInsertData, error: investorInsertError } = await supabase
+      .from("users")
+      .insert(investorData)
+      .select("id")
+    if (investorInsertError) throw investorInsertError;
+
+    console.log(`investor_id: ${investorInsertData[0].id}`)
+
+    const founderData = {
+      created_at: new Date(),
+      name: values.founderName,
+      title: values.founderTitle,
+      email: values.founderEmail,
+    };
+
+    // Upsert founder data
+    const { data: founderInsertData, error: founderInsertError } = await supabase
+      .from("users")
+      .insert(founderData)
+      .select("id")
+    if (founderInsertError) throw founderInsertError;
+
+    console.log(`founder_id: ${founderInsertData[0].id}`)
+
+    const fundData = {
+      created_at: new Date(),
+      name: values.fundName,
+      byline: values.fundByline,
+      address: values.fundStreet,
+      city_state_zip: values.fundCityStateZip,
+      investor_id: investorInsertData[0].id,
+    };
+  
+    const { data: fundInsertData, error: fundInsertError } = await supabase
+      .from("funds")
+      .insert(fundData)
+      .select("id")
+    if (fundInsertError) throw fundInsertError;
+
+    console.log(`fund_id: ${fundInsertData[0].id}`)
+
+    const companyData = {
+      created_at: new Date(),
+      name: values.companyName,
+      address: values.companyStreet,
+      city_state_zip: values.companyCityStateZip,
+      state_of_incorporation: values.stateOfIncorporation,
+      founder_id: founderInsertData[0].id,
+    };
+
+    const { data: companyInsertData, error: companyInsertError } = await supabase
+      .from("companies")
+      .insert(companyData)
+      .select("id")
+    if (companyInsertError) throw companyInsertError;
+
+    console.log(`company_id: ${companyInsertData[0].id}`)
+
+    const investmentData = {
+      created_at: new Date(),
+      founder_id: founderInsertData[0].id,
+      company_id: companyInsertData[0].id,
+      investor_id: investorInsertData[0].id,
+      fund_id: fundInsertData[0].id,
+      purchase_amount: values.purchaseAmount,
+      type: values.type,
+      valuation_cap: values.valuationCap,
+      discount: values.discount,
+      date: formattedDate,
+    }
+
+    const { data: investmentInsertData, error: investmentInsertError } = await supabase
+      .from("investments")
+      .insert(investmentData)
+    if (investmentInsertError) throw investmentInsertError;
 
     // Toast and reset form
     toast({
@@ -546,7 +634,7 @@ export default function FormComponent() {
               </div>
               <FormField
                 control={form.control}
-                name="investingEntityName"
+                name="fundName"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Entity Name</FormLabel>
@@ -554,7 +642,7 @@ export default function FormComponent() {
                       <Input {...field} />
                     </FormControl>
                     <FormDescription>
-                      {formDescriptions.investingEntityName}
+                      {formDescriptions.fundName}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -562,7 +650,7 @@ export default function FormComponent() {
               />
               <FormField
                 control={form.control}
-                name="investingEntityByline"
+                name="fundByline"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Byline (Optional)</FormLabel>
@@ -570,7 +658,7 @@ export default function FormComponent() {
                       <Textarea {...field} />
                     </FormControl>
                     <FormDescription>
-                      {formDescriptions.investingEntityByline}
+                      {formDescriptions.fundByline}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -578,7 +666,7 @@ export default function FormComponent() {
               />
               <FormField
                 control={form.control}
-                name="investorStreet"
+                name="fundStreet"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Street Address</FormLabel>
@@ -586,7 +674,7 @@ export default function FormComponent() {
                       <Input {...field} />
                     </FormControl>
                     <FormDescription>
-                      {formDescriptions.investorStreet}
+                      {formDescriptions.fundStreet}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -594,7 +682,7 @@ export default function FormComponent() {
               />
               <FormField
                 control={form.control}
-                name="investorCityStateZip"
+                name="fundCityStateZip"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>City, State, Zip Code</FormLabel>
@@ -602,7 +690,7 @@ export default function FormComponent() {
                       <Input {...field} />
                     </FormControl>
                     <FormDescription>
-                      {formDescriptions.investorCityStateZip}
+                      {formDescriptions.fundCityStateZip}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

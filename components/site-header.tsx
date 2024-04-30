@@ -1,19 +1,19 @@
 import Link from "next/link"
-
 import { siteConfig } from "@/config/site"
-import { buttonVariants } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Icons } from "@/components/icons"
 import { MainNav } from "@/components/main-nav"
 import { ThemeToggle } from "@/components/theme-toggle"
+import UserNav from "./user-nav"
 
-export function SiteHeader() {
+export function SiteHeader({user}: {user: any}) {
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background">
       <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0">
         <a className="text-xl font-bold pr-6" href="/">
           Draftmysafe
         </a>
-        <MainNav items={siteConfig.mainNav} />
+        {user ? <MainNav items={siteConfig.mainNav} /> : null}
         <div className="flex flex-1 items-center justify-end space-x-4">
           <nav className="flex items-center space-x-1">
             <Link
@@ -47,6 +47,13 @@ export function SiteHeader() {
               </div>
             </Link>
             <ThemeToggle />
+            {user ? (
+              <UserNav user={user} />
+            ) : (
+              <Link href="login">
+                <Button className="ml-4">Log In</Button>
+              </Link>
+            )}
           </nav>
         </div>
       </div>

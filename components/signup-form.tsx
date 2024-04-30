@@ -46,11 +46,6 @@ const formSchema = z.object({
 export function SignupForm({ signup }: SignupFormProps) {
   const supabase = createClient()
   const router = useRouter()
-  const [origin, setOrigin] = useState<string>("")
-
-  useEffect(() => {
-    setOrigin(window.location.origin)
-  }, [])
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

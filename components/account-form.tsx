@@ -75,7 +75,7 @@ export default function AccountForm({
     }
   }
   return (
-    <div className="flex flex-col ">
+    <div className="flex flex-col w-1/2">
       <h1 className="text-2xl font-bold mb-4">Account</h1>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -153,6 +153,9 @@ export default function AccountForm({
                     </FormItem>
                   </RadioGroup>
                 </FormControl>
+                <FormDescription>
+                  Please indicate your signatory type
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}

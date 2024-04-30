@@ -19,7 +19,7 @@ export default async function Account() {
     .single();
 
   return (
-    <div className="w-auto px-4 min-h-screen">
+    <div className="w-full min-h-screen flex justify-center">
       <AccountForm user={user} userData={userData} />
     </div>
   );

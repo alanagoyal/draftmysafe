@@ -2,7 +2,7 @@ import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
 
-export default function IndexPage() {
+export default async function IndexPage() {
 
   return (
     <div className="flex flex-col min-h-screen w-full">

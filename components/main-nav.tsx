@@ -1,3 +1,5 @@
+"use client"
+
 import * as React from "react"
 import Link from "next/link"
 
@@ -12,7 +14,7 @@ export function MainNav({ items }: MainNavProps) {
   return (
     <div className="flex gap-6 md:gap-10">
       {items?.length ? (
-        <nav className="hidden gap-6 md:flex">
+        <div className="hidden gap-6 md:flex">
           {items?.map(
             (item, index) =>
               item.href && (
@@ -28,7 +30,7 @@ export function MainNav({ items }: MainNavProps) {
                 </Link>
               )
           )}
-        </nav>
+        </div>
       ) : null}
     </div>
   )

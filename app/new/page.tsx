@@ -19,7 +19,7 @@ export default async function Safe() {
     .eq("auth_id", user?.id)
     .single();
   return (
-    <div className="w-full">
+    <div className="flex w-full justify-center min-h-screen">
       <AuthRefresh/>
       <FormComponent userData={userData}/>
     </div>

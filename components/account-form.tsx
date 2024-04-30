@@ -75,7 +75,7 @@ export default function AccountForm({
     }
   }
   return (
-    <div className="flex flex-col w-1/2">
+    <div className="flex flex-col items-center min-h-screen py-2 w-2/3">
       <h1 className="text-2xl font-bold mb-4">Account</h1>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

@@ -1,26 +1,27 @@
-import AccountForm from "@/components/account-form";
-import { createClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
+import { redirect } from "next/navigation"
+import { createClient } from "@/utils/supabase/server"
+
+import AccountForm from "@/components/account-form"
 
 export default async function Account() {
-  const supabase = createClient();
+  const supabase = createClient()
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect("/login");
+    redirect("/login")
   }
 
   const { data: userData, error } = await supabase
     .from("users")
     .select()
     .eq("auth_id", user?.id)
-    .single();
+    .single()
 
   return (
-    <div className="w-full min-h-screen flex justify-center">
+    <div className="flex w-full justify-center min-h-screen">
       <AccountForm user={user} userData={userData} />
     </div>
-  );
+  )
 }

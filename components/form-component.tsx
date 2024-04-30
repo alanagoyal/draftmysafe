@@ -218,90 +218,116 @@ export default function FormComponent({ userData }: { userData: any }) {
       setShowConfetti(false)
     }, 10000)
 
-    // Insert investor data
-    const investorData = {
-      name: values.investorName,
-      title: values.investorTitle,
-      email: values.investorEmail,
+    // Find type of created_by and determine whether to add to db or not
+    const createdByType = userData.type
+
+ 
+
+    // Insert into investments table
+    try {
+      // Check if the investor already exists
+      let investorData = await supabase
+        .from("users")
+        .select("id")
+        .eq("email", values.investorEmail)
+  
+      let investorId;
+      if (investorData.data) {
+        investorId = investorData.data[0].id;
+      } else {
+        const { data, error } = await supabase
+          .from("users")
+          .insert({
+            name: values.investorName,
+            title: values.investorTitle,
+            email: values.investorEmail,
+          })
+          .select("id")
+        if (error) throw error;
+        investorId = data[0].id;
+      }
+  
+      // Check if the founder already exists
+      let founderData = await supabase
+        .from("users")
+        .select("id")
+        .eq("email", values.founderEmail)
+  
+      let founderId;
+      if (founderData.data) {
+        founderId = founderData.data[0].id;
+      } else {
+        const { data, error } = await supabase
+          .from("users")
+          .insert({
+            name: values.founderName,
+            title: values.founderTitle,
+            email: values.founderEmail,
+          })
+          .select("id")
+        if (error) throw error;
+        founderId = data[0].id;
+      }
+  
+      // Insert fund and company data using the ids
+      let fundId;
+      const fundData = {
+        name: values.fundName,
+        byline: values.fundByline,
+        street: values.fundStreet,
+        city_state_zip: values.fundCityStateZip,
+        investor_id: investorId,
+      };
+      const { data: fundInsertData, error: fundInsertError } = await supabase
+        .from("funds")
+        .insert(fundData)
+        .select("id");
+      if (fundInsertError) throw fundInsertError;
+      fundId = fundInsertData[0].id;
+  
+      let companyId;
+      const companyData = {
+        name: values.companyName,
+        street: values.companyStreet,
+        city_state_zip: values.companyCityStateZip,
+        state_of_incorporation: values.stateOfIncorporation,
+        founder_id: founderId,
+      };
+      const { data: companyInsertData, error: companyInsertError } = await supabase
+        .from("companies")
+        .insert(companyData)
+        .select("id");
+      if (companyInsertError) throw companyInsertError;
+      companyId = companyInsertData[0].id;
+  
+      // Insert into investments table with all linked ids
+      const investmentData = {
+        founder_id: founderId,
+        company_id: companyId,
+        investor_id: investorId,
+        fund_id: fundId,
+        purchase_amount: values.purchaseAmount,
+        investment_type: values.type,
+        valuation_cap: values.valuationCap,
+        discount: values.discount,
+        date: values.date,
+        created_by: userData.auth_id,
+      };
+      const { data: investmentInsertData, error: investmentInsertError } = await supabase
+        .from("investments")
+        .insert(investmentData);
+      if (investmentInsertError) throw investmentInsertError;
+    } catch (error) {
+      console.error(error);
+    } finally {
+      // Toast and reset form
+      toast({
+        title: "Congratulations!",
+        description:
+          "Your SAFE agreement has been generated and can be found in your Downloads",
+      })
+      resetForm()
     }
-
-    const { data: investorInsertData, error: investorInsertError } =
-      await supabase.from("users").insert(investorData).select("id")
-    if (investorInsertError) throw investorInsertError
-
-    console.log(`investor_id: ${investorInsertData[0].id}`)
-
-    // Insert founder data
-    const founderData = {
-      created_at: new Date(),
-      name: values.founderName,
-      title: values.founderTitle,
-      email: values.founderEmail,
-    }
-
-    const { data: founderInsertData, error: founderInsertError } =
-      await supabase.from("users").insert(founderData).select("id")
-    if (founderInsertError) throw founderInsertError
-
-    console.log(`founder_id: ${founderInsertData[0].id}`)
-
-    const fundData = {
-      created_at: new Date(),
-      name: values.fundName,
-      byline: values.fundByline,
-      street: values.fundStreet,
-      city_state_zip: values.fundCityStateZip,
-      investor_id: investorInsertData[0].id,
-    }
-
-    const { data: fundInsertData, error: fundInsertError } = await supabase
-      .from("funds")
-      .insert(fundData)
-      .select("id")
-    if (fundInsertError) throw fundInsertError
-
-    console.log(`fund_id: ${fundInsertData[0].id}`)
-
-    const companyData = {
-      created_at: new Date(),
-      name: values.companyName,
-      street: values.companyStreet,
-      city_state_zip: values.companyCityStateZip,
-      state_of_incorporation: values.stateOfIncorporation,
-      founder_id: founderInsertData[0].id,
-    }
-
-    const { data: companyInsertData, error: companyInsertError } =
-      await supabase.from("companies").insert(companyData).select("id")
-    if (companyInsertError) throw companyInsertError
-
-    console.log(`company_id: ${companyInsertData[0].id}`)
-
-    const investmentData = {
-      created_at: new Date(),
-      founder_id: founderInsertData[0].id,
-      company_id: companyInsertData[0].id,
-      investor_id: investorInsertData[0].id,
-      fund_id: fundInsertData[0].id,
-      purchase_amount: values.purchaseAmount,
-      investment_type: values.type,
-      valuation_cap: values.valuationCap,
-      discount: values.discount,
-      date: values.date,
-      created_by: userData.auth_id,
-    }
-
-    const { data: investmentInsertData, error: investmentInsertError } =
-      await supabase.from("investments").insert(investmentData)
-    if (investmentInsertError) throw investmentInsertError
-
-    // Toast and reset form
-    toast({
-      title: "Congratulations!",
-      description:
-        "Your SAFE agreement has been generated and can be found in your Downloads",
-    })
-    resetForm()
   }
 
   function resetForm() {
@@ -311,7 +337,7 @@ export default function FormComponent({ userData }: { userData: any }) {
   }
 
   return (
-    <div className="flex flex-col items-center min-h-screen py-2 w-2/3 mx-auto">
+    <div className="flex flex-col items-center min-h-screen py-2 w-2/3">
       {showConfetti && <Confetti />}
       <h1 className="text-4xl font-bold mb-4">Get Started</h1>
       <h3 className="text-sm text-gray-500 mb-4">

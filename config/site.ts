@@ -3,7 +3,7 @@ export type SiteConfig = typeof siteConfig
 export const siteConfig = {
   name: "Draftmysafe",
   description: "Skip the paperwork and generate a YC SAFE agreement in seconds",
-  url: "https:draftmysafe.com", 
+  url: "https://draftmysafe.com", 
   mainNav: [
     {
       title: "New",

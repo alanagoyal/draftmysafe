@@ -61,7 +61,7 @@ export default function AccountForm({
       let { error } = await supabase
         .from("users")
         .update(updates)
-        .eq("id", user.id)
+        .eq("auth_id", user.id)
       if (error) throw error
       toast({
         description: "Account updated",
@@ -150,12 +150,6 @@ export default function AccountForm({
                         <RadioGroupItem value="investor" />
                       </FormControl>
                       <FormLabel className="font-normal">Investor</FormLabel>
-                    </FormItem>
-                    <FormItem className="flex items-center space-x-3 space-y-0">
-                      <FormControl>
-                        <RadioGroupItem value="both" />
-                      </FormControl>
-                      <FormLabel className="font-normal">Both</FormLabel>
                     </FormItem>
                   </RadioGroup>
                 </FormControl>

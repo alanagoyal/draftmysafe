@@ -10,6 +10,7 @@ import PizZip from "pizzip"
 import Confetti from "react-confetti"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
+
 import { cn } from "@/lib/utils"
 
 import { Button } from "./ui/button"
@@ -66,7 +67,7 @@ const FormComponentSchema = z.object({
 
 type FormComponentValues = z.infer<typeof FormComponentSchema>
 
-export default function FormComponent() {
+export default function FormComponent({ userData }: { userData: any }) {
   const supabase = createClient()
 
   const form = useForm<FormComponentValues>({
@@ -81,14 +82,14 @@ export default function FormComponent() {
       discount: "",
       stateOfIncorporation: "",
       date: new Date(),
-      investorName: "",
-      investorTitle: "",
-      investorEmail: "",
+      investorName: userData.type === "investor" ? userData.name : "",
+      investorTitle: userData.type === "investor" ? userData.title : "",
+      investorEmail: userData.type === "investor" ? userData.email : "",
       fundStreet: "",
       fundCityStateZip: "",
-      founderName: "",
-      founderTitle: "",
-      founderEmail: "",
+      founderName: userData.type === "founder" ? userData.name : "",
+      founderTitle: userData.type === "founder" ? userData.title : "",
+      founderEmail: userData.type === "founder" ? userData.email : "",
       companyStreet: "",
       companyCityStateZip: "",
     },
@@ -217,35 +218,30 @@ export default function FormComponent() {
       setShowConfetti(false)
     }, 10000)
 
-    // Check if investor or founder exists in users table
+    // Insert investor data
     const investorData = {
       name: values.investorName,
       title: values.investorTitle,
       email: values.investorEmail,
-    };
+    }
 
-    // Upsert investor data
-    const { data: investorInsertData, error: investorInsertError } = await supabase
-      .from("users")
-      .insert(investorData)
-      .select("id")
-    if (investorInsertError) throw investorInsertError;
+    const { data: investorInsertData, error: investorInsertError } =
+      await supabase.from("users").insert(investorData).select("id")
+    if (investorInsertError) throw investorInsertError
 
     console.log(`investor_id: ${investorInsertData[0].id}`)
 
+    // Insert founder data
     const founderData = {
       created_at: new Date(),
       name: values.founderName,
       title: values.founderTitle,
       email: values.founderEmail,
-    };
+    }
 
-    // Upsert founder data
-    const { data: founderInsertData, error: founderInsertError } = await supabase
-      .from("users")
-      .insert(founderData)
-      .select("id")
-    if (founderInsertError) throw founderInsertError;
+    const { data: founderInsertData, error: founderInsertError } =
+      await supabase.from("users").insert(founderData).select("id")
+    if (founderInsertError) throw founderInsertError
 
     console.log(`founder_id: ${founderInsertData[0].id}`)
 
@@ -253,33 +249,31 @@ export default function FormComponent() {
       created_at: new Date(),
       name: values.fundName,
       byline: values.fundByline,
-      address: values.fundStreet,
+      street: values.fundStreet,
       city_state_zip: values.fundCityStateZip,
       investor_id: investorInsertData[0].id,
-    };
-  
+    }
+
     const { data: fundInsertData, error: fundInsertError } = await supabase
       .from("funds")
       .insert(fundData)
       .select("id")
-    if (fundInsertError) throw fundInsertError;
+    if (fundInsertError) throw fundInsertError
 
     console.log(`fund_id: ${fundInsertData[0].id}`)
 
     const companyData = {
       created_at: new Date(),
       name: values.companyName,
-      address: values.companyStreet,
+      street: values.companyStreet,
       city_state_zip: values.companyCityStateZip,
       state_of_incorporation: values.stateOfIncorporation,
       founder_id: founderInsertData[0].id,
-    };
+    }
 
-    const { data: companyInsertData, error: companyInsertError } = await supabase
-      .from("companies")
-      .insert(companyData)
-      .select("id")
-    if (companyInsertError) throw companyInsertError;
+    const { data: companyInsertData, error: companyInsertError } =
+      await supabase.from("companies").insert(companyData).select("id")
+    if (companyInsertError) throw companyInsertError
 
     console.log(`company_id: ${companyInsertData[0].id}`)
 
@@ -290,16 +284,16 @@ export default function FormComponent() {
       investor_id: investorInsertData[0].id,
       fund_id: fundInsertData[0].id,
       purchase_amount: values.purchaseAmount,
-      type: values.type,
+      investment_type: values.type,
       valuation_cap: values.valuationCap,
       discount: values.discount,
-      date: formattedDate,
+      date: values.date,
+      created_by: userData.auth_id,
     }
 
-    const { data: investmentInsertData, error: investmentInsertError } = await supabase
-      .from("investments")
-      .insert(investmentData)
-    if (investmentInsertError) throw investmentInsertError;
+    const { data: investmentInsertData, error: investmentInsertError } =
+      await supabase.from("investments").insert(investmentData)
+    if (investmentInsertError) throw investmentInsertError
 
     // Toast and reset form
     toast({

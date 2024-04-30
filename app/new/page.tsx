@@ -8,13 +8,20 @@ export default async function Safe() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
   if (!user) {
     redirect("/login");
   }
+
+  const { data: userData, error } = await supabase
+    .from("users")
+    .select()
+    .eq("auth_id", user?.id)
+    .single();
   return (
     <div className="w-full">
       <AuthRefresh/>
-      <FormComponent />
+      <FormComponent userData={userData}/>
     </div>
   )
 }

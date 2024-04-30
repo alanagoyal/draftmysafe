@@ -15,7 +15,7 @@ export default async function Account() {
   const { data: userData, error } = await supabase
     .from("users")
     .select()
-    .eq("id", user?.id)
+    .eq("auth_id", user?.id)
     .single();
 
   return (

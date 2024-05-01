@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { Toaster } from "@/components/ui/toaster"
 import { SiteHeader } from "@/components/site-header"
 import { ThemeProvider } from "@/components/theme-provider"
+import { CommandMenu } from "@/components/command-menu"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -58,6 +59,7 @@ export default function RootLayout({
           <div vaul-drawer-wrapper="">
             <div className="relative flex flex-col bg-background">
               <SiteHeader />
+              <CommandMenu />
               <main className="flex-1">
                 <div className="flex flex-col items-center pt-10 py-2 max-w-7xl mx-auto">
                   {children}

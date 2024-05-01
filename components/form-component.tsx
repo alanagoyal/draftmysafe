@@ -225,10 +225,10 @@ export default function FormComponent({ userData }: { userData: any }) {
         .from("users")
         .select("id")
         .eq("email", values.investorEmail)
-  
-      let investorId;
+
+      let investorId
       if (investorData.data) {
-        investorId = investorData.data[0].id;
+        investorId = investorData.data[0].id
       } else {
         const { data, error } = await supabase
           .from("users")
@@ -238,19 +238,19 @@ export default function FormComponent({ userData }: { userData: any }) {
             email: values.investorEmail,
           })
           .select("id")
-        if (error) throw error;
-        investorId = data[0].id;
+        if (error) throw error
+        investorId = data[0].id
       }
-  
+
       // Check if the founder already exists
       let founderData = await supabase
         .from("users")
         .select("id")
         .eq("email", values.founderEmail)
-  
-      let founderId;
-      if (founderData.data) {
-        founderId = founderData.data[0].id;
+
+      let founderId
+      if (founderData.data && founderData.data.length > 0) {
+        founderId = founderData.data[0].id
       } else {
         const { data, error } = await supabase
           .from("users")
@@ -260,41 +260,39 @@ export default function FormComponent({ userData }: { userData: any }) {
             email: values.founderEmail,
           })
           .select("id")
-        if (error) throw error;
-        founderId = data[0].id;
+        if (error) throw error
+        founderId = data[0].id
       }
-  
+
       // Insert fund and company data using the ids
-      let fundId;
+      let fundId
       const fundData = {
         name: values.fundName,
         byline: values.fundByline,
         street: values.fundStreet,
         city_state_zip: values.fundCityStateZip,
         investor_id: investorId,
-      };
+      }
       const { data: fundInsertData, error: fundInsertError } = await supabase
         .from("funds")
         .insert(fundData)
-        .select("id");
-      if (fundInsertError) throw fundInsertError;
-      fundId = fundInsertData[0].id;
-  
-      let companyId;
+        .select("id")
+      if (fundInsertError) throw fundInsertError
+      fundId = fundInsertData[0].id
+
+      let companyId
       const companyData = {
         name: values.companyName,
         street: values.companyStreet,
         city_state_zip: values.companyCityStateZip,
         state_of_incorporation: values.stateOfIncorporation,
         founder_id: founderId,
-      };
-      const { data: companyInsertData, error: companyInsertError } = await supabase
-        .from("companies")
-        .insert(companyData)
-        .select("id");
-      if (companyInsertError) throw companyInsertError;
-      companyId = companyInsertData[0].id;
-  
+      }
+      const { data: companyInsertData, error: companyInsertError } =
+        await supabase.from("companies").insert(companyData).select("id")
+      if (companyInsertError) throw companyInsertError
+      companyId = companyInsertData[0].id
+
       // Insert into investments table with all linked ids
       const investmentData = {
         founder_id: founderId,
@@ -307,13 +305,12 @@ export default function FormComponent({ userData }: { userData: any }) {
         discount: values.discount,
         date: values.date,
         created_by: userData.auth_id,
-      };
-      const { data: investmentInsertData, error: investmentInsertError } = await supabase
-        .from("investments")
-        .insert(investmentData);
-      if (investmentInsertError) throw investmentInsertError;
+      }
+      const { data: investmentInsertData, error: investmentInsertError } =
+        await supabase.from("investments").insert(investmentData)
+      if (investmentInsertError) throw investmentInsertError
     } catch (error) {
-      console.error(error);
+      console.error("Error during database operation:", error)
     } finally {
       // Toast and reset form
       toast({

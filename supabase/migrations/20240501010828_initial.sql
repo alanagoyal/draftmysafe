@@ -9,6 +9,8 @@ create table "public"."companies" (
 );
 
 
+alter table "public"."companies" enable row level security;
+
 create table "public"."funds" (
     "id" uuid not null default gen_random_uuid(),
     "created_at" timestamp with time zone not null default now(),
@@ -19,6 +21,8 @@ create table "public"."funds" (
     "investor_id" uuid
 );
 
+
+alter table "public"."funds" enable row level security;
 
 create table "public"."investments" (
     "id" uuid not null default gen_random_uuid(),
@@ -36,6 +40,8 @@ create table "public"."investments" (
 );
 
 
+alter table "public"."investments" enable row level security;
+
 create table "public"."users" (
     "created_at" timestamp with time zone not null default now(),
     "email" text,
@@ -47,6 +53,8 @@ create table "public"."users" (
     "auth_id" uuid
 );
 
+
+alter table "public"."users" enable row level security;
 
 CREATE UNIQUE INDEX companies_pkey ON public.companies USING btree (id);
 
@@ -290,6 +298,86 @@ grant trigger on table "public"."users" to "service_role";
 grant truncate on table "public"."users" to "service_role";
 
 grant update on table "public"."users" to "service_role";
+
+create policy "Enable all for all users"
+on "public"."companies"
+as permissive
+for all
+to public
+using (true);
+
+
+create policy "Enable all for all users"
+on "public"."funds"
+as permissive
+for all
+to public
+using (true);
+
+
+create policy "Enable delete for users based on created_by"
+on "public"."investments"
+as permissive
+for delete
+to public
+using ((( SELECT auth.uid() AS uid) = created_by));
+
+
+create policy "Enable insert for users based on created_by"
+on "public"."investments"
+as permissive
+for insert
+to public
+with check ((( SELECT auth.uid() AS uid) = created_by));
+
+
+create policy "Enable select for users based on created_by"
+on "public"."investments"
+as permissive
+for select
+to public
+using ((( SELECT auth.uid() AS uid) = created_by));
+
+
+create policy "Enable update for users based on created_by"
+on "public"."investments"
+as permissive
+for update
+to public
+using ((( SELECT auth.uid() AS uid) = created_by));
+
+
+create policy "Enable delete for users based on auth_id"
+on "public"."users"
+as permissive
+for delete
+to public
+using ((( SELECT auth.uid() AS uid) = auth_id));
+
+
+create policy "Enable insert access for all users"
+on "public"."users"
+as permissive
+for insert
+to public
+with check (true);
+
+
+create policy "Enable select for all users"
+on "public"."users"
+as permissive
+for select
+to public
+using (true);
+
+
+create policy "Enable update for users based on auth_id"
+on "public"."users"
+as permissive
+for update
+to public
+using ((( SELECT auth.uid() AS uid) = auth_id));
+
 
 
 CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user();

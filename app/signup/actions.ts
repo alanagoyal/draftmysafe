@@ -13,12 +13,9 @@ export async function signup(formData: SignupFormData) {
     email,
     password,
     options: {
-      emailRedirectTo: `${siteConfig.url}/new`,
+      emailRedirectTo: `${siteConfig.url}/account`,
     },
   })
-
-  console.log(data)
-  console.log(error)
 
   // User exists, but is fake. See https://supabase.com/docs/reference/javascript/auth-signup
   let authError: { name: string; message: string } | null = null

@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Label } from "@radix-ui/react-label"
-import { Plus } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
@@ -250,7 +249,7 @@ export default function AccountForm({
       return fundData.map((fund, index) => (
         <React.Fragment key={`fund-${index}`}>
         <div className={index === 0 ? "pt-0" : "pt-4"}>
-            <Label className="text-sm font-bold">{fund.name}</Label>
+            <Label className="text-sm font-bold">{fund.name || "New Fund"}</Label>
           </div>
           <FormField
             control={form.control}
@@ -316,7 +315,7 @@ export default function AccountForm({
       return companyData.map((company, index) => (
         <React.Fragment key={`company-${index}`}>
         <div className={index === 0 ? "pt-0" : "pt-4"}>
-            <Label className="text-sm font-bold">{company.name}</Label>
+            <Label className="text-sm font-bold">{company.name || "New Company"}</Label>
           </div>
           <FormField
             control={form.control}

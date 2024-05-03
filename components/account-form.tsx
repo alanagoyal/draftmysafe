@@ -1,8 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { Label } from "@radix-ui/react-label"
+import { Plus } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
@@ -24,20 +26,30 @@ import { Textarea } from "./ui/textarea"
 import { toast } from "./ui/use-toast"
 
 const accountFormSchema = z.object({
-  type: z.enum(["founder", "investor"], {
-    required_error: "You need to select a signatory type.",
-  }),
+  type: z.enum(["founder", "investor"]),
   email: z.string().email(),
   name: z.string().min(2),
   title: z.string().min(2),
-  fundName: z.string().optional(),
-  fundByline: z.string().optional(),
-  fundStreet: z.string().optional(),
-  fundCityStateZip: z.string().optional(),
-  companyName: z.string().optional(),
-  stateOfIncorporation: z.string().optional(),
-  companyStreet: z.string().optional(),
-  companyCityStateZip: z.string().optional(),
+  funds: z.array(
+    z
+      .object({
+        name: z.string().optional(),
+        byline: z.string().optional(),
+        street: z.string().optional(),
+        city_state_zip: z.string().optional(),
+      })
+      .optional()
+  ),
+  companies: z.array(
+    z
+      .object({
+        name: z.string().optional(),
+        state_of_incorporation: z.string().optional(),
+        street: z.string().optional(),
+        city_state_zip: z.string().optional(),
+      })
+      .optional()
+  ),
 })
 
 type AccountFormValues = z.infer<typeof accountFormSchema>
@@ -50,8 +62,12 @@ export default function AccountForm({
   userData: any
 }) {
   const supabase = createClient()
-  const [fundData, setFundData] = useState<any>({})
-  const [companyData, setCompanyData] = useState<any>({})
+  const [fundData, setFundData] = useState<any[]>([
+    { name: "", byline: "", street: "", city_state_zip: "" },
+  ])
+  const [companyData, setCompanyData] = useState<any[]>([
+    { name: "", state_of_incorporation: "", street: "", city_state_zip: "" },
+  ])
 
   const form = useForm<AccountFormValues>({
     resolver: zodResolver(accountFormSchema),
@@ -60,40 +76,73 @@ export default function AccountForm({
       email: userData.email || "",
       name: userData.name || "",
       title: userData.title || "",
-      fundName: fundData.name || "",
-      fundByline: fundData.byline || "",
-      fundStreet: fundData.street || "",
-      fundCityStateZip: fundData.city_state_zip || "",
-      companyName: companyData.name || "",
-      stateOfIncorporation: companyData.state_of_incorporation || "",
-      companyStreet: companyData.street || "",
-      companyCityStateZip: companyData.city_state_zip || "",
+      funds: fundData || [
+        { name: "", byline: "", street: "", city_state_zip: "" },
+      ],
+      companies: companyData || [
+        {
+          name: "",
+          state_of_incorporation: "",
+          street: "",
+          city_state_zip: "",
+        },
+      ],
     },
   })
 
   useEffect(() => {
-    if (userData) {
-      getFundData()
-      getCompanyData()
+    form.reset({ ...form.getValues() }) // This ensures the form reflects the state
+  }, [userData])
+
+  useEffect(() => {
+    if (userData && userData.type === "investor") {
+      fetchFunds()
+    } else if (userData && userData.type === "founder") {
+      fetchCompanies()
     }
   }, [userData])
 
-  async function getFundData() {
-    const { data: fundData, error } = await supabase
+  const fetchFunds = async () => {
+    const { data, error } = await supabase
       .from("funds")
       .select("*")
       .eq("investor_id", userData.id)
-    if (error) throw error
-    setFundData(fundData || {})
+    if (error) {
+      toast({ variant: "destructive", description: "Failed to fetch funds" })
+      console.error(error)
+    } else {
+      const sanitizedData = data.map((fund) => ({
+        name: fund.name || "",
+        byline: fund.byline || "",
+        street: fund.street || "",
+        city_state_zip: fund.city_state_zip || "",
+      }))
+      setFundData(sanitizedData)
+      form.reset({ ...form.getValues(), funds: sanitizedData })
+    }
   }
 
-  async function getCompanyData() {
-    const { data: companyData, error } = await supabase
+  const fetchCompanies = async () => {
+    const { data, error } = await supabase
       .from("companies")
       .select("*")
       .eq("founder_id", userData.id)
-    if (error) throw error
-    setCompanyData(companyData || {})
+    if (error) {
+      toast({
+        variant: "destructive",
+        description: "Failed to fetch companies",
+      })
+      console.error(error)
+    } else {
+      const sanitizedData = data.map((company) => ({
+        name: company.name || "",
+        state_of_incorporation: company.state_of_incorporation || "",
+        street: company.street || "",
+        city_state_zip: company.city_state_zip || "",
+      }))
+      setCompanyData(sanitizedData)
+      form.reset({ ...form.getValues(), companies: sanitizedData })
+    }
   }
 
   async function onSubmit(data: AccountFormValues) {
@@ -113,11 +162,19 @@ export default function AccountForm({
         .eq("auth_id", user.id)
       if (accountError) throw accountError
 
-      // Process fund or company updates
+      // Handle funds and companies based on the type
       if (data.type === "investor") {
-        await processInvestorFund(data)
-      } else if (data.type === "founder") {
-        await processFounderCompany(data)
+        await Promise.all(
+          data.funds.map((fund) =>
+            processFund({ ...fund, investor_id: userData.id })
+          )
+        )
+      } else {
+        await Promise.all(
+          data.companies.map((company) =>
+            processCompany({ ...company, founder_id: userData.id })
+          )
+        )
       }
     } catch (error) {
       console.error(error)
@@ -132,77 +189,72 @@ export default function AccountForm({
     }
   }
 
-  async function processInvestorFund(data: AccountFormValues) {
-    const { data: existingFund, error: fundError } = await supabase
+  async function processFund(fund) {
+    const { data: existingFund, error } = await supabase
       .from("funds")
       .select("*")
-      .eq("investor_id", userData.id)
-      .eq("name", data.fundName) // Use more fields if necessary for unique identification
-      .single()
+      .eq("investor_id", fund.investor_id)
+      .eq("name", fund.name)
 
-    const fundUpdates = {
-      investor_id: userData.id,
-      name: data.fundName,
-      byline: data.fundByline,
-      street: data.fundStreet,
-      city_state_zip: data.fundCityStateZip,
+    if (error) {
+      console.error("Error fetching fund:", error)
+      throw error
     }
 
-    if (existingFund) {
-      // Update existing fund
-      let { error: updateError } = await supabase
+    if (existingFund && existingFund.length > 0) {
+      const { error: updateError } = await supabase
         .from("funds")
-        .update(fundUpdates)
-        .eq("id", existingFund.id)
-      if (updateError) throw updateError
+        .update(fund)
+        .eq("id", existingFund[0].id)
+      if (updateError) {
+        console.error("Error updating fund:", updateError)
+        throw updateError
+      }
     } else {
-      // Insert new fund
-      let { error: insertError } = await supabase
-        .from("funds")
-        .insert(fundUpdates)
-      if (insertError) throw insertError
+      const { error: insertError } = await supabase.from("funds").insert(fund)
+      if (insertError) {
+        console.error("Error inserting fund:", insertError)
+        throw insertError
+      }
     }
   }
 
-  async function processFounderCompany(data: AccountFormValues) {
-    const { data: existingCompany, error: companyError } = await supabase
+  async function processCompany(company) {
+    const { data: existingCompany, error } = await supabase
       .from("companies")
       .select("*")
-      .eq("founder_id", userData.id)
-      .eq("name", data.companyName) // Adjust fields for unique identification
-      .single()
+      .eq("founder_id", company.founder_id)
+      .eq("name", company.name)
 
-    const companyUpdates = {
-      founder_id: userData.id,
-      name: data.companyName,
-      state_of_incorporation: data.stateOfIncorporation,
-      street: data.companyStreet,
-      city_state_zip: data.companyCityStateZip,
+    if (error) {
+      console.error("Error fetching company:", error)
+      throw error
     }
 
-    if (existingCompany) {
-      // Update existing company
-      let { error: updateError } = await supabase
+    if (existingCompany && existingCompany.length > 0) {
+      const { error: updateError } = await supabase
         .from("companies")
-        .update(companyUpdates)
-        .eq("id", existingCompany.id)
+        .update(company)
+        .eq("id", existingCompany[0].id)
       if (updateError) throw updateError
     } else {
-      // Insert new company
-      let { error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from("companies")
-        .insert(companyUpdates)
+        .insert(company)
       if (insertError) throw insertError
     }
   }
 
   const renderAdditionalFields = (type: string) => {
     if (type === "investor") {
-      return (
-        <>
+      return fundData.map((fund, index) => (
+        <React.Fragment key={`fund-${index}`}>
+        <div className={index === 0 ? "pt-0" : "pt-4"}>
+            <Label className="text-sm font-bold">{fund.name}</Label>
+          </div>
           <FormField
             control={form.control}
-            name="fundName"
+            name={`funds.${index}.name`}
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Entity Name</FormLabel>
@@ -216,7 +268,7 @@ export default function AccountForm({
           />
           <FormField
             control={form.control}
-            name="fundByline"
+            name={`funds.${index}.byline`}
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Byline (Optional)</FormLabel>
@@ -230,7 +282,7 @@ export default function AccountForm({
           />
           <FormField
             control={form.control}
-            name="fundStreet"
+            name={`funds.${index}.street`}
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Street Address</FormLabel>
@@ -244,7 +296,7 @@ export default function AccountForm({
           />
           <FormField
             control={form.control}
-            name="fundCityStateZip"
+            name={`funds.${index}.city_state_zip`}
             render={({ field }) => (
               <FormItem>
                 <FormLabel>City, State, Zip Code</FormLabel>
@@ -258,14 +310,17 @@ export default function AccountForm({
               </FormItem>
             )}
           />
-        </>
-      )
+        </React.Fragment>
+      ))
     } else if (type === "founder") {
-      return (
-        <>
+      return companyData.map((company, index) => (
+        <React.Fragment key={`company-${index}`}>
+        <div className={index === 0 ? "pt-0" : "pt-4"}>
+            <Label className="text-sm font-bold">{company.name}</Label>
+          </div>
           <FormField
             control={form.control}
-            name="companyName"
+            name={`companies.${index}.name`}
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Company Name</FormLabel>
@@ -281,7 +336,7 @@ export default function AccountForm({
           />
           <FormField
             control={form.control}
-            name="companyStreet"
+            name={`companies.${index}.street`}
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Street Address</FormLabel>
@@ -297,7 +352,7 @@ export default function AccountForm({
           />
           <FormField
             control={form.control}
-            name="companyCityStateZip"
+            name={`companies.${index}.city_state_zip`}
             render={({ field }) => (
               <FormItem>
                 <FormLabel>City, State, Zip Code</FormLabel>
@@ -313,7 +368,7 @@ export default function AccountForm({
           />
           <FormField
             control={form.control}
-            name="stateOfIncorporation"
+            name={`companies.${index}.state_of_incorporation`}
             render={({ field }) => (
               <FormItem>
                 <FormLabel>State of Incorporation</FormLabel>
@@ -327,17 +382,42 @@ export default function AccountForm({
               </FormItem>
             )}
           />
-        </>
-      )
+        </React.Fragment>
+      ))
     }
     return null
   }
+
+  const addNewFund = () => {
+    setFundData([
+      ...fundData,
+      { name: "", byline: "", street: "", city_state_zip: "" },
+    ])
+  }
+
+  const addNewCompany = () => {
+    setCompanyData([
+      ...companyData,
+      { name: "", state_of_incorporation: "", street: "", city_state_zip: "" },
+    ])
+  }
+
+  useEffect(() => {
+    form.reset({ ...form.getValues(), funds: fundData, companies: companyData })
+  }, [userData, fundData, companyData])
 
   return (
     <div className="flex flex-col items-center min-h-screen py-2 w-2/3">
       <h1 className="text-2xl font-bold mb-4">Account</h1>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <div className="pt-4">
+            <Label className="text-md font-bold">
+              {form.watch("type") === "investor"
+                ? "Investor Details"
+                : "Founder Details"}
+            </Label>
+          </div>
           <FormField
             control={form.control}
             name="email"
@@ -419,11 +499,30 @@ export default function AccountForm({
               </FormItem>
             )}
           />
-          {renderAdditionalFields(form.watch("type"))}
-          <div className="py-1 flex justify-center w-full">
-            <Button className="w-full" type="submit">
-              Update
-            </Button>
+          <div className="space-y-4">
+            <div className="pt-4">
+              <Label className="text-md font-bold">
+                {form.watch("type") === "investor"
+                  ? "Fund Details"
+                  : "Company Details"}
+              </Label>
+            </div>
+            {renderAdditionalFields(form.watch("type"))}
+            <div className="flex flex-col gap-2">
+              {form.watch("type") === "investor" && (
+                <Button variant="ghost" type="button" onClick={addNewFund}>
+                  + New Fund
+                </Button>
+              )}
+              {form.watch("type") === "founder" && (
+                <Button variant="ghost" type="button" onClick={addNewCompany}>
+                  + New Company
+                </Button>
+              )}
+              <Button className="w-full" type="submit">
+                Update
+              </Button>
+            </div>
           </div>
         </form>
       </Form>

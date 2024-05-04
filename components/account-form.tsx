@@ -1,14 +1,17 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Label } from "@radix-ui/react-label"
+import { Trash } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
 import { formDescriptions } from "@/lib/utils"
 
+import { Icons } from "./icons"
 import { Button } from "./ui/button"
 import {
   Form,
@@ -21,6 +24,13 @@ import {
 } from "./ui/form"
 import { Input } from "./ui/input"
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select"
 import { Textarea } from "./ui/textarea"
 import { toast } from "./ui/use-toast"
 
@@ -52,6 +62,21 @@ const accountFormSchema = z.object({
 })
 
 type AccountFormValues = z.infer<typeof accountFormSchema>
+type Fund = {
+  id: string | null
+  name: string
+  byline: string
+  street: string
+  city_state_zip: string
+}
+
+type Company = {
+  id: string | null
+  name: string
+  state_of_incorporation: string
+  street: string
+  city_state_zip: string
+}
 
 export default function AccountForm({
   user,
@@ -60,13 +85,22 @@ export default function AccountForm({
   user: any
   userData: any
 }) {
+  const router = useRouter()
   const supabase = createClient()
   const [fundData, setFundData] = useState<any[]>([
-    { name: "", byline: "", street: "", city_state_zip: "" },
+    { id: null, name: "", byline: "", street: "", city_state_zip: "" },
   ])
   const [companyData, setCompanyData] = useState<any[]>([
-    { name: "", state_of_incorporation: "", street: "", city_state_zip: "" },
+    {
+      id: null,
+      name: "",
+      state_of_incorporation: "",
+      street: "",
+      city_state_zip: "",
+    },
   ])
+  const [selectedFund, setSelectedFund] = useState<Fund | null>(null)
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
 
   const form = useForm<AccountFormValues>({
     resolver: zodResolver(accountFormSchema),
@@ -90,7 +124,7 @@ export default function AccountForm({
   })
 
   useEffect(() => {
-    form.reset({ ...form.getValues() }) // This ensures the form reflects the state
+    form.reset({ ...form.getValues() })
   }, [userData])
 
   useEffect(() => {
@@ -106,11 +140,13 @@ export default function AccountForm({
       .from("funds")
       .select("*")
       .eq("investor_id", userData.id)
+      .order("created_at", { ascending: true }) // Order by created_at ascending
     if (error) {
       toast({ variant: "destructive", description: "Failed to fetch funds" })
       console.error(error)
     } else {
       const sanitizedData = data.map((fund) => ({
+        id: fund.id,
         name: fund.name || "",
         byline: fund.byline || "",
         street: fund.street || "",
@@ -126,6 +162,7 @@ export default function AccountForm({
       .from("companies")
       .select("*")
       .eq("founder_id", userData.id)
+      .order("created_at", { ascending: true }) // Order by created_at ascending
     if (error) {
       toast({
         variant: "destructive",
@@ -134,6 +171,7 @@ export default function AccountForm({
       console.error(error)
     } else {
       const sanitizedData = data.map((company) => ({
+        id: company.id,
         name: company.name || "",
         state_of_incorporation: company.state_of_incorporation || "",
         street: company.street || "",
@@ -175,6 +213,7 @@ export default function AccountForm({
           )
         )
       }
+      router.refresh()
     } catch (error) {
       console.error(error)
       toast({
@@ -244,12 +283,136 @@ export default function AccountForm({
     }
   }
 
+  const deleteCompany = async (index) => {
+    const companyToDelete = companyData[index]
+    if (companyToDelete && companyToDelete.id) {
+      const { error } = await supabase
+        .from("companies")
+        .delete()
+        .eq("id", companyToDelete.id)
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          description: "Failed to delete company",
+        })
+        console.error("Error deleting company:", error)
+      } else {
+        const updatedCompanies = companyData.filter((_, i) => i !== index)
+        setCompanyData(updatedCompanies)
+        form.reset({ ...form.getValues(), companies: updatedCompanies })
+        toast({
+          description: "Company deleted successfully",
+        })
+      }
+    } else {
+      // Handle case where company is not yet saved in the database
+      const updatedCompanies = companyData.filter((_, i) => i !== index)
+      setCompanyData(updatedCompanies)
+      form.reset({ ...form.getValues(), companies: updatedCompanies })
+    }
+  }
+
+  const deleteFund = async (index) => {
+    const fundToDelete = fundData[index]
+    if (fundToDelete && fundToDelete.id) {
+      const { error } = await supabase
+        .from("funds")
+        .delete()
+        .eq("id", fundToDelete.id)
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          description: "Failed to delete fund",
+        })
+        console.error("Error deleting fund:", error)
+      } else {
+        const updatedFunds = fundData.filter((_, i) => i !== index)
+        setFundData(updatedFunds)
+        form.reset({ ...form.getValues(), funds: updatedFunds })
+        toast({
+          description: "Fund deleted successfully",
+        })
+      }
+    } else {
+      // Handle case where fund is not yet saved in the database
+      const updatedFunds = fundData.filter((_, i) => i !== index)
+      setFundData(updatedFunds)
+      form.reset({ ...form.getValues(), funds: updatedFunds })
+    }
+  }
+
+  const handleSelectFund = (fundId: string) => {
+    console.log("selecting fund")
+    console.log(`selecting fund ${fundId}`)
+    const fund = fundData.find((f) => f.id === fundId)
+    setSelectedFund(fund)
+  }
+
+  const handleSelectCompany = (companyId: string) => {
+    const company = companyData.find((c) => c.id === companyId)
+    setSelectedCompany(company)
+  }
+
+  const renderFundsOrCompanies = (type: string) => {
+    return (
+      <Select onValueChange={handleSelectFund}>
+        <SelectTrigger className="w-full">
+          <SelectValue
+            placeholder={`Select or add a ${
+              type === "investor" ? "fund" : "company"
+            }`}
+          />
+        </SelectTrigger>
+        <SelectContent>
+          {type === "investor"
+            ? fundData.map((fund, index) => (
+                <SelectItem key={`fund-${index}`} value={fund.id}>
+                  {fund.name}
+                </SelectItem>
+              ))
+            : companyData.map((company, index) => (
+                <SelectItem
+                  key={`company-${index}`}
+                  value={company.id}
+                  onClick={() => handleSelectCompany(company.id)}
+                >
+                  {company.name}
+                </SelectItem>
+              ))}
+          {form.watch("type") === "investor" && (
+            <SelectItem value="new-fund" onClick={addNewFund}>
+              + New Fund
+            </SelectItem>
+          )}
+          {form.watch("type") === "founder" && (
+            <SelectItem value="new-company" onClick={addNewCompany}>
+              + New Company
+            </SelectItem>
+          )}
+        </SelectContent>
+      </Select>
+    )
+  }
+
   const renderAdditionalFields = (type: string) => {
-    if (type === "investor") {
-      return fundData.map((fund, index) => (
+    if (selectedFund) {
+      const index = fundData.findIndex((fund) => fund.id === selectedFund.id)
+      const fund = fundData[index]
+      return (
         <React.Fragment key={`fund-${index}`}>
-        <div className={index === 0 ? "pt-0" : "pt-4"}>
-            <Label className="text-sm font-bold">{fund.name || "New Fund"}</Label>
+          <div
+            className={`${
+              index === 0 ? "pt-0" : "pt-4"
+            } flex items-center justify-between`}
+          >
+            <Label className="text-sm font-bold">
+              {fund.name || "New Fund"}
+            </Label>
+            <Button variant="ghost" onClick={() => deleteFund(index)}>
+              <Icons.trash />
+            </Button>
           </div>
           <FormField
             control={form.control}
@@ -310,12 +473,25 @@ export default function AccountForm({
             )}
           />
         </React.Fragment>
-      ))
-    } else if (type === "founder") {
+      )
+    } else if (selectedCompany) {
+      const index = companyData.findIndex(
+        (company) => company.id === selectedCompany.id
+      )
+      const company = companyData[index]
       return companyData.map((company, index) => (
         <React.Fragment key={`company-${index}`}>
-        <div className={index === 0 ? "pt-0" : "pt-4"}>
-            <Label className="text-sm font-bold">{company.name || "New Company"}</Label>
+          <div
+            className={`${
+              index === 0 ? "pt-0" : "pt-4"
+            } flex items-center justify-between`}
+          >
+            <Label className="text-sm font-bold">
+              {company.name || "New Company"}
+            </Label>
+            <Button variant="ghost" onClick={() => deleteCompany(index)}>
+              <Icons.trash />
+            </Button>
           </div>
           <FormField
             control={form.control}
@@ -388,6 +564,7 @@ export default function AccountForm({
   }
 
   const addNewFund = () => {
+    setSelectedFund(null)
     setFundData([
       ...fundData,
       { name: "", byline: "", street: "", city_state_zip: "" },
@@ -395,6 +572,7 @@ export default function AccountForm({
   }
 
   const addNewCompany = () => {
+    setSelectedCompany(null)
     setCompanyData([
       ...companyData,
       { name: "", state_of_incorporation: "", street: "", city_state_zip: "" },
@@ -506,18 +684,11 @@ export default function AccountForm({
                   : "Company Details"}
               </Label>
             </div>
-            {renderAdditionalFields(form.watch("type"))}
+            {renderFundsOrCompanies(form.watch("type"))}
+            {selectedFund || selectedCompany
+              ? renderAdditionalFields(form.watch("type"))
+              : null}
             <div className="flex flex-col gap-2">
-              {form.watch("type") === "investor" && (
-                <Button variant="ghost" type="button" onClick={addNewFund}>
-                  + New Fund
-                </Button>
-              )}
-              {form.watch("type") === "founder" && (
-                <Button variant="ghost" type="button" onClick={addNewCompany}>
-                  + New Company
-                </Button>
-              )}
               <Button className="w-full" type="submit">
                 Update
               </Button>

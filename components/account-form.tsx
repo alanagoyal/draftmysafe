@@ -287,7 +287,7 @@ export default function AccountForm({
   // Function to delete a specific fund by index
   const deleteFund = async (index: number) => {
     const fundToDelete = fundData[index]
-    if (fundToDelete && fundToDelete.id) {
+    if (fundToDelete && !fundToDelete.id.startsWith('temp-')) {
       // Fund is already in the database, so attempt to delete
       const { error } = await supabase
         .from("funds")
@@ -297,13 +297,13 @@ export default function AccountForm({
       if (error) {
         toast({
           variant: "destructive",
-          description: "Failed to delete the fund.",
+          description: "Failed to delete the fund",
         })
         console.error("Error deleting fund:", error)
       } else {
         // Successfully deleted, update the state
         setFundData((prevFunds) => prevFunds.filter((_, i) => i !== index))
-        toast({ description: "Fund deleted successfully." })
+        toast({ description: "Fund deleted successfully" })
       }
     } else {
       // Fund isn't yet saved in the database, remove it locally
@@ -314,7 +314,7 @@ export default function AccountForm({
   // Function to delete a specific company by index
   const deleteCompany = async (index: number) => {
     const companyToDelete = companyData[index]
-    if (companyToDelete && companyToDelete.id) {
+    if (companyToDelete && !companyToDelete.id.startsWith('temp-')) {
       // Company is already in the database, so attempt to delete
       const { error } = await supabase
         .from("companies")
@@ -568,21 +568,31 @@ export default function AccountForm({
     return null // Fallback if no selection or data found
   }
 
-  const addNewFund = () => {
-    setSelectedFund(null)
-    setFundData([
-      ...fundData,
-      { name: "", byline: "", street: "", city_state_zip: "" },
-    ])
-  }
+  let tempId = 0;
 
+  const addNewFund = () => {
+    const newFund = {
+      id: `temp-${tempId++}`, // Assign a temporary unique ID
+      name: "",
+      byline: "",
+      street: "",
+      city_state_zip: ""
+    };
+    setFundData([...fundData, newFund]);
+    setSelectedFund(newFund); // Select the new fund to display the form
+  };
+  
   const addNewCompany = () => {
-    setSelectedCompany(null)
-    setCompanyData([
-      ...companyData,
-      { name: "", state_of_incorporation: "", street: "", city_state_zip: "" },
-    ])
-  }
+    const newCompany = {
+      id: `temp-${tempId++}`, // Assign a temporary unique ID
+      name: "",
+      state_of_incorporation: "",
+      street: "",
+      city_state_zip: ""
+    };
+    setCompanyData([...companyData, newCompany]);
+    setSelectedCompany(newCompany); // Select the new company to display the form
+  };
 
   return (
     <div className="flex flex-col items-center min-h-screen py-2 w-2/3">

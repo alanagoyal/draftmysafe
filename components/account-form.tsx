@@ -207,23 +207,24 @@ export default function AccountForm({
             processFund({ ...fund, investor_id: userData.id })
           )
         )
+        setSelectedFund(null) // Reset selected fund after successful update
       } else {
         await Promise.all(
           data.companies.map((company) =>
             processCompany({ ...company, founder_id: userData.id })
           )
         )
+        setSelectedCompany(null) // Reset selected company after successful update
       }
       router.refresh()
+      toast({
+        description: "Account updated",
+      })
     } catch (error) {
       console.error(error)
       toast({
         variant: "destructive",
         description: "Error updating account",
-      })
-    } finally {
-      toast({
-        description: "Account updated",
       })
     }
   }
@@ -287,7 +288,7 @@ export default function AccountForm({
   // Function to delete a specific fund by index
   const deleteFund = async (index: number) => {
     const fundToDelete = fundData[index]
-    if (fundToDelete && !fundToDelete.id.startsWith('temp-')) {
+    if (fundToDelete && !fundToDelete.id.startsWith("temp-")) {
       // Fund is already in the database, so attempt to delete
       const { error } = await supabase
         .from("funds")
@@ -314,7 +315,7 @@ export default function AccountForm({
   // Function to delete a specific company by index
   const deleteCompany = async (index: number) => {
     const companyToDelete = companyData[index]
-    if (companyToDelete && !companyToDelete.id.startsWith('temp-')) {
+    if (companyToDelete && !companyToDelete.id.startsWith("temp-")) {
       // Company is already in the database, so attempt to delete
       const { error } = await supabase
         .from("companies")
@@ -352,68 +353,71 @@ export default function AccountForm({
     setSelectedCompany(company)
   }
 
-const addNewFundOrCompany = (type: string) => {
-  if (type === "investor") {
-    const newFund = {
-      id: `temp-${Date.now()}`,
-      name: "",
-      byline: "",
-      street: "",
-      city_state_zip: ""
-    };
-    setFundData(prev => [...prev, newFund]);
-    setSelectedFund(newFund);
-    form.setValue('funds', [...fundData, newFund]); // Update form state
-  } else if (type === "founder") {
-    const newCompany = {
-      id: `temp-${Date.now()}`,
-      name: "",
-      state_of_incorporation: "",
-      street: "",
-      city_state_zip: ""
-    };
-    setCompanyData(prev => [...prev, newCompany]);
-    setSelectedCompany(newCompany);
-    form.setValue('companies', [...companyData, newCompany]); // Update form state
+  const addNewFundOrCompany = (type: string) => {
+    if (type === "investor") {
+      const newFund = {
+        id: `temp-${Date.now()}`, // Unique temporary ID
+        name: "",
+        byline: "",
+        street: "",
+        city_state_zip: "",
+      }
+      setFundData((prev) => [...prev, newFund])
+      setSelectedFund(newFund)
+      form.setValue("funds", [...form.getValues().funds, newFund]) // Update form state
+    } else if (type === "founder") {
+      const newCompany = {
+        id: `temp-${Date.now()}`, // Unique temporary ID
+        name: "",
+        state_of_incorporation: "",
+        street: "",
+        city_state_zip: "",
+      }
+      setCompanyData((prev) => [...prev, newCompany])
+      setSelectedCompany(newCompany)
+      form.setValue("companies", [...form.getValues().companies, newCompany]) // Update form state
+    }
   }
-};
 
-const handleSelectChange = (value: string, type: string) => {
-  if (value === "add-new") {
-    addNewFundOrCompany(type);
-  } else {
-    type === "investor" ? handleSelectFund(value) : handleSelectCompany(value);
-  }
-};
-  
+  // In your component where Select is rendered
   const renderFundsOrCompanies = (type: string) => {
+    const data = type === "investor" ? fundData : companyData
+    const keyPrefix = type === "investor" ? "fund" : "company"
+
     return (
-      <Select onValueChange={(value) => handleSelectChange(value, type)}>
+      <Select
+        key={`select-${data.length}`}
+        onValueChange={(value) => handleSelectChange(value, type)}
+      >
         <SelectTrigger className="w-full">
           <SelectValue
-            placeholder={`Select or add a ${type === "investor" ? "fund" : "company"}`}
+            placeholder={`Select or add a ${
+              type === "investor" ? "fund" : "company"
+            }`}
           />
         </SelectTrigger>
         <SelectContent>
-          {type === "investor"
-            ? fundData.map((fund, index) => (
-                <SelectItem key={`fund-${index}`} value={fund.id}>
-                  {fund.name}
-                </SelectItem>
-              ))
-            : companyData.map((company, index) => (
-                <SelectItem key={`company-${index}`} value={company.id}>
-                  {company.name}
-                </SelectItem>
-              ))}
+          {data.map((item, index) => (
+            <SelectItem key={`${keyPrefix}-${item.id}`} value={item.id}>
+              {item.name || `New ${type === "investor" ? "Fund" : "Company"}`}
+            </SelectItem>
+          ))}
           <SelectItem key="add-new" value="add-new">
             + Add New {type === "investor" ? "Fund" : "Company"}
           </SelectItem>
         </SelectContent>
       </Select>
-    );
-  };
-  
+    )
+  }
+
+  const handleSelectChange = (value: string, type: string) => {
+    if (value === "add-new") {
+      addNewFundOrCompany(type)
+    } else {
+      type === "investor" ? handleSelectFund(value) : handleSelectCompany(value)
+    }
+  }
+
   const renderAdditionalFields = (type: string) => {
     if (type === "investor" && selectedFund !== null) {
       const index = fundData.findIndex((fund) => fund.id === selectedFund.id)

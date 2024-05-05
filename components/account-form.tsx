@@ -124,16 +124,17 @@ export default function AccountForm({
   })
 
   useEffect(() => {
-    form.reset({ ...form.getValues() })
-  }, [userData])
-
-  useEffect(() => {
     if (userData && userData.type === "investor") {
       fetchFunds()
     } else if (userData && userData.type === "founder") {
       fetchCompanies()
     }
-  }, [userData])
+  }, [])
+
+  // Synchronize form values with fund and company data
+  useEffect(() => {
+    form.reset({ ...form.getValues(), funds: fundData, companies: companyData })
+  }, [fundData, companyData])
 
   const fetchFunds = async () => {
     const { data, error } = await supabase
@@ -283,39 +284,11 @@ export default function AccountForm({
     }
   }
 
-  const deleteCompany = async (index) => {
-    const companyToDelete = companyData[index]
-    if (companyToDelete && companyToDelete.id) {
-      const { error } = await supabase
-        .from("companies")
-        .delete()
-        .eq("id", companyToDelete.id)
-
-      if (error) {
-        toast({
-          variant: "destructive",
-          description: "Failed to delete company",
-        })
-        console.error("Error deleting company:", error)
-      } else {
-        const updatedCompanies = companyData.filter((_, i) => i !== index)
-        setCompanyData(updatedCompanies)
-        form.reset({ ...form.getValues(), companies: updatedCompanies })
-        toast({
-          description: "Company deleted successfully",
-        })
-      }
-    } else {
-      // Handle case where company is not yet saved in the database
-      const updatedCompanies = companyData.filter((_, i) => i !== index)
-      setCompanyData(updatedCompanies)
-      form.reset({ ...form.getValues(), companies: updatedCompanies })
-    }
-  }
-
-  const deleteFund = async (index) => {
+  // Function to delete a specific fund by index
+  const deleteFund = async (index: number) => {
     const fundToDelete = fundData[index]
     if (fundToDelete && fundToDelete.id) {
+      // Fund is already in the database, so attempt to delete
       const { error } = await supabase
         .from("funds")
         .delete()
@@ -324,28 +297,52 @@ export default function AccountForm({
       if (error) {
         toast({
           variant: "destructive",
-          description: "Failed to delete fund",
+          description: "Failed to delete the fund.",
         })
         console.error("Error deleting fund:", error)
       } else {
-        const updatedFunds = fundData.filter((_, i) => i !== index)
-        setFundData(updatedFunds)
-        form.reset({ ...form.getValues(), funds: updatedFunds })
-        toast({
-          description: "Fund deleted successfully",
-        })
+        // Successfully deleted, update the state
+        setFundData((prevFunds) => prevFunds.filter((_, i) => i !== index))
+        toast({ description: "Fund deleted successfully." })
       }
     } else {
-      // Handle case where fund is not yet saved in the database
-      const updatedFunds = fundData.filter((_, i) => i !== index)
-      setFundData(updatedFunds)
-      form.reset({ ...form.getValues(), funds: updatedFunds })
+      // Fund isn't yet saved in the database, remove it locally
+      setFundData((prevFunds) => prevFunds.filter((_, i) => i !== index))
+    }
+  }
+
+  // Function to delete a specific company by index
+  const deleteCompany = async (index: number) => {
+    const companyToDelete = companyData[index]
+    if (companyToDelete && companyToDelete.id) {
+      // Company is already in the database, so attempt to delete
+      const { error } = await supabase
+        .from("companies")
+        .delete()
+        .eq("id", companyToDelete.id)
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          description: "Failed to delete the company.",
+        })
+        console.error("Error deleting company:", error)
+      } else {
+        // Successfully deleted, update the state
+        setCompanyData((prevCompanies) =>
+          prevCompanies.filter((_, i) => i !== index)
+        )
+        toast({ description: "Company deleted successfully." })
+      }
+    } else {
+      // Company isn't yet saved in the database, remove it locally
+      setCompanyData((prevCompanies) =>
+        prevCompanies.filter((_, i) => i !== index)
+      )
     }
   }
 
   const handleSelectFund = (fundId: string) => {
-    console.log("selecting fund")
-    console.log(`selecting fund ${fundId}`)
     const fund = fundData.find((f) => f.id === fundId)
     setSelectedFund(fund)
   }
@@ -355,14 +352,20 @@ export default function AccountForm({
     setSelectedCompany(company)
   }
 
+  const handleSelectChange = (value: string, type: string) => {
+    if (value === "add-new") {
+      type === "investor" ? addNewFund() : addNewCompany();
+    } else {
+      type === "investor" ? handleSelectFund(value) : handleSelectCompany(value);
+    }
+  };
+  
   const renderFundsOrCompanies = (type: string) => {
     return (
-      <Select onValueChange={handleSelectFund}>
+      <Select onValueChange={(value) => handleSelectChange(value, type)}>
         <SelectTrigger className="w-full">
           <SelectValue
-            placeholder={`Select or add a ${
-              type === "investor" ? "fund" : "company"
-            }`}
+            placeholder={`Select a ${type === "investor" ? "fund" : "company"}`}
           />
         </SelectTrigger>
         <SelectContent>
@@ -373,194 +376,196 @@ export default function AccountForm({
                 </SelectItem>
               ))
             : companyData.map((company, index) => (
-                <SelectItem
-                  key={`company-${index}`}
-                  value={company.id}
-                  onClick={() => handleSelectCompany(company.id)}
-                >
+                <SelectItem key={`company-${index}`} value={company.id}>
                   {company.name}
                 </SelectItem>
               ))}
-          {form.watch("type") === "investor" && (
-            <SelectItem value="new-fund" onClick={addNewFund}>
-              + New Fund
-            </SelectItem>
-          )}
-          {form.watch("type") === "founder" && (
-            <SelectItem value="new-company" onClick={addNewCompany}>
-              + New Company
-            </SelectItem>
-          )}
+          <SelectItem key="add-new" value="add-new">
+            + Add New {type === "investor" ? "Fund" : "Company"}
+          </SelectItem>
         </SelectContent>
       </Select>
-    )
-  }
-
+    );
+  };
+  
   const renderAdditionalFields = (type: string) => {
-    if (selectedFund) {
+    if (type === "investor" && selectedFund !== null) {
       const index = fundData.findIndex((fund) => fund.id === selectedFund.id)
-      const fund = fundData[index]
-      return (
-        <React.Fragment key={`fund-${index}`}>
-          <div
-            className={`${
-              index === 0 ? "pt-0" : "pt-4"
-            } flex items-center justify-between`}
-          >
-            <Label className="text-sm font-bold">
-              {fund.name || "New Fund"}
-            </Label>
-            <Button variant="ghost" onClick={() => deleteFund(index)}>
-              <Icons.trash />
-            </Button>
-          </div>
-          <FormField
-            control={form.control}
-            name={`funds.${index}.name`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Entity Name</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormDescription>{formDescriptions.fundName}</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name={`funds.${index}.byline`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Byline (Optional)</FormLabel>
-                <FormControl>
-                  <Textarea {...field} />
-                </FormControl>
-                <FormDescription>{formDescriptions.fundByline}</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name={`funds.${index}.street`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Street Address</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormDescription>{formDescriptions.fundStreet}</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name={`funds.${index}.city_state_zip`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>City, State, Zip Code</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormDescription>
-                  {formDescriptions.fundCityStateZip}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </React.Fragment>
-      )
-    } else if (selectedCompany) {
+      if (index !== -1) {
+        const fund = fundData[index]
+        return (
+          <React.Fragment key={`fund-${index}`}>
+            <div
+              className={`${
+                index === 0 ? "pt-0" : "pt-4"
+              } flex items-center justify-between`}
+            >
+              <Label className="text-sm font-bold">
+                {fund.name || "New Fund"}
+              </Label>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => deleteFund(index)}
+              >
+                <Icons.trash />
+              </Button>
+            </div>
+            <FormField
+              control={form.control}
+              name={`funds.${index}.name`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Entity Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormDescription>{formDescriptions.fundName}</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name={`funds.${index}.byline`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Byline (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    {formDescriptions.fundByline}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name={`funds.${index}.street`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Street Address</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    {formDescriptions.fundStreet}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name={`funds.${index}.city_state_zip`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>City, State, Zip Code</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    {formDescriptions.fundCityStateZip}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </React.Fragment>
+        )
+      }
+    } else if (type === "founder" && selectedCompany !== null) {
       const index = companyData.findIndex(
         (company) => company.id === selectedCompany.id
       )
-      const company = companyData[index]
-      return companyData.map((company, index) => (
-        <React.Fragment key={`company-${index}`}>
-          <div
-            className={`${
-              index === 0 ? "pt-0" : "pt-4"
-            } flex items-center justify-between`}
-          >
-            <Label className="text-sm font-bold">
-              {company.name || "New Company"}
-            </Label>
-            <Button variant="ghost" onClick={() => deleteCompany(index)}>
-              <Icons.trash />
-            </Button>
-          </div>
-          <FormField
-            control={form.control}
-            name={`companies.${index}.name`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Company Name</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormDescription>
-                  {formDescriptions.companyName}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name={`companies.${index}.street`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Street Address</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormDescription>
-                  {formDescriptions.companyStreet}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name={`companies.${index}.city_state_zip`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>City, State, Zip Code</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormDescription>
-                  {formDescriptions.companyCityStateZip}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name={`companies.${index}.state_of_incorporation`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>State of Incorporation</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormDescription>
-                  {formDescriptions.stateOfIncorporation}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </React.Fragment>
-      ))
+      if (index !== -1) {
+        const company = companyData[index]
+        return (
+          <React.Fragment key={`company-${index}`}>
+            <div
+              className={`${
+                index === 0 ? "pt-0" : "pt-4"
+              } flex items-center justify-between`}
+            >
+              <Label className="text-sm font-bold">
+                {company.name || "New Company"}
+              </Label>
+              <Button variant="ghost" onClick={() => deleteCompany(index)}>
+                <Icons.trash />
+              </Button>
+            </div>
+            <FormField
+              control={form.control}
+              name={`companies.${index}.name`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Company Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    {formDescriptions.companyName}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name={`companies.${index}.street`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Street Address</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    {formDescriptions.companyStreet}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name={`companies.${index}.city_state_zip`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>City, State, Zip Code</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    {formDescriptions.companyCityStateZip}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name={`companies.${index}.state_of_incorporation`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>State of Incorporation</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    {formDescriptions.stateOfIncorporation}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </React.Fragment>
+        )
+      }
     }
-    return null
+
+    return null // Fallback if no selection or data found
   }
 
   const addNewFund = () => {
@@ -578,10 +583,6 @@ export default function AccountForm({
       { name: "", state_of_incorporation: "", street: "", city_state_zip: "" },
     ])
   }
-
-  useEffect(() => {
-    form.reset({ ...form.getValues(), funds: fundData, companies: companyData })
-  }, [userData, fundData, companyData])
 
   return (
     <div className="flex flex-col items-center min-h-screen py-2 w-2/3">

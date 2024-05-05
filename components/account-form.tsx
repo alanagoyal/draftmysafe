@@ -352,20 +352,46 @@ export default function AccountForm({
     setSelectedCompany(company)
   }
 
-  const handleSelectChange = (value: string, type: string) => {
-    if (value === "add-new") {
-      type === "investor" ? addNewFund() : addNewCompany();
-    } else {
-      type === "investor" ? handleSelectFund(value) : handleSelectCompany(value);
-    }
-  };
+const addNewFundOrCompany = (type: string) => {
+  if (type === "investor") {
+    const newFund = {
+      id: `temp-${Date.now()}`,
+      name: "",
+      byline: "",
+      street: "",
+      city_state_zip: ""
+    };
+    setFundData(prev => [...prev, newFund]);
+    setSelectedFund(newFund);
+    form.setValue('funds', [...fundData, newFund]); // Update form state
+  } else if (type === "founder") {
+    const newCompany = {
+      id: `temp-${Date.now()}`,
+      name: "",
+      state_of_incorporation: "",
+      street: "",
+      city_state_zip: ""
+    };
+    setCompanyData(prev => [...prev, newCompany]);
+    setSelectedCompany(newCompany);
+    form.setValue('companies', [...companyData, newCompany]); // Update form state
+  }
+};
+
+const handleSelectChange = (value: string, type: string) => {
+  if (value === "add-new") {
+    addNewFundOrCompany(type);
+  } else {
+    type === "investor" ? handleSelectFund(value) : handleSelectCompany(value);
+  }
+};
   
   const renderFundsOrCompanies = (type: string) => {
     return (
       <Select onValueChange={(value) => handleSelectChange(value, type)}>
         <SelectTrigger className="w-full">
           <SelectValue
-            placeholder={`Select a ${type === "investor" ? "fund" : "company"}`}
+            placeholder={`Select or add a ${type === "investor" ? "fund" : "company"}`}
           />
         </SelectTrigger>
         <SelectContent>
@@ -567,32 +593,6 @@ export default function AccountForm({
 
     return null // Fallback if no selection or data found
   }
-
-  let tempId = 0;
-
-  const addNewFund = () => {
-    const newFund = {
-      id: `temp-${tempId++}`, // Assign a temporary unique ID
-      name: "",
-      byline: "",
-      street: "",
-      city_state_zip: ""
-    };
-    setFundData([...fundData, newFund]);
-    setSelectedFund(newFund); // Select the new fund to display the form
-  };
-  
-  const addNewCompany = () => {
-    const newCompany = {
-      id: `temp-${tempId++}`, // Assign a temporary unique ID
-      name: "",
-      state_of_incorporation: "",
-      street: "",
-      city_state_zip: ""
-    };
-    setCompanyData([...companyData, newCompany]);
-    setSelectedCompany(newCompany); // Select the new company to display the form
-  };
 
   return (
     <div className="flex flex-col items-center min-h-screen py-2 w-2/3">

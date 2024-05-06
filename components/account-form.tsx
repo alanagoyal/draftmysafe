@@ -385,28 +385,32 @@ export default function AccountForm({
     const keyPrefix = type === "investor" ? "fund" : "company"
 
     return (
-      <Select
-        key={`select-${data.length}`}
-        onValueChange={(value) => handleSelectChange(value, type)}
-      >
-        <SelectTrigger className="w-full">
-          <SelectValue
-            placeholder={`Select or add a ${
-              type === "investor" ? "fund" : "company"
-            }`}
-          />
-        </SelectTrigger>
-        <SelectContent>
-          {data.map((item, index) => (
-            <SelectItem key={`${keyPrefix}-${item.id}`} value={item.id}>
-              {item.name || `New ${type === "investor" ? "Fund" : "Company"}`}
+      <div className="space-y-2">
+        <FormLabel>{type === "investor" ? "Funds" : "Companies"}</FormLabel>
+
+        <Select
+          key={`select-${data.length}`}
+          onValueChange={(value) => handleSelectChange(value, type)}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue
+              placeholder={`Select or add a ${
+                type === "investor" ? "fund" : "company"
+              }`}
+            />
+          </SelectTrigger>
+          <SelectContent>
+            {data.map((item, index) => (
+              <SelectItem key={`${keyPrefix}-${item.id}`} value={item.id}>
+                {item.name || `New ${type === "investor" ? "Fund" : "Company"}`}
+              </SelectItem>
+            ))}
+            <SelectItem key="add-new" value="add-new">
+              + Add New {type === "investor" ? "Fund" : "Company"}
             </SelectItem>
-          ))}
-          <SelectItem key="add-new" value="add-new">
-            + Add New {type === "investor" ? "Fund" : "Company"}
-          </SelectItem>
-        </SelectContent>
-      </Select>
+          </SelectContent>
+        </Select>
+      </div>
     )
   }
 
@@ -603,13 +607,6 @@ export default function AccountForm({
       <h1 className="text-2xl font-bold mb-4">Account</h1>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div className="pt-4">
-            <Label className="text-md font-bold">
-              {form.watch("type") === "investor"
-                ? "Investor Details"
-                : "Founder Details"}
-            </Label>
-          </div>
           <FormField
             control={form.control}
             name="email"
@@ -692,13 +689,6 @@ export default function AccountForm({
             )}
           />
           <div className="space-y-4">
-            <div className="pt-4">
-              <Label className="text-md font-bold">
-                {form.watch("type") === "investor"
-                  ? "Fund Details"
-                  : "Company Details"}
-              </Label>
-            </div>
             {renderFundsOrCompanies(form.watch("type"))}
             {selectedFund || selectedCompany
               ? renderAdditionalFields(form.watch("type"))

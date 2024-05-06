@@ -45,14 +45,6 @@ export function CommandMenu() {
             e.preventDefault()
             navigateAndCloseDialog("/account")
             break
-          case "f":
-            e.preventDefault()
-            navigateAndCloseDialog("/favorites")
-            break
-          case "s":
-            e.preventDefault()
-            navigateAndCloseDialog("/help")
-            break
           case "o":
             e.preventDefault()
             handleSignOut()

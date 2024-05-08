@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select"
+import { Separator } from "./ui/separator"
 import { Textarea } from "./ui/textarea"
 import { toast } from "./ui/use-toast"
 
@@ -90,23 +91,155 @@ export default function AccountForm({
 
     if (!fundError && !companyError) {
       setEntities([...fundData, ...companyData])
+      setSelectedEntity(fundData[0]?.id || companyData[0]?.id)
     } else {
       console.error(fundError || companyError)
     }
   }
 
   function handleSelectChange(value: string) {
+    console.log(`value: ${value}`)
     setSelectedEntity(value)
     if (value === "add-new") {
       form.reset({
         ...form.getValues(),
-        type: "fund", // default type
+        type: "fund",
         entity_name: "",
         byline: "",
         street: "",
         city_state_zip: "",
         state_of_incorporation: "",
       })
+    }
+  }
+
+  async function onSubmit(data: AccountFormValues) {
+    try {
+      const accountUpdates = {
+        email: userData.email,
+        name: data.name,
+        title: data.title,
+        updated_at: new Date(),
+      }
+
+      let { error: accountError } = await supabase
+        .from("users")
+        .update(accountUpdates)
+        .eq("auth_id", user.id)
+      if (accountError) throw accountError
+
+      if (data.type === "fund") {
+        await processFund(data)
+      } else if (data.type === "company") {
+        await processCompany(data)
+      }
+    } catch (error) {
+      console.error(error)
+      toast({
+        variant: "destructive",
+        description: "Error updating account",
+      })
+    } finally {
+      toast({
+        description: "Account updated",
+      })
+    }
+  }
+
+  async function processFund(data: AccountFormValues) {
+    const fundUpdates = {
+      name: data.entity_name,
+      byline: data.byline,
+      street: data.street,
+      city_state_zip: data.city_state_zip,
+      investor_id: userData.id,
+    }
+
+    console.log(`fundUpdates: ${JSON.stringify(fundUpdates)}`)
+
+    // Check if fund already exists
+    const { data: existingFund, error: existingFundError } = await supabase
+      .from("funds")
+      .select()
+      .eq("investor_id", userData.id)
+      .eq("name", data.entity_name)
+
+    console.log(`existingFund: ${JSON.stringify(existingFund)}`)
+
+    if (existingFund && existingFund.length > 0) {
+      // Update the existing fund
+      const { error: updateError } = await supabase
+        .from("funds")
+        .update(fundUpdates)
+        .eq("id", existingFund[0].id)
+
+      console.log(`updated fund: ${existingFund[0].id}`)
+
+      if (updateError) {
+        console.error("Error updating fund:", updateError)
+        throw updateError
+      }
+    } else {
+      // Create a new fund
+      const { data: newFund, error: newFundError } = await supabase
+        .from("funds")
+        .insert(fundUpdates)
+
+      console.log(`inserted fund: ${JSON.stringify(newFund)}`)
+
+      if (newFundError) {
+        console.error("Error creating fund:", newFundError)
+        throw newFundError
+      }
+    }
+  }
+
+  async function processCompany(data: AccountFormValues) {
+    const companyUpdates = {
+      name: data.entity_name,
+      street: data.street,
+      city_state_zip: data.city_state_zip,
+      state_of_incorporation: data.state_of_incorporation,
+      founder_id: userData.id,
+    }
+
+    console.log(`companyUpdates: ${JSON.stringify(companyUpdates)}`)
+
+    // Check if company already exists
+    const { data: existingCompany, error: existingCompanyError } =
+      await supabase
+        .from("companies")
+        .select()
+        .eq("founder_id", userData.id)
+        .eq("name", data.entity_name)
+
+    console.log(`existingCompany: ${JSON.stringify(existingCompany)}`)
+
+    if (existingCompany && existingCompany.length > 0) {
+      // Update the existing company
+      const { error: updateError } = await supabase
+        .from("companies")
+        .update(companyUpdates)
+        .eq("id", existingCompany[0].id)
+
+      console.log(`updated company: ${existingCompany[0].id}`)
+
+      if (updateError) {
+        console.error("Error updating company:", updateError)
+        throw updateError
+      }
+    } else {
+      // Create a new company
+      const { data: newCompany, error: newCompanyError } = await supabase
+        .from("companies")
+        .insert(companyUpdates)
+
+      console.log(`inserted company: ${JSON.stringify(newCompany)}`)
+
+      if (newCompanyError) {
+        console.error("Error creating company:", newCompanyError)
+        throw newCompanyError
+      }
     }
   }
 
@@ -128,8 +261,9 @@ export default function AccountForm({
                 {item.name}
               </SelectItem>
             ))}
+            <Separator />
             <SelectItem key="add-new" value="add-new">
-              + Add New Entity
+              + Add a new entity
             </SelectItem>
           </SelectContent>
         </Select>
@@ -268,34 +402,6 @@ export default function AccountForm({
       )
     }
     return null
-  }
-
-  async function onSubmit(data: AccountFormValues) {
-    try {
-      // Update account
-      const accountUpdates = {
-        email: userData.email,
-        name: data.name,
-        title: data.title,
-        updated_at: new Date(),
-      }
-
-      let { error: accountError } = await supabase
-        .from("users")
-        .update(accountUpdates)
-        .eq("auth_id", user.id)
-      if (accountError) throw accountError
-    } catch (error) {
-      console.error(error)
-      toast({
-        variant: "destructive",
-        description: "Error updating account",
-      })
-    } finally {
-      toast({
-        description: "Account updated",
-      })
-    }
   }
 
   return (

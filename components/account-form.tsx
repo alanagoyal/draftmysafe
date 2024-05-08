@@ -517,7 +517,7 @@ export default function AccountForm({
                   <Input placeholder="Your name" {...field} />
                 </FormControl>
                 <FormDescription>
-                  This is the name that will be displayed in the dashboard
+                  This is the name that will be used in your signature block
                 </FormDescription>
                 <FormMessage />
               </FormItem>

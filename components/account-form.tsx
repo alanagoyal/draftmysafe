@@ -9,6 +9,7 @@ import { z } from "zod"
 
 import { formDescriptions } from "@/lib/utils"
 
+import { Icons } from "./icons"
 import { Button } from "./ui/button"
 import {
   Form,
@@ -56,7 +57,7 @@ export default function AccountForm({
   const supabase = createClient()
   const [entities, setEntities] = useState<any[]>([])
   const [selectedEntity, setSelectedEntity] = useState<string>("")
-  const [showAdditionalFields, setShowAdditionalFields] = useState(false);
+  const [showAdditionalFields, setShowAdditionalFields] = useState(false)
 
   const form = useForm<AccountFormValues>({
     resolver: zodResolver(accountFormSchema),
@@ -83,27 +84,36 @@ export default function AccountForm({
     const { data: fundData, error: fundError } = await supabase
       .from("funds")
       .select()
-      .eq("investor_id", userData.id);
-  
+      .eq("investor_id", userData.id)
+
     const { data: companyData, error: companyError } = await supabase
       .from("companies")
       .select()
-      .eq("founder_id", userData.id);
-  
+      .eq("founder_id", userData.id)
+
     if (!fundError && !companyError) {
-      const typedFundData = fundData.map(fund => ({ ...fund, type: 'fund' }));
-      const typedCompanyData = companyData.map(company => ({ ...company, type: 'company' }));
-      setEntities([...typedFundData, ...typedCompanyData]);
-      setSelectedEntity(typedFundData[0]?.id || typedCompanyData[0]?.id);
+      const typedFundData = fundData.map((fund) => ({ ...fund, type: "fund" }))
+      const typedCompanyData = companyData.map((company) => ({
+        ...company,
+        type: "company",
+      }))
+      setEntities([...typedFundData, ...typedCompanyData])
+
+      if (typedFundData.length === 0 && typedCompanyData.length === 0) {
+        setSelectedEntity("add-new")
+      } else {
+        setSelectedEntity(typedFundData[0]?.id || typedCompanyData[0]?.id)
+      }
     } else {
-      console.error(fundError || companyError);
+      console.error(fundError || companyError)
+      setSelectedEntity("add-new")
     }
   }
 
   function handleSelectChange(value: string) {
-    console.log(`value: ${value}`);
-    setSelectedEntity(value);
-    setShowAdditionalFields(true); 
+    console.log(`value: ${value}`)
+    setSelectedEntity(value)
+    setShowAdditionalFields(true)
 
     if (value === "add-new") {
       form.reset({
@@ -114,10 +124,12 @@ export default function AccountForm({
         street: "",
         city_state_zip: "",
         state_of_incorporation: "",
-      });
+      })
     } else {
       // Fetch the selected entity's details and set them in the form
-      const selectedEntityDetails = entities.find(entity => entity.id === value);
+      const selectedEntityDetails = entities.find(
+        (entity) => entity.id === value
+      )
       console.log(selectedEntityDetails.type)
       if (selectedEntityDetails) {
         form.reset({
@@ -128,7 +140,7 @@ export default function AccountForm({
           street: selectedEntityDetails.street,
           city_state_zip: selectedEntityDetails.city_state_zip,
           state_of_incorporation: selectedEntityDetails.state_of_incorporation,
-        });
+        })
       }
     }
   }
@@ -163,7 +175,7 @@ export default function AccountForm({
       toast({
         description: "Account updated",
       })
-      setShowAdditionalFields(false);
+      setShowAdditionalFields(false)
     }
   }
 
@@ -202,11 +214,9 @@ export default function AccountForm({
       }
     } else {
       // Create a new fund
-      const { data: newFund, error: newFundError } = await supabase
+      const { error: newFundError } = await supabase
         .from("funds")
         .insert(fundUpdates)
-
-      console.log(`inserted fund: ${JSON.stringify(newFund)}`)
 
       if (newFundError) {
         console.error("Error creating fund:", newFundError)
@@ -251,15 +261,60 @@ export default function AccountForm({
       }
     } else {
       // Create a new company
-      const { data: newCompany, error: newCompanyError } = await supabase
+      const { error: newCompanyError } = await supabase
         .from("companies")
         .insert(companyUpdates)
-
-      console.log(`inserted company: ${JSON.stringify(newCompany)}`)
 
       if (newCompanyError) {
         console.error("Error creating company:", newCompanyError)
         throw newCompanyError
+      }
+    }
+  }
+
+  async function deleteEntity(selectedEntity: string, type: string) {
+    console.log(`deleting entity: ${selectedEntity}`)
+    if (type === "fund") {
+      console.log("deleting fund")
+      const { error } = await supabase
+        .from("funds")
+        .delete()
+        .eq("id", selectedEntity)
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          description: "Failed to delete the fund",
+        })
+        console.error("Error deleting fund:", error)
+      } else {
+        toast({
+          description: "Fund deleted",
+        })
+        setEntities(entities.filter((entity) => entity.id !== selectedEntity))
+        setSelectedEntity(entities.length > 0 ? entities[0].id : "add-new")
+        setShowAdditionalFields(false)
+      }
+    } else if (type === "company") {
+      console.log("deleting company")
+      const { error } = await supabase
+        .from("companies")
+        .delete()
+        .eq("id", selectedEntity)
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          description: "Failed to delete the company",
+        })
+        console.error("Error deleting company:", error)
+      } else {
+        toast({
+          description: "Company deleted",
+        })
+        setEntities(entities.filter((entity) => entity.id !== selectedEntity))
+        setSelectedEntity(entities.length > 0 ? entities[0].id : "add-new")
+        setShowAdditionalFields(false)
       }
     }
   }
@@ -293,9 +348,26 @@ export default function AccountForm({
   }
 
   function renderAdditionalFields() {
+    const selectedEntityDetails = entities.find(
+      (entity) => entity.id === selectedEntity
+    )
     if (showAdditionalFields) {
       return (
         <>
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-bold">
+              {selectedEntityDetails?.name}
+            </Label>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() =>
+                deleteEntity(selectedEntity, selectedEntityDetails.type)
+              }
+            >
+              <Icons.trash />
+            </Button>
+          </div>
           <FormField
             control={form.control}
             name="type"

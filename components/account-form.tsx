@@ -114,12 +114,20 @@ export default function AccountForm({
     setSelectedEntity(value)
     setShowAdditionalFields(true)
 
-    if (value === "add-new") {
+    if (value === "add-new-fund") {
       form.reset({
         ...form.getValues(),
         type: "fund",
         entity_name: "",
         byline: "",
+        street: "",
+        city_state_zip: "",
+      })
+    } else if (value === "add-new-company") {
+      form.reset({
+        ...form.getValues(),
+        type: "company",
+        entity_name: "",
         street: "",
         city_state_zip: "",
         state_of_incorporation: "",
@@ -328,6 +336,9 @@ export default function AccountForm({
   function renderEntities() {
     return (
       <div className="space-y-2">
+        <div className="pt-4 pb-2">
+          <Label className="text-md font-bold">Entity Information</Label>
+        </div>
         <FormLabel>Signature Blocks</FormLabel>
         <Select
           key={`select-${entities.length}`}
@@ -338,14 +349,17 @@ export default function AccountForm({
             <SelectValue placeholder="Select or add an entity" />
           </SelectTrigger>
           <SelectContent>
-            {entities.map((item, index) => (
+            {entities.map((item) => (
               <SelectItem key={`entity-${item.id}`} value={item.id}>
                 {item.name}
               </SelectItem>
             ))}
             <Separator />
-            <SelectItem key="add-new" value="add-new">
-              + Add a new entity
+            <SelectItem key="add-new-fund" value="add-new-fund">
+              + New fund
+            </SelectItem>
+            <SelectItem key="add-new-company" value="add-new-company">
+              + New company
             </SelectItem>
           </SelectContent>
         </Select>
@@ -363,74 +377,34 @@ export default function AccountForm({
     if (showAdditionalFields) {
       return (
         <>
-          {selectedEntity !== "add-new" && (
-            <div className="flex items-center justify-between">
-              <FormLabel>
-                {selectedEntityDetails?.name}
-              </FormLabel>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() =>
-                  deleteEntity(selectedEntity, selectedEntityDetails.type)
-                }
-              >
-                <Icons.trash />
-              </Button>
+          <div className="flex items-center justify-between space-x-2">
+            <div className="w-full">
+              <FormField
+                control={form.control}
+                name="entity_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Entity Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {form.watch("type") === "fund"
+                        ? formDescriptions.fundName
+                        : formDescriptions.companyName}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
-          )}
-          <FormField
-            control={form.control}
-            name="type"
-            render={({ field }) => (
-              <FormItem className="space-y-2">
-                <FormLabel>Entity Type</FormLabel>
-                <FormControl>
-                  <RadioGroup
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    value={field.value}
-                    className="flex flex-col space-y-1"
-                  >
-                    <FormItem className="flex items-center space-x-3 space-y-0">
-                      <FormControl>
-                        <RadioGroupItem value="fund" />
-                      </FormControl>
-                      <FormLabel className="font-normal">Fund</FormLabel>
-                    </FormItem>
-                    <FormItem className="flex items-center space-x-3 space-y-0">
-                      <FormControl>
-                        <RadioGroupItem value="company" />
-                      </FormControl>
-                      <FormLabel className="font-normal">Company</FormLabel>
-                    </FormItem>
-                  </RadioGroup>
-                </FormControl>
-                <FormDescription>
-                  Please indicate the entity type
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="entity_name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Entity Name</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormDescription>
-                  {form.watch("type") === "fund"
-                    ? formDescriptions.fundName
-                    : formDescriptions.companyName}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            <Icons.trash
+              className="cursor-pointer"
+              onClick={() =>
+                deleteEntity(selectedEntity, selectedEntityDetails.type)
+              }
+            />
+          </div>
           {form.watch("type") === "fund" && (
             <FormField
               control={form.control}
@@ -514,6 +488,9 @@ export default function AccountForm({
       <h1 className="text-2xl font-bold mb-4">Account</h1>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+          <div className="pt-4">
+            <Label className="text-md font-bold">Personal Information</Label>
+          </div>
           <FormField
             control={form.control}
             name="email"

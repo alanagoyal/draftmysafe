@@ -186,7 +186,6 @@ export default function AccountForm({
       investor_id: userData.id,
     }
 
-    // Check if fund already exists
     const { data: existingFund, error: existingFundError } = await supabase
       .from("funds")
       .select()
@@ -194,7 +193,6 @@ export default function AccountForm({
       .eq("name", data.entity_name)
 
     if (existingFund && existingFund.length > 0) {
-      // Update the existing fund
       const { error: updateError } = await supabase
         .from("funds")
         .update(fundUpdates)
@@ -208,10 +206,10 @@ export default function AccountForm({
         })
       }
     } else {
-      // Create a new fund
-      const { error: newFundError } = await supabase
+      const { data: newFund, error: newFundError } = await supabase
         .from("funds")
         .insert(fundUpdates)
+        .select()
 
       if (newFundError) {
         console.error("Error creating fund:", newFundError)
@@ -219,8 +217,13 @@ export default function AccountForm({
           variant: "destructive",
           description: "Error creating fund",
         })
+      } else {
+        setEntities((prevEntities) => [
+          ...prevEntities,
+          { ...fundUpdates, id: newFund[0].id, type: "fund" },
+        ])
+        setSelectedEntity(newFund[0].id)
       }
-      setEntities([...entities, { ...fundUpdates, type: "fund" }])
     }
   }
 
@@ -257,9 +260,10 @@ export default function AccountForm({
       }
     } else {
       // Create a new company
-      const { error: newCompanyError } = await supabase
+      const { data: newCompany, error: newCompanyError } = await supabase
         .from("companies")
         .insert(companyUpdates)
+        .select()
 
       if (newCompanyError) {
         console.error("Error creating company:", newCompanyError)
@@ -267,8 +271,13 @@ export default function AccountForm({
           variant: "destructive",
           description: "Error creating company",
         })
+      } else {
+        setEntities((prevEntities) => [
+          ...prevEntities,
+          { ...companyUpdates, id: newCompany[0].id, type: "company" },
+        ])
+        setSelectedEntity(newCompany[0].id)
       }
-      setEntities([...entities, { ...companyUpdates, type: "company" }])
     }
   }
 
@@ -330,7 +339,7 @@ export default function AccountForm({
           </SelectTrigger>
           <SelectContent>
             {entities.map((item, index) => (
-              <SelectItem key={`${item.id}`} value={item.id}>
+              <SelectItem key={`entity-${item.id}`} value={item.id}>
                 {item.name}
               </SelectItem>
             ))}

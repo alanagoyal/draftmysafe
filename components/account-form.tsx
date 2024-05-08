@@ -56,6 +56,7 @@ export default function AccountForm({
   const supabase = createClient()
   const [entities, setEntities] = useState<any[]>([])
   const [selectedEntity, setSelectedEntity] = useState<string>("")
+  const [showAdditionalFields, setShowAdditionalFields] = useState(false);
 
   const form = useForm<AccountFormValues>({
     resolver: zodResolver(accountFormSchema),
@@ -82,24 +83,28 @@ export default function AccountForm({
     const { data: fundData, error: fundError } = await supabase
       .from("funds")
       .select()
-      .eq("investor_id", userData.id)
-
+      .eq("investor_id", userData.id);
+  
     const { data: companyData, error: companyError } = await supabase
       .from("companies")
       .select()
-      .eq("founder_id", userData.id)
-
+      .eq("founder_id", userData.id);
+  
     if (!fundError && !companyError) {
-      setEntities([...fundData, ...companyData])
-      setSelectedEntity(fundData[0]?.id || companyData[0]?.id)
+      const typedFundData = fundData.map(fund => ({ ...fund, type: 'fund' }));
+      const typedCompanyData = companyData.map(company => ({ ...company, type: 'company' }));
+      setEntities([...typedFundData, ...typedCompanyData]);
+      setSelectedEntity(typedFundData[0]?.id || typedCompanyData[0]?.id);
     } else {
-      console.error(fundError || companyError)
+      console.error(fundError || companyError);
     }
   }
 
   function handleSelectChange(value: string) {
-    console.log(`value: ${value}`)
-    setSelectedEntity(value)
+    console.log(`value: ${value}`);
+    setSelectedEntity(value);
+    setShowAdditionalFields(true); 
+
     if (value === "add-new") {
       form.reset({
         ...form.getValues(),
@@ -109,7 +114,22 @@ export default function AccountForm({
         street: "",
         city_state_zip: "",
         state_of_incorporation: "",
-      })
+      });
+    } else {
+      // Fetch the selected entity's details and set them in the form
+      const selectedEntityDetails = entities.find(entity => entity.id === value);
+      console.log(selectedEntityDetails.type)
+      if (selectedEntityDetails) {
+        form.reset({
+          ...form.getValues(),
+          type: selectedEntityDetails.type,
+          entity_name: selectedEntityDetails.name,
+          byline: selectedEntityDetails.byline,
+          street: selectedEntityDetails.street,
+          city_state_zip: selectedEntityDetails.city_state_zip,
+          state_of_incorporation: selectedEntityDetails.state_of_incorporation,
+        });
+      }
     }
   }
 
@@ -143,6 +163,7 @@ export default function AccountForm({
       toast({
         description: "Account updated",
       })
+      setShowAdditionalFields(false);
     }
   }
 
@@ -272,7 +293,7 @@ export default function AccountForm({
   }
 
   function renderAdditionalFields() {
-    if (selectedEntity === "add-new") {
+    if (showAdditionalFields) {
       return (
         <>
           <FormField
@@ -285,6 +306,7 @@ export default function AccountForm({
                   <RadioGroup
                     onValueChange={field.onChange}
                     defaultValue={field.value}
+                    value={field.value}
                     className="flex flex-col space-y-1"
                   >
                     <FormItem className="flex items-center space-x-3 space-y-0">

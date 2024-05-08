@@ -365,9 +365,9 @@ export default function AccountForm({
         <>
           {selectedEntity !== "add-new" && (
             <div className="flex items-center justify-between">
-              <Label className="text-sm font-bold">
+              <FormLabel>
                 {selectedEntityDetails?.name}
-              </Label>
+              </FormLabel>
               <Button
                 type="button"
                 variant="ghost"
@@ -383,7 +383,7 @@ export default function AccountForm({
             control={form.control}
             name="type"
             render={({ field }) => (
-              <FormItem className="space-y-3">
+              <FormItem className="space-y-2">
                 <FormLabel>Entity Type</FormLabel>
                 <FormControl>
                   <RadioGroup
@@ -513,7 +513,7 @@ export default function AccountForm({
     <div className="flex flex-col items-center min-h-screen py-2 w-2/3">
       <h1 className="text-2xl font-bold mb-4">Account</h1>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
           <FormField
             control={form.control}
             name="email"

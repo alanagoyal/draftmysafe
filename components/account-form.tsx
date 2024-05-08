@@ -6,7 +6,9 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { Label } from "@radix-ui/react-label"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
+
 import { formDescriptions } from "@/lib/utils"
+
 import { Icons } from "./icons"
 import { Button } from "./ui/button"
 import {
@@ -218,6 +220,7 @@ export default function AccountForm({
           description: "Error creating fund",
         })
       }
+      setEntities([...entities, { ...fundUpdates, type: "fund" }])
     }
   }
 
@@ -265,6 +268,7 @@ export default function AccountForm({
           description: "Error creating company",
         })
       }
+      setEntities([...entities, { ...companyUpdates, type: "company" }])
     }
   }
 
@@ -281,7 +285,6 @@ export default function AccountForm({
           variant: "destructive",
           description: "Failed to delete the fund",
         })
-
       } else {
         toast({
           description: "Fund deleted",
@@ -302,7 +305,6 @@ export default function AccountForm({
           description: "Failed to delete the company",
         })
         console.error("Error deleting company:", error)
-
       } else {
         toast({
           description: "Company deleted",
@@ -352,20 +354,22 @@ export default function AccountForm({
     if (showAdditionalFields) {
       return (
         <>
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-bold">
-              {selectedEntityDetails?.name}
-            </Label>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() =>
-                deleteEntity(selectedEntity, selectedEntityDetails.type)
-              }
-            >
-              <Icons.trash />
-            </Button>
-          </div>
+          {selectedEntity !== "add-new" && (
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-bold">
+                {selectedEntityDetails?.name}
+              </Label>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() =>
+                  deleteEntity(selectedEntity, selectedEntityDetails.type)
+                }
+              >
+                <Icons.trash />
+              </Button>
+            </div>
+          )}
           <FormField
             control={form.control}
             name="type"

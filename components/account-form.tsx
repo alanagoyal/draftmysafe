@@ -6,9 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { Label } from "@radix-ui/react-label"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-
 import { formDescriptions } from "@/lib/utils"
-
 import { Icons } from "./icons"
 import { Button } from "./ui/button"
 import {
@@ -111,7 +109,6 @@ export default function AccountForm({
   }
 
   function handleSelectChange(value: string) {
-    console.log(`value: ${value}`)
     setSelectedEntity(value)
     setShowAdditionalFields(true)
 
@@ -130,7 +127,6 @@ export default function AccountForm({
       const selectedEntityDetails = entities.find(
         (entity) => entity.id === value
       )
-      console.log(selectedEntityDetails.type)
       if (selectedEntityDetails) {
         form.reset({
           ...form.getValues(),
@@ -188,16 +184,12 @@ export default function AccountForm({
       investor_id: userData.id,
     }
 
-    console.log(`fundUpdates: ${JSON.stringify(fundUpdates)}`)
-
     // Check if fund already exists
     const { data: existingFund, error: existingFundError } = await supabase
       .from("funds")
       .select()
       .eq("investor_id", userData.id)
       .eq("name", data.entity_name)
-
-    console.log(`existingFund: ${JSON.stringify(existingFund)}`)
 
     if (existingFund && existingFund.length > 0) {
       // Update the existing fund
@@ -206,11 +198,12 @@ export default function AccountForm({
         .update(fundUpdates)
         .eq("id", existingFund[0].id)
 
-      console.log(`updated fund: ${existingFund[0].id}`)
-
       if (updateError) {
         console.error("Error updating fund:", updateError)
-        throw updateError
+        toast({
+          variant: "destructive",
+          description: "Error updating fund",
+        })
       }
     } else {
       // Create a new fund
@@ -220,7 +213,10 @@ export default function AccountForm({
 
       if (newFundError) {
         console.error("Error creating fund:", newFundError)
-        throw newFundError
+        toast({
+          variant: "destructive",
+          description: "Error creating fund",
+        })
       }
     }
   }
@@ -234,8 +230,6 @@ export default function AccountForm({
       founder_id: userData.id,
     }
 
-    console.log(`companyUpdates: ${JSON.stringify(companyUpdates)}`)
-
     // Check if company already exists
     const { data: existingCompany, error: existingCompanyError } =
       await supabase
@@ -244,8 +238,6 @@ export default function AccountForm({
         .eq("founder_id", userData.id)
         .eq("name", data.entity_name)
 
-    console.log(`existingCompany: ${JSON.stringify(existingCompany)}`)
-
     if (existingCompany && existingCompany.length > 0) {
       // Update the existing company
       const { error: updateError } = await supabase
@@ -253,11 +245,12 @@ export default function AccountForm({
         .update(companyUpdates)
         .eq("id", existingCompany[0].id)
 
-      console.log(`updated company: ${existingCompany[0].id}`)
-
       if (updateError) {
         console.error("Error updating company:", updateError)
-        throw updateError
+        toast({
+          variant: "destructive",
+          description: "Error updating company",
+        })
       }
     } else {
       // Create a new company
@@ -267,26 +260,28 @@ export default function AccountForm({
 
       if (newCompanyError) {
         console.error("Error creating company:", newCompanyError)
-        throw newCompanyError
+        toast({
+          variant: "destructive",
+          description: "Error creating company",
+        })
       }
     }
   }
 
   async function deleteEntity(selectedEntity: string, type: string) {
-    console.log(`deleting entity: ${selectedEntity}`)
     if (type === "fund") {
-      console.log("deleting fund")
       const { error } = await supabase
         .from("funds")
         .delete()
         .eq("id", selectedEntity)
 
       if (error) {
+        console.error("Error deleting fund:", error)
         toast({
           variant: "destructive",
           description: "Failed to delete the fund",
         })
-        console.error("Error deleting fund:", error)
+
       } else {
         toast({
           description: "Fund deleted",
@@ -296,7 +291,6 @@ export default function AccountForm({
         setShowAdditionalFields(false)
       }
     } else if (type === "company") {
-      console.log("deleting company")
       const { error } = await supabase
         .from("companies")
         .delete()
@@ -308,6 +302,7 @@ export default function AccountForm({
           description: "Failed to delete the company",
         })
         console.error("Error deleting company:", error)
+
       } else {
         toast({
           description: "Company deleted",
@@ -322,7 +317,7 @@ export default function AccountForm({
   function renderEntities() {
     return (
       <div className="space-y-2">
-        <FormLabel>Entities</FormLabel>
+        <FormLabel>Signature Blocks</FormLabel>
         <Select
           key={`select-${entities.length}`}
           value={selectedEntity}
@@ -343,6 +338,9 @@ export default function AccountForm({
             </SelectItem>
           </SelectContent>
         </Select>
+        <FormDescription>
+          Add or edit an entity to be used in your signature block
+        </FormDescription>
       </div>
     )
   }

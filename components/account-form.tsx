@@ -6,9 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { Label } from "@radix-ui/react-label"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-
 import { formDescriptions } from "@/lib/utils"
-
+import { EntitySelector } from "./entity-selector"
 import { Icons } from "./icons"
 import { Button } from "./ui/button"
 import {
@@ -21,15 +20,6 @@ import {
   FormMessage,
 } from "./ui/form"
 import { Input } from "./ui/input"
-import { RadioGroup, RadioGroupItem } from "./ui/radio-group"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select"
-import { Separator } from "./ui/separator"
 import { Textarea } from "./ui/textarea"
 import { toast } from "./ui/use-toast"
 
@@ -341,43 +331,6 @@ export default function AccountForm({
     }
   }
 
-  function renderEntities() {
-    return (
-      <div className="space-y-2">
-        <div className="pt-4 pb-2">
-          <Label className="text-md font-bold">Entity Information</Label>
-        </div>
-        <FormLabel>Signature Blocks</FormLabel>
-        <Select
-          key={`select-${entities.length}`}
-          value={selectedEntity}
-          onValueChange={handleSelectChange}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select or add an entity" />
-          </SelectTrigger>
-          <SelectContent>
-            {entities.map((item) => (
-              <SelectItem key={`entity-${item.id}`} value={item.id}>
-                {item.name}
-              </SelectItem>
-            ))}
-            <Separator />
-            <SelectItem key="add-new-fund" value="add-new-fund">
-              + New fund
-            </SelectItem>
-            <SelectItem key="add-new-company" value="add-new-company">
-              + New company
-            </SelectItem>
-          </SelectContent>
-        </Select>
-        <FormDescription>
-          Add or edit an entity to be used in your signature block
-        </FormDescription>
-      </div>
-    )
-  }
-
   function renderAdditionalFields() {
     if (showAdditionalFields) {
       return (
@@ -543,7 +496,21 @@ export default function AccountForm({
             )}
           />
           <div className="space-y-4">
-            {renderEntities()}
+            <div className="space-y-2">
+              <div className="pt-4 pb-2">
+                <Label className="text-md font-bold">Entity Information</Label>
+              </div>
+              <FormLabel>Signature Blocks</FormLabel>
+              <EntitySelector
+                entities={entities}
+                selectedEntity={selectedEntity}
+                onSelectChange={handleSelectChange}
+                addEntities={true}
+              />
+              <FormDescription>
+                Add or edit an entity to be used in your signature block
+              </FormDescription>
+            </div>
             {renderAdditionalFields()}
             <Button className="w-full" type="submit">
               Save

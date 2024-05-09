@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { CalendarIcon } from "@radix-ui/react-icons"
@@ -13,6 +13,7 @@ import { z } from "zod"
 
 import { cn, formDescriptions } from "@/lib/utils"
 
+import { EntitySelector } from "./entity-selector"
 import { Button } from "./ui/button"
 import { Calendar } from "./ui/calendar"
 import {
@@ -97,6 +98,35 @@ export default function FormComponent({ userData }: { userData: any }) {
 
   const [step, setStep] = useState(1)
   const [showConfetti, setShowConfetti] = useState(false)
+  const [entities, setEntities] = useState<any[]>([])
+  const [selectedEntity, setSelectedEntity] = useState("")
+
+  useEffect(() => {
+    if (userData) {
+      fetchEntities()
+    }
+  }, [userData])
+
+  async function fetchEntities() {
+    const { data: fundData, error: fundError } = await supabase
+      .from("funds")
+      .select()
+      .eq("investor_id", userData.id)
+
+    const { data: companyData, error: companyError } = await supabase
+      .from("companies")
+      .select()
+      .eq("founder_id", userData.id)
+
+    if (!fundError && !companyError) {
+      const typedFundData = fundData.map((fund) => ({ ...fund, type: "fund" }))
+      const typedCompanyData = companyData.map((company) => ({
+        ...company,
+        type: "company",
+      }))
+      setEntities([...typedFundData, ...typedCompanyData])
+    }
+  }
 
   async function onSubmit(values: FormComponentValues) {
     // Format date
@@ -140,7 +170,7 @@ export default function FormComponent({ userData }: { userData: any }) {
 
     // Create a docxtemplater instance and load the zip
     const doc = new Docxtemplater().loadZip(zip)
-  
+
     // Set the template variables
     doc.setData({
       company_name: values.companyName,
@@ -305,6 +335,30 @@ export default function FormComponent({ userData }: { userData: any }) {
     setStep(1) // Reset step to 1 when form is reset
   }
 
+  function handleSelectChange(value: string) {
+    setSelectedEntity(value)
+
+    const selectedEntityDetails = entities.find((entity) => entity.id === value)
+
+    if (selectedEntityDetails.type === "fund") {
+      form.reset({
+        ...form.getValues(),
+        fundName: selectedEntityDetails.name,
+        fundByline: selectedEntityDetails.byline,
+        fundStreet: selectedEntityDetails.street,
+        fundCityStateZip: selectedEntityDetails.city_state_zip,
+      })
+    } else if (selectedEntityDetails.type === "company") {
+      form.reset({
+        ...form.getValues(),
+        companyName: selectedEntityDetails.name,
+        companyStreet: selectedEntityDetails.street,
+        companyCityStateZip: selectedEntityDetails.city_state_zip,
+        stateOfIncorporation: selectedEntityDetails.state_of_incorporation,
+      })
+    }
+  }
+
   return (
     <div className="flex flex-col items-center min-h-screen py-2 w-2/3">
       {showConfetti && <Confetti />}
@@ -320,151 +374,129 @@ export default function FormComponent({ userData }: { userData: any }) {
           {step === 1 && (
             <>
               <div className="pt-4">
-                <Label className="text-md font-bold">Deal Terms</Label>
+                <Label className="text-md font-bold">Investor Details</Label>
+              </div>
+              <EntitySelector
+                entities={entities}
+                selectedEntity={selectedEntity}
+                onSelectChange={handleSelectChange}
+                addEntities={false}
+              />
+              <FormDescription>
+                Choose a signature block for this deal
+              </FormDescription>
+              <FormField
+                control={form.control}
+                name="fundName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Entity Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {formDescriptions.fundName}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="fundByline"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Byline (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {formDescriptions.fundByline}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="fundStreet"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Street Address</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {formDescriptions.fundStreet}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="fundCityStateZip"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>City, State, Zip Code</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {formDescriptions.fundCityStateZip}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="pt-4">
+                <Label className="text-md font-bold">Signatory Details</Label>
               </div>
               <FormField
                 control={form.control}
-                name="purchaseAmount"
+                name="investorName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Purchase Amount</FormLabel>
+                    <FormLabel>Investor Name</FormLabel>
                     <FormControl>
-                      <Input
-                        {...field}
-                        value={Number(
-                          field.value.replace(/,/g, "")
-                        ).toLocaleString()}
-                        onChange={(event) => {
-                          const value = event.target.value
-                            .replace(/\D/g, "")
-                            .replace(/,/g, "")
-                          field.onChange(Number(value).toLocaleString())
-                        }}
-                      />
+                      <Input {...field} />
                     </FormControl>
                     <FormDescription>
-                      {formDescriptions.purchaseAmount}
+                      {formDescriptions.investorName}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
-                name="type"
+                name="investorTitle"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Investment Type</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectLabel>Placement</SelectLabel>
-                          <SelectItem value="valuation-cap">
-                            Valuation Cap
-                          </SelectItem>
-                          <SelectItem value="discount">Discount</SelectItem>
-                          <SelectItem value="mfn">MFN</SelectItem>
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Investor Title</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
                     <FormDescription>
-                      {formDescriptions.investmentType}
+                      {formDescriptions.investorTitle}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              {form.watch("type") === "valuation-cap" && (
-                <FormField
-                  control={form.control}
-                  name="valuationCap"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Valuation Cap</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          value={Number(
-                            field.value?.replace(/,/g, "")
-                          ).toLocaleString()}
-                          onChange={(event) => {
-                            const value = event.target.value
-                              .replace(/\D/g, "")
-                              .replace(/,/g, "")
-                            field.onChange(Number(value).toLocaleString())
-                          }}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        {formDescriptions.valuationCap}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-              {form.watch("type") === "discount" && (
-                <FormField
-                  control={form.control}
-                  name="discount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Discount</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        {formDescriptions.discount}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
               <FormField
                 control={form.control}
-                name="date"
+                name="investorEmail"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => date < new Date()}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormDescription>{formDescriptions.date}</FormDescription>
+                  <FormItem>
+                    <FormLabel>Investor Email</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {formDescriptions.investorEmail}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -619,19 +651,30 @@ export default function FormComponent({ userData }: { userData: any }) {
           {step === 3 && (
             <>
               <div className="pt-4">
-                <Label className="text-md font-bold">Investor Details</Label>
+                <Label className="text-md font-bold">Deal Terms</Label>
               </div>
               <FormField
                 control={form.control}
-                name="fundName"
+                name="purchaseAmount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Entity Name</FormLabel>
+                    <FormLabel>Purchase Amount</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input
+                        {...field}
+                        value={Number(
+                          field.value.replace(/,/g, "")
+                        ).toLocaleString()}
+                        onChange={(event) => {
+                          const value = event.target.value
+                            .replace(/\D/g, "")
+                            .replace(/,/g, "")
+                          field.onChange(Number(value).toLocaleString())
+                        }}
+                      />
                     </FormControl>
                     <FormDescription>
-                      {formDescriptions.fundName}
+                      {formDescriptions.purchaseAmount}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -639,100 +682,120 @@ export default function FormComponent({ userData }: { userData: any }) {
               />
               <FormField
                 control={form.control}
-                name="fundByline"
+                name="type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Byline (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} />
-                    </FormControl>
+                    <FormLabel>Investment Type</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Placement</SelectLabel>
+                          <SelectItem value="valuation-cap">
+                            Valuation Cap
+                          </SelectItem>
+                          <SelectItem value="discount">Discount</SelectItem>
+                          <SelectItem value="mfn">MFN</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
                     <FormDescription>
-                      {formDescriptions.fundByline}
+                      {formDescriptions.investmentType}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              {form.watch("type") === "valuation-cap" && (
+                <FormField
+                  control={form.control}
+                  name="valuationCap"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Valuation Cap</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          value={Number(
+                            field.value?.replace(/,/g, "")
+                          ).toLocaleString()}
+                          onChange={(event) => {
+                            const value = event.target.value
+                              .replace(/\D/g, "")
+                              .replace(/,/g, "")
+                            field.onChange(Number(value).toLocaleString())
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {formDescriptions.valuationCap}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+              {form.watch("type") === "discount" && (
+                <FormField
+                  control={form.control}
+                  name="discount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Discount</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        {formDescriptions.discount}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               <FormField
                 control={form.control}
-                name="fundStreet"
+                name="date"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Street Address</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      {formDescriptions.fundStreet}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="fundCityStateZip"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>City, State, Zip Code</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      {formDescriptions.fundCityStateZip}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="pt-4">
-                <Label className="text-md font-bold">Signatory Details</Label>
-              </div>
-              <FormField
-                control={form.control}
-                name="investorName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Investor Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      {formDescriptions.investorName}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="investorTitle"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Investor Title</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      {formDescriptions.investorTitle}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="investorEmail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Investor Email</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      {formDescriptions.investorEmail}
-                    </FormDescription>
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) => date < new Date()}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormDescription>{formDescriptions.date}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

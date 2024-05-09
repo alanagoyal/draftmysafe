@@ -543,7 +543,7 @@ export default function AccountForm({
             {renderEntities()}
             {renderAdditionalFields()}
             <Button className="w-full" type="submit">
-              Update
+              Save
             </Button>
           </div>
         </form>

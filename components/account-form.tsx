@@ -110,47 +110,6 @@ export default function AccountForm({
     }
   }
 
-  function handleSelectChange(value: string) {
-    setSelectedEntity(value)
-    setShowAdditionalFields(true)
-
-    if (value === "add-new-fund") {
-      form.reset({
-        ...form.getValues(),
-        type: "fund",
-        entity_name: "",
-        byline: "",
-        street: "",
-        city_state_zip: "",
-      })
-    } else if (value === "add-new-company") {
-      form.reset({
-        ...form.getValues(),
-        type: "company",
-        entity_name: "",
-        street: "",
-        city_state_zip: "",
-        state_of_incorporation: "",
-      })
-    } else {
-      // Fetch the selected entity's details and set them in the form
-      const selectedEntityDetails = entities.find(
-        (entity) => entity.id === value
-      )
-      if (selectedEntityDetails) {
-        form.reset({
-          ...form.getValues(),
-          type: selectedEntityDetails.type,
-          entity_name: selectedEntityDetails.name,
-          byline: selectedEntityDetails.byline,
-          street: selectedEntityDetails.street,
-          city_state_zip: selectedEntityDetails.city_state_zip,
-          state_of_incorporation: selectedEntityDetails.state_of_incorporation,
-        })
-      }
-    }
-  }
-
   async function onSubmit(data: AccountFormValues) {
     try {
       const accountUpdates = {
@@ -289,8 +248,24 @@ export default function AccountForm({
     }
   }
 
-  async function deleteEntity(selectedEntity: string, type: string) {
-    if (type === "fund") {
+  async function deleteEntity() {
+    if (
+      selectedEntity === "add-new-fund" ||
+      selectedEntity === "add-new-company"
+    ) {
+      toast({
+        description: `${
+          selectedEntity === "add-new-fund" ? "New fund" : "New company"
+        } discarded`,
+      })
+      setSelectedEntity(entities.length > 0 ? entities[0].id : "add-new")
+      setShowAdditionalFields(false)
+      return
+    }
+    const selectedEntityDetails = entities.find(
+      (entity) => entity.id === selectedEntity
+    )
+    if (selectedEntityDetails.type === "fund") {
       const { error } = await supabase
         .from("funds")
         .delete()
@@ -310,7 +285,7 @@ export default function AccountForm({
         setSelectedEntity(entities.length > 0 ? entities[0].id : "add-new")
         setShowAdditionalFields(false)
       }
-    } else if (type === "company") {
+    } else if (selectedEntityDetails.type === "company") {
       const { error } = await supabase
         .from("companies")
         .delete()
@@ -329,6 +304,39 @@ export default function AccountForm({
         setEntities(entities.filter((entity) => entity.id !== selectedEntity))
         setSelectedEntity(entities.length > 0 ? entities[0].id : "add-new")
         setShowAdditionalFields(false)
+      }
+    }
+  }
+
+  function handleSelectChange(value: string) {
+    setSelectedEntity(value)
+    setShowAdditionalFields(true)
+
+    if (value === "add-new-fund" || value === "add-new-company") {
+      form.reset({
+        ...form.getValues(),
+        type: value === "add-new-fund" ? "fund" : "company",
+        entity_name: "",
+        byline: "",
+        street: "",
+        city_state_zip: "",
+        state_of_incorporation: "",
+      })
+    } else {
+      // Fetch the selected entity's details and set them in the form
+      const selectedEntityDetails = entities.find(
+        (entity) => entity.id === value
+      )
+      if (selectedEntityDetails) {
+        form.reset({
+          ...form.getValues(),
+          type: selectedEntityDetails.type,
+          entity_name: selectedEntityDetails.name,
+          byline: selectedEntityDetails.byline,
+          street: selectedEntityDetails.street,
+          city_state_zip: selectedEntityDetails.city_state_zip,
+          state_of_incorporation: selectedEntityDetails.state_of_incorporation,
+        })
       }
     }
   }
@@ -371,9 +379,6 @@ export default function AccountForm({
   }
 
   function renderAdditionalFields() {
-    const selectedEntityDetails = entities.find(
-      (entity) => entity.id === selectedEntity
-    )
     if (showAdditionalFields) {
       return (
         <>
@@ -400,9 +405,7 @@ export default function AccountForm({
             </div>
             <Icons.trash
               className="cursor-pointer"
-              onClick={() =>
-                deleteEntity(selectedEntity, selectedEntityDetails.type)
-              }
+              onClick={() => deleteEntity()}
             />
           </div>
           {form.watch("type") === "fund" && (

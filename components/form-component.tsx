@@ -319,13 +319,12 @@ export default function FormComponent({ userData }: { userData: any }) {
     } catch (error) {
       console.error("Error during database operation:", error)
     } finally {
-      // Toast and reset form
+      // Toast 
       toast({
         title: "Congratulations!",
         description:
           "Your SAFE agreement has been generated and can be found in your Downloads",
       })
-      resetForm()
     }
   }
 
@@ -380,11 +379,8 @@ export default function FormComponent({ userData }: { userData: any }) {
                 entities={entities}
                 selectedEntity={selectedEntity}
                 onSelectChange={handleSelectChange}
-                addEntities={false}
+                entityType="fund"
               />
-              <FormDescription>
-                Choose a signature block for this deal
-              </FormDescription>
               <FormField
                 control={form.control}
                 name="fundName"
@@ -515,6 +511,12 @@ export default function FormComponent({ userData }: { userData: any }) {
               <div className="pt-4">
                 <Label className="text-md font-bold">Company Details</Label>
               </div>
+              <EntitySelector
+                entities={entities}
+                selectedEntity={selectedEntity}
+                onSelectChange={handleSelectChange}
+                entityType="company"
+              />
               <FormField
                 control={form.control}
                 name="companyName"

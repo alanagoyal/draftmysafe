@@ -505,11 +505,8 @@ export default function AccountForm({
                 entities={entities}
                 selectedEntity={selectedEntity}
                 onSelectChange={handleSelectChange}
-                addEntities={true}
+                entityType="both"
               />
-              <FormDescription>
-                Add or edit an entity to be used in your signature block
-              </FormDescription>
             </div>
             {renderAdditionalFields()}
             <Button className="w-full" type="submit">

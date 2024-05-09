@@ -1,5 +1,4 @@
-import { FormDescription, FormLabel } from "./ui/form"
-import { Label } from "./ui/label"
+import { FormDescription } from "./ui/form"
 import {
   Select,
   SelectContent,
@@ -13,42 +12,57 @@ type EntitySelectorProps = {
   entities: any[]
   selectedEntity: string
   onSelectChange: (value: string) => void
-  addEntities: boolean
+  entityType: "fund" | "company" | "both"
 }
 
 export function EntitySelector({
   entities,
   selectedEntity,
   onSelectChange,
-  addEntities,
+  entityType,
 }: EntitySelectorProps) {
+  const filteredEntities = entities.filter(
+    (item) => entityType === "both" || item.type === entityType
+  )
+
+  if (filteredEntities.length === 0) {
+    return null
+  }
+
   return (
-    <Select
-      key={`select-${entities.length}`}
-      value={selectedEntity}
-      onValueChange={onSelectChange}
-    >
-      <SelectTrigger className="w-full">
-        <SelectValue placeholder="Select or add an entity" />
-      </SelectTrigger>
-      <SelectContent>
-        {entities.map((item) => (
-          <SelectItem key={`entity-${item.id}`} value={item.id}>
-            {item.name}
-          </SelectItem>
-        ))}
-        {addEntities && (
-          <>
-            <Separator />
-            <SelectItem key="add-new-fund" value="add-new-fund">
-              + New fund
+    <>
+      <Select
+        key={`select-${entities.length}`}
+        value={entityType === "both" ? selectedEntity : undefined}
+        onValueChange={onSelectChange}
+      >
+        <SelectTrigger className="w-full">
+        <SelectValue placeholder={entityType === "both" ? "Select or add an entity" : `Select a ${entityType}`} />
+        </SelectTrigger>
+        <SelectContent>
+          {filteredEntities.map((item) => (
+            <SelectItem key={`entity-${item.id}`} value={item.id}>
+              {item.name}
             </SelectItem>
-            <SelectItem key="add-new-company" value="add-new-company">
-              + New company
-            </SelectItem>
-          </>
-        )}
-      </SelectContent>
-    </Select>
+          ))}
+          {entityType === "both" && (
+            <>
+              <Separator />
+              <SelectItem key="add-new-fund" value="add-new-fund">
+                + New fund
+              </SelectItem>
+              <SelectItem key="add-new-company" value="add-new-company">
+                + New company
+              </SelectItem>
+            </>
+          )}
+        </SelectContent>
+      </Select>
+      <FormDescription>
+        {entityType === "both"
+          ? "Add or edit an entity to be used in your signature block"
+          : `Choose a ${entityType} to be used in your signature block`}
+      </FormDescription>
+    </>
   )
 }

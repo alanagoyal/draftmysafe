@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { CalendarIcon } from "@radix-ui/react-icons"
@@ -13,6 +13,7 @@ import { z } from "zod"
 
 import { cn, formDescriptions } from "@/lib/utils"
 
+import { EntitySelector } from "./entity-selector"
 import { Button } from "./ui/button"
 import { Calendar } from "./ui/calendar"
 import {
@@ -82,14 +83,14 @@ export default function FormComponent({ userData }: { userData: any }) {
       discount: "",
       stateOfIncorporation: "",
       date: new Date(),
-      investorName: userData.type === "investor" ? userData.name : "",
-      investorTitle: userData.type === "investor" ? userData.title : "",
-      investorEmail: userData.type === "investor" ? userData.email : "",
+      investorName: "",
+      investorTitle: "",
+      investorEmail: "",
       fundStreet: "",
       fundCityStateZip: "",
-      founderName: userData.type === "founder" ? userData.name : "",
-      founderTitle: userData.type === "founder" ? userData.title : "",
-      founderEmail: userData.type === "founder" ? userData.email : "",
+      founderName: "",
+      founderTitle: "",
+      founderEmail: "",
       companyStreet: "",
       companyCityStateZip: "",
     },
@@ -97,104 +98,49 @@ export default function FormComponent({ userData }: { userData: any }) {
 
   const [step, setStep] = useState(1)
   const [showConfetti, setShowConfetti] = useState(false)
+  const [entities, setEntities] = useState<any[]>([])
+  const [selectedEntity, setSelectedEntity] = useState("")
+
+  useEffect(() => {
+    if (userData) {
+      fetchEntities()
+    }
+  }, [userData])
+
+  async function fetchEntities() {
+    const { data: fundData, error: fundError } = await supabase
+      .from("funds")
+      .select()
+      .eq("investor_id", userData.id)
+
+    const { data: companyData, error: companyError } = await supabase
+      .from("companies")
+      .select()
+      .eq("founder_id", userData.id)
+
+    if (!fundError && !companyError) {
+      const typedFundData = fundData.map((fund) => ({ ...fund, type: "fund" }))
+      const typedCompanyData = companyData.map((company) => ({
+        ...company,
+        type: "company",
+      }))
+      setEntities([...typedFundData, ...typedCompanyData])
+    }
+  }
 
   async function onSubmit(values: FormComponentValues) {
-    // Format date
-    const date = new Date(values.date)
-    const monthName = new Intl.DateTimeFormat("en-US", {
-      month: "long",
-    }).format(date)
-    const day = date.getDate()
-    const year = date.getFullYear()
-    const suffix = getNumberSuffix(day)
-    const formattedDate = `${monthName} ${day}${suffix}, ${year}`
+    const formattedDate = formatSubmissionDate(values.date)
+    const templateFileName = selectTemplate(values.type)
+    const doc = await loadAndPrepareTemplate(
+      templateFileName,
+      values,
+      formattedDate
+    )
+    downloadDocument(doc, values.type)
+    await processInvestment(values)
+  }
 
-    function getNumberSuffix(day: number): string {
-      if (day >= 11 && day <= 13) {
-        return "th"
-      }
-      switch (day % 10) {
-        case 1:
-          return "st"
-        case 2:
-          return "nd"
-        case 3:
-          return "rd"
-        default:
-          return "th"
-      }
-    }
-
-    // Load the docx template based on the investment type
-    let templateFileName = ""
-    if (values.type === "valuation-cap") {
-      templateFileName = "SAFE-Valuation-Cap.docx"
-    } else if (values.type === "discount") {
-      templateFileName = "SAFE-Discount.docx"
-    } else if (values.type === "mfn") {
-      templateFileName = "SAFE-MFN.docx"
-    }
-    const response = await fetch(`/${templateFileName}`)
-    const arrayBuffer = await response.arrayBuffer()
-    const zip = new PizZip(arrayBuffer)
-
-    // Create a docxtemplater instance and load the zip
-    const doc = new Docxtemplater().loadZip(zip)
-  
-    // Set the template variables
-    doc.setData({
-      company_name: values.companyName,
-      investing_entity_name: values.fundName,
-      byline: values.fundByline || "",
-      purchase_amount: values.purchaseAmount,
-      valuation_cap: values.valuationCap || "",
-      discount: values.discount
-        ? (100 - Number(values.discount)).toString()
-        : "",
-      state_of_incorporation: values.stateOfIncorporation,
-      date: formattedDate,
-      investor_name: values.investorName,
-      investor_title: values.investorTitle,
-      investor_email: values.investorEmail,
-      investor_address_1: values.fundStreet,
-      investor_address_2: values.fundCityStateZip,
-      founder_name: values.founderName,
-      founder_title: values.founderTitle,
-      founder_email: values.founderEmail || "",
-      company_address_1: values.companyStreet || "",
-      company_address_2: values.companyCityStateZip || "",
-    })
-
-    // Render the document
-    doc.render()
-
-    // Get the updated Word file content
-    const updatedContent = doc.getZip().generate({ type: "blob" })
-
-    // Create a download link and click it to start the download
-    const link = document.createElement("a")
-    link.href = URL.createObjectURL(updatedContent)
-    link.download =
-      values.type === "valuation-cap"
-        ? "YC-SAFE-Valuation-Cap.docx"
-        : values.type === "discount"
-        ? "YC-SAFE-Discount.docx"
-        : "YC-SAFE-MFN.docx"
-    link.click()
-
-    // Clean up the download URL
-    setTimeout(() => {
-      URL.revokeObjectURL(link.href)
-    }, 100)
-
-    // Start confetti
-    setShowConfetti(true)
-
-    // Stop confetti after 3 seconds
-    setTimeout(() => {
-      setShowConfetti(false)
-    }, 10000)
-
+  async function processInvestment(values: FormComponentValues) {
     // Insert into investments table
     try {
       // Check if the investor already exists
@@ -241,7 +187,7 @@ export default function FormComponent({ userData }: { userData: any }) {
         founderId = data[0].id
       }
 
-      // Insert fund and company data using the ids
+      // Insert fund
       let fundId
       const fundData = {
         name: values.fundName,
@@ -250,13 +196,29 @@ export default function FormComponent({ userData }: { userData: any }) {
         city_state_zip: values.fundCityStateZip,
         investor_id: investorId,
       }
-      const { data: fundInsertData, error: fundInsertError } = await supabase
+      const { data: existingFund, error: existingFundError } = await supabase
         .from("funds")
-        .insert(fundData)
         .select("id")
-      if (fundInsertError) throw fundInsertError
-      fundId = fundInsertData[0].id
+        .eq("name", values.fundName)
+        .eq("investor_id", investorId)
 
+      if (existingFund && existingFund.length > 0) {
+        fundId = existingFund[0].id
+        const { error: updateError } = await supabase
+          .from("funds")
+          .update(fundData)
+          .eq("id", existingFund[0].id)
+        if (updateError) throw updateError
+      } else {
+        const { data: newFund, error: newFundError } = await supabase
+          .from("funds")
+          .insert(fundData)
+          .select()
+        if (newFundError) throw newFundError
+        fundId = newFund[0].id
+      }
+
+      // Insert company
       let companyId
       const companyData = {
         name: values.companyName,
@@ -265,10 +227,28 @@ export default function FormComponent({ userData }: { userData: any }) {
         state_of_incorporation: values.stateOfIncorporation,
         founder_id: founderId,
       }
-      const { data: companyInsertData, error: companyInsertError } =
-        await supabase.from("companies").insert(companyData).select("id")
-      if (companyInsertError) throw companyInsertError
-      companyId = companyInsertData[0].id
+      const { data: existingCompany, error: existingCompanyError } =
+        await supabase
+          .from("companies")
+          .select("id")
+          .eq("name", values.companyName)
+          .eq("founder_id", founderId)
+
+      if (existingCompany && existingCompany.length > 0) {
+        companyId = existingCompany[0].id
+        const { error: updateError } = await supabase
+          .from("companies")
+          .update(companyData)
+          .eq("id", existingCompany[0].id)
+        if (updateError) throw updateError
+      } else {
+        const { data: newCompany, error: newCompanyError } = await supabase
+          .from("companies")
+          .insert(companyData)
+          .select()
+        if (newCompanyError) throw newCompanyError
+        companyId = newCompany[0].id
+      }
 
       // Insert into investments table with all linked ids
       const investmentData = {
@@ -283,26 +263,167 @@ export default function FormComponent({ userData }: { userData: any }) {
         date: values.date,
         created_by: userData.auth_id,
       }
+
       const { data: investmentInsertData, error: investmentInsertError } =
         await supabase.from("investments").insert(investmentData)
       if (investmentInsertError) throw investmentInsertError
     } catch (error) {
       console.error("Error during database operation:", error)
     } finally {
-      // Toast and reset form
+      setShowConfetti(true)
+      setTimeout(() => {
+        setShowConfetti(false)
+      }, 10000)
       toast({
         title: "Congratulations!",
         description:
           "Your SAFE agreement has been generated and can be found in your Downloads",
       })
-      resetForm()
     }
+  }
+
+  function formatSubmissionDate(date: Date): string {
+    const monthName = new Intl.DateTimeFormat("en-US", {
+      month: "long",
+    }).format(date)
+    const day = date.getDate()
+    const year = date.getFullYear()
+    const suffix = getNumberSuffix(day)
+    return `${monthName} ${day}${suffix}, ${year}`
+  }
+
+  function getNumberSuffix(day: number): string {
+    if (day >= 11 && day <= 13) {
+      return "th"
+    }
+    switch (day % 10) {
+      case 1:
+        return "st"
+      case 2:
+        return "nd"
+      case 3:
+        return "rd"
+      default:
+        return "th"
+    }
+  }
+
+  function selectTemplate(type: string): string {
+    switch (type) {
+      case "valuation-cap":
+        return "SAFE-Valuation-Cap.docx"
+      case "discount":
+        return "SAFE-Discount.docx"
+      case "mfn":
+        return "SAFE-MFN.docx"
+      default:
+        return "" // Default case to handle unexpected types
+    }
+  }
+
+  async function loadAndPrepareTemplate(
+    templateFileName: string,
+    values: FormComponentValues,
+    formattedDate: string
+  ): Promise<Docxtemplater> {
+    const response = await fetch(`/${templateFileName}`)
+    const arrayBuffer = await response.arrayBuffer()
+    const zip = new PizZip(arrayBuffer)
+    const doc = new Docxtemplater().loadZip(zip)
+    doc.setData({
+      company_name: values.companyName,
+      investing_entity_name: values.fundName,
+      byline: values.fundByline || "",
+      purchase_amount: values.purchaseAmount,
+      valuation_cap: values.valuationCap || "",
+      discount: values.discount
+        ? (100 - Number(values.discount)).toString()
+        : "",
+      state_of_incorporation: values.stateOfIncorporation,
+      date: formattedDate,
+      investor_name: values.investorName,
+      investor_title: values.investorTitle,
+      investor_email: values.investorEmail,
+      investor_address_1: values.fundStreet,
+      investor_address_2: values.fundCityStateZip,
+      founder_name: values.founderName,
+      founder_title: values.founderTitle,
+      founder_email: values.founderEmail || "",
+      company_address_1: values.companyStreet || "",
+      company_address_2: values.companyCityStateZip || "",
+    })
+    doc.render()
+    return doc
+  }
+
+  function downloadDocument(doc: Docxtemplater, type: string) {
+    const updatedContent = doc.getZip().generate({ type: "blob" })
+    const link = document.createElement("a")
+    link.href = URL.createObjectURL(updatedContent)
+    link.download =
+      type === "valuation-cap"
+        ? "YC-SAFE-Valuation-Cap.docx"
+        : type === "discount"
+        ? "YC-SAFE-Discount.docx"
+        : "YC-SAFE-MFN.docx"
+    link.click()
+    setTimeout(() => {
+      URL.revokeObjectURL(link.href)
+    }, 100)
   }
 
   function resetForm() {
     form.reset()
     form.setValue("date", new Date())
     setStep(1) // Reset step to 1 when form is reset
+  }
+
+  async function handleSelectChange(value: string) {
+    setSelectedEntity(value)
+
+    const selectedEntityDetails = entities.find((entity) => entity.id === value)
+
+    if (selectedEntityDetails.type === "fund") {
+      form.reset({
+        ...form.getValues(),
+        fundName: selectedEntityDetails.name,
+        fundByline: selectedEntityDetails.byline,
+        fundStreet: selectedEntityDetails.street,
+        fundCityStateZip: selectedEntityDetails.city_state_zip,
+      })
+
+      const {data: investorData, error: investorError} = await supabase
+        .from("users")
+        .select("name, title, email")
+        .eq("id", selectedEntityDetails.investor_id)
+      if (investorError) throw investorError
+      form.reset({
+        ...form.getValues(),
+        investorName: investorData[0].name,
+        investorTitle: investorData[0].title,
+        investorEmail: investorData[0].email,
+      })
+
+    } else if (selectedEntityDetails.type === "company") {
+      form.reset({
+        ...form.getValues(),
+        companyName: selectedEntityDetails.name,
+        companyStreet: selectedEntityDetails.street,
+        companyCityStateZip: selectedEntityDetails.city_state_zip,
+        stateOfIncorporation: selectedEntityDetails.state_of_incorporation,
+      })
+      const {data: founderData, error: founderError} = await supabase
+        .from("users")
+        .select("name, title, email")
+        .eq("id", selectedEntityDetails.founder_id)
+      if (founderError) throw founderError
+      form.reset({
+        ...form.getValues(),
+        founderName: founderData[0].name,
+        founderTitle: founderData[0].title,
+        founderEmail: founderData[0].email,
+      })
+    }
   }
 
   return (
@@ -318,6 +439,286 @@ export default function FormComponent({ userData }: { userData: any }) {
           className="space-y-4 w-full"
         >
           {step === 1 && (
+            <>
+              <div className="pt-4">
+                <Label className="text-md font-bold">Investor Details</Label>
+              </div>
+              <EntitySelector
+                entities={entities}
+                selectedEntity={selectedEntity}
+                onSelectChange={handleSelectChange}
+                entityType="fund"
+              />
+              <FormField
+                control={form.control}
+                name="fundName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Entity Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {formDescriptions.fundName}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="fundByline"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Byline (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {formDescriptions.fundByline}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="fundStreet"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Street Address</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {formDescriptions.fundStreet}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="fundCityStateZip"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>City, State, Zip Code</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {formDescriptions.fundCityStateZip}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="pt-4">
+                <Label className="text-md font-bold">Signatory Details</Label>
+              </div>
+              <FormField
+                control={form.control}
+                name="investorName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Investor Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {formDescriptions.investorName}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="investorTitle"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Investor Title</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {formDescriptions.investorTitle}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="investorEmail"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Investor Email</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {formDescriptions.investorEmail}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button
+                type="button"
+                className="mt-4 w-full"
+                onClick={() => setStep(2)}
+              >
+                Next
+              </Button>
+            </>
+          )}
+          {step === 2 && (
+            <>
+              <div className="pt-4">
+                <Label className="text-md font-bold">Company Details</Label>
+              </div>
+              <EntitySelector
+                entities={entities}
+                selectedEntity={selectedEntity}
+                onSelectChange={handleSelectChange}
+                entityType="company"
+              />
+              <FormField
+                control={form.control}
+                name="companyName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Company Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {formDescriptions.companyName}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="companyStreet"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Street Address</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {formDescriptions.companyStreet}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="companyCityStateZip"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>City, State, Zip Code</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {formDescriptions.companyCityStateZip}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="stateOfIncorporation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>State of Incorporation</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {formDescriptions.stateOfIncorporation}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="pt-4">
+                <Label className="text-md font-bold">Signatory Details</Label>
+              </div>
+              <FormField
+                control={form.control}
+                name="founderName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Founder Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {formDescriptions.founderName}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="founderTitle"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Founder Title</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {formDescriptions.founderTitle}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="founderEmail"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Founder Email</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      {formDescriptions.founderEmail}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex flex-col gap-2">
+                <Button
+                  type="button"
+                  className="w-full"
+                  onClick={() => setStep(3)}
+                >
+                  Next
+                </Button>
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => setStep(1)}
+                >
+                  Back
+                </Button>
+              </div>
+            </>
+          )}
+          {step === 3 && (
             <>
               <div className="pt-4">
                 <Label className="text-md font-bold">Deal Terms</Label>
@@ -465,274 +866,6 @@ export default function FormComponent({ userData }: { userData: any }) {
                       </PopoverContent>
                     </Popover>
                     <FormDescription>{formDescriptions.date}</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button
-                type="button"
-                className="mt-4 w-full"
-                onClick={() => setStep(2)}
-              >
-                Next
-              </Button>
-            </>
-          )}
-          {step === 2 && (
-            <>
-              <div className="pt-4">
-                <Label className="text-md font-bold">Company Details</Label>
-              </div>
-              <FormField
-                control={form.control}
-                name="companyName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Company Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      {formDescriptions.companyName}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="companyStreet"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Street Address</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      {formDescriptions.companyStreet}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="companyCityStateZip"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>City, State, Zip Code</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      {formDescriptions.companyCityStateZip}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="stateOfIncorporation"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>State of Incorporation</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      {formDescriptions.stateOfIncorporation}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="pt-4">
-                <Label className="text-md font-bold">Signatory Details</Label>
-              </div>
-              <FormField
-                control={form.control}
-                name="founderName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Founder Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      {formDescriptions.founderName}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="founderTitle"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Founder Title</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      {formDescriptions.founderTitle}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="founderEmail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Founder Email</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      {formDescriptions.founderEmail}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="flex flex-col gap-2">
-                <Button
-                  type="button"
-                  className="w-full"
-                  onClick={() => setStep(3)}
-                >
-                  Next
-                </Button>
-                <Button
-                  variant="secondary"
-                  className="w-full"
-                  onClick={() => setStep(1)}
-                >
-                  Back
-                </Button>
-              </div>
-            </>
-          )}
-          {step === 3 && (
-            <>
-              <div className="pt-4">
-                <Label className="text-md font-bold">Investor Details</Label>
-              </div>
-              <FormField
-                control={form.control}
-                name="fundName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Entity Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      {formDescriptions.fundName}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="fundByline"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Byline (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      {formDescriptions.fundByline}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="fundStreet"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Street Address</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      {formDescriptions.fundStreet}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="fundCityStateZip"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>City, State, Zip Code</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      {formDescriptions.fundCityStateZip}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="pt-4">
-                <Label className="text-md font-bold">Signatory Details</Label>
-              </div>
-              <FormField
-                control={form.control}
-                name="investorName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Investor Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      {formDescriptions.investorName}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="investorTitle"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Investor Title</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      {formDescriptions.investorTitle}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="investorEmail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Investor Email</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      {formDescriptions.investorEmail}
-                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

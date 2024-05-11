@@ -4,7 +4,7 @@ import {
   SunMedium,
   type Icon as LucideIcon,
 } from "lucide-react"
-import { FaRegTrashAlt } from "react-icons/fa";
+import { FaRegTrashAlt, FaShare } from "react-icons/fa";
 type IconProps = React.HTMLAttributes<SVGElement>
 
 export type Icon = LucideIcon
@@ -13,6 +13,7 @@ export const Icons = {
   sun: SunMedium,
   moon: Moon,
   trash: FaRegTrashAlt,
+  share: FaShare,
   twitter: (props: IconProps) => (
     <svg
       {...props}

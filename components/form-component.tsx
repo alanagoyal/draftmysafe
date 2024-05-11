@@ -14,6 +14,7 @@ import { z } from "zod"
 import { cn, formDescriptions } from "@/lib/utils"
 
 import { EntitySelector } from "./entity-selector"
+import { Share } from "./share"
 import { Button } from "./ui/button"
 import { Calendar } from "./ui/calendar"
 import {
@@ -100,6 +101,7 @@ export default function FormComponent({ userData }: { userData: any }) {
   const [showConfetti, setShowConfetti] = useState(false)
   const [entities, setEntities] = useState<any[]>([])
   const [selectedEntity, setSelectedEntity] = useState("")
+  const [investmentId, setInvestmentId] = useState<string | null>(null)
 
   useEffect(() => {
     if (userData) {
@@ -137,21 +139,28 @@ export default function FormComponent({ userData }: { userData: any }) {
       formattedDate
     )
     downloadDocument(doc, values.type)
-    await processInvestment(values)
+    await processInvestment(values, null, null, null, null)
+
+    setShowConfetti(true)
+    setTimeout(() => {
+      setShowConfetti(false)
+    }, 10000)
+    toast({
+      title: "Congratulations!",
+      description:
+        "Your SAFE agreement has been generated and can be found in your Downloads",
+    })
   }
 
-  async function processInvestment(values: FormComponentValues) {
-    // Insert into investments table
+  async function processInvestorDetails(values: FormComponentValues) {
     try {
-      // Check if the investor already exists
       let investorData = await supabase
         .from("users")
         .select("id")
         .eq("email", values.investorEmail)
 
-      let investorId
-      if (investorData.data) {
-        investorId = investorData.data[0].id
+      if (investorData.data && investorData.data.length > 0) {
+        return investorData.data[0].id
       } else {
         const { data, error } = await supabase
           .from("users")
@@ -162,33 +171,17 @@ export default function FormComponent({ userData }: { userData: any }) {
           })
           .select("id")
         if (error) throw error
-        investorId = data[0].id
+        return data[0].id
       }
+    } catch (error) {
+      console.error("Error processing investor details:", error)
+      return null
+    }
+  }
 
-      // Check if the founder already exists
-      let founderData = await supabase
-        .from("users")
-        .select("id")
-        .eq("email", values.founderEmail)
-
-      let founderId
-      if (founderData.data && founderData.data.length > 0) {
-        founderId = founderData.data[0].id
-      } else {
-        const { data, error } = await supabase
-          .from("users")
-          .insert({
-            name: values.founderName,
-            title: values.founderTitle,
-            email: values.founderEmail,
-          })
-          .select("id")
-        if (error) throw error
-        founderId = data[0].id
-      }
-
+  async function processFundDetails(values: FormComponentValues, investorId: string) {
+    try {
       // Insert fund
-      let fundId
       const fundData = {
         name: values.fundName,
         byline: values.fundByline,
@@ -203,23 +196,55 @@ export default function FormComponent({ userData }: { userData: any }) {
         .eq("investor_id", investorId)
 
       if (existingFund && existingFund.length > 0) {
-        fundId = existingFund[0].id
         const { error: updateError } = await supabase
           .from("funds")
           .update(fundData)
           .eq("id", existingFund[0].id)
         if (updateError) throw updateError
+        return existingFund[0].id
       } else {
         const { data: newFund, error: newFundError } = await supabase
           .from("funds")
           .insert(fundData)
           .select()
         if (newFundError) throw newFundError
-        fundId = newFund[0].id
+        return newFund[0].id
       }
+    } catch (error) {
+      console.error("Error processing fund details:", error)
+    }
+  }
 
+  async function processFounderDetails(values: FormComponentValues) {
+    try {
+      // Check if the founder already exists
+      let founderData = await supabase
+        .from("users")
+        .select("id")
+        .eq("email", values.founderEmail)
+
+      if (founderData.data && founderData.data.length > 0) {
+        return founderData.data[0].id
+      } else {
+        const { data, error } = await supabase
+          .from("users")
+          .insert({
+            name: values.founderName,
+            title: values.founderTitle,
+            email: values.founderEmail,
+          })
+          .select("id")
+        if (error) throw error
+        return data[0].id
+      }
+    } catch (error) {
+      console.error("Error processing founder details:", error)
+    }
+  }
+
+  async function processCompanyDetails(values: FormComponentValues, founderId: string) {
+    try {
       // Insert company
-      let companyId
       const companyData = {
         name: values.companyName,
         street: values.companyStreet,
@@ -235,50 +260,60 @@ export default function FormComponent({ userData }: { userData: any }) {
           .eq("founder_id", founderId)
 
       if (existingCompany && existingCompany.length > 0) {
-        companyId = existingCompany[0].id
         const { error: updateError } = await supabase
           .from("companies")
           .update(companyData)
           .eq("id", existingCompany[0].id)
         if (updateError) throw updateError
+        return existingCompany[0].id
       } else {
         const { data: newCompany, error: newCompanyError } = await supabase
           .from("companies")
           .insert(companyData)
           .select()
         if (newCompanyError) throw newCompanyError
-        companyId = newCompany[0].id
+        return newCompany[0].id
       }
+    } catch (error) {
+      console.error("Error processing company details:", error)
+    }
+  }
 
-      // Insert into investments table with all linked ids
+  async function processInvestment(values: FormComponentValues, investorId: string | null, fundId: string | null, founderId: string | null, companyId: string | null) {
+    // Insert into investments table
+    try {
+      // Prepare investment data with non-null values
       const investmentData = {
-        founder_id: founderId,
-        company_id: companyId,
-        investor_id: investorId,
-        fund_id: fundId,
+        ...(founderId && { founder_id: founderId }),
+        ...(companyId && { company_id: companyId }),
+        ...(investorId && { investor_id: investorId }),
+        ...(fundId && { fund_id: fundId }),
         purchase_amount: values.purchaseAmount,
         investment_type: values.type,
-        valuation_cap: values.valuationCap,
-        discount: values.discount,
+        ...(values.valuationCap && { valuation_cap: values.valuationCap }),
+        ...(values.discount && { discount: values.discount }),
         date: values.date,
         created_by: userData.auth_id,
       }
-
-      const { data: investmentInsertData, error: investmentInsertError } =
-        await supabase.from("investments").insert(investmentData)
-      if (investmentInsertError) throw investmentInsertError
+    
+      // If hasn't been added to investments table, add it
+      if (!investmentId) {
+        const { data: investmentInsertData, error: investmentInsertError } =
+          await supabase.from("investments").insert(investmentData).select()
+        if (investmentInsertError) throw investmentInsertError
+        setInvestmentId(investmentInsertData[0].id)
+      } else {
+        // If it has been added, update it
+        const { data: investmentUpdateData, error: investmentUpdateError } =
+          await supabase
+            .from("investments")
+            .upsert({ ...investmentData, id: investmentId })
+            .select()
+        if (investmentUpdateError) throw investmentUpdateError
+        setInvestmentId(investmentUpdateData[0].id)
+      }
     } catch (error) {
-      console.error("Error during database operation:", error)
-    } finally {
-      setShowConfetti(true)
-      setTimeout(() => {
-        setShowConfetti(false)
-      }, 10000)
-      toast({
-        title: "Congratulations!",
-        description:
-          "Your SAFE agreement has been generated and can be found in your Downloads",
-      })
+      console.error("Error processing investment details:", error)
     }
   }
 
@@ -392,7 +427,7 @@ export default function FormComponent({ userData }: { userData: any }) {
         fundCityStateZip: selectedEntityDetails.city_state_zip,
       })
 
-      const {data: investorData, error: investorError} = await supabase
+      const { data: investorData, error: investorError } = await supabase
         .from("users")
         .select("name, title, email")
         .eq("id", selectedEntityDetails.investor_id)
@@ -403,7 +438,6 @@ export default function FormComponent({ userData }: { userData: any }) {
         investorTitle: investorData[0].title,
         investorEmail: investorData[0].email,
       })
-
     } else if (selectedEntityDetails.type === "company") {
       form.reset({
         ...form.getValues(),
@@ -412,7 +446,7 @@ export default function FormComponent({ userData }: { userData: any }) {
         companyCityStateZip: selectedEntityDetails.city_state_zip,
         stateOfIncorporation: selectedEntityDetails.state_of_incorporation,
       })
-      const {data: founderData, error: founderError} = await supabase
+      const { data: founderData, error: founderError } = await supabase
         .from("users")
         .select("name, title, email")
         .eq("id", selectedEntityDetails.founder_id)
@@ -568,7 +602,13 @@ export default function FormComponent({ userData }: { userData: any }) {
               <Button
                 type="button"
                 className="mt-4 w-full"
-                onClick={() => setStep(2)}
+                onClick={async () => {
+                  const values = form.getValues()
+                  const investorId = await processInvestorDetails(values)
+                  const fundId = await processFundDetails(values, investorId)
+                  await processInvestment(values, investorId, fundId, null, null)
+                  setStep(2) // Move to the next step only after processing is complete
+                }}
               >
                 Next
               </Button>
@@ -576,8 +616,9 @@ export default function FormComponent({ userData }: { userData: any }) {
           )}
           {step === 2 && (
             <>
-              <div className="pt-4">
+              <div className="pt-4 flex justify-between">
                 <Label className="text-md font-bold">Company Details</Label>
+                <Share idString={"foo"} />
               </div>
               <EntitySelector
                 entities={entities}
@@ -704,14 +745,20 @@ export default function FormComponent({ userData }: { userData: any }) {
                 <Button
                   type="button"
                   className="w-full"
-                  onClick={() => setStep(3)}
+                  onClick={async () => {
+                    const values = form.getValues()
+                    const founderId = await processFounderDetails(values)
+                    const companyId = await processCompanyDetails(values, founderId)
+                    await processInvestment(values, null, null, founderId, companyId)
+                    setStep(3) // Move to the next step only after processing is complete
+                  }}
                 >
                   Next
                 </Button>
                 <Button
                   variant="secondary"
                   className="w-full"
-                  onClick={() => setStep(1)}
+                  onClick={() => setStep(2)}
                 >
                   Back
                 </Button>

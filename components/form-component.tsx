@@ -40,12 +40,11 @@ import {
 } from "./ui/select"
 import { Textarea } from "./ui/textarea"
 import { toast } from "./ui/use-toast"
+import { useRouter, useSearchParams } from "next/navigation"
 
 const FormComponentSchema = z.object({
-  companyName: z.string({ required_error: "Company name is required" }),
-  fundName: z.string({
-    required_error: "Investing entity name is required",
-  }),
+  companyName: z.string().optional(),
+  fundName: z.string().optional(),
   fundByline: z.string().optional(),
   purchaseAmount: z.string({ required_error: "Purchase amount is required" }),
   type: z.enum(["valuation-cap", "discount", "mfn"]),
@@ -57,12 +56,12 @@ const FormComponentSchema = z.object({
   date: z.date({ required_error: "Date is required" }),
   investorName: z.string().optional(),
   investorTitle: z.string().optional(),
-  investorEmail: z.string().email().optional(),
+  investorEmail: z.string().optional(),
   fundStreet: z.string().optional(),
   fundCityStateZip: z.string().optional(),
-  founderName: z.string().min(3, { message: "Name is required" }),
-  founderTitle: z.string({ required_error: "Title is required" }),
-  founderEmail: z.string().email().optional(),
+  founderName: z.string().optional(),
+  founderTitle: z.string().optional(),
+  founderEmail: z.string().optional(),
   companyStreet: z.string().optional(),
   companyCityStateZip: z.string().optional(),
 })
@@ -71,6 +70,9 @@ type FormComponentValues = z.infer<typeof FormComponentSchema>
 
 export default function FormComponent({ userData }: { userData: any }) {
   const supabase = createClient()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [step, setStep] = useState(parseInt(searchParams.get("step") || '1'));
 
   const form = useForm<FormComponentValues>({
     resolver: zodResolver(FormComponentSchema),
@@ -97,7 +99,6 @@ export default function FormComponent({ userData }: { userData: any }) {
     },
   })
 
-  const [step, setStep] = useState(1)
   const [showConfetti, setShowConfetti] = useState(false)
   const [entities, setEntities] = useState<any[]>([])
   const [selectedEntity, setSelectedEntity] = useState("")
@@ -108,6 +109,14 @@ export default function FormComponent({ userData }: { userData: any }) {
       fetchEntities()
     }
   }, [userData])
+
+  // Update the URL when the step changes
+  useEffect(() => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.set("step", step.toString());
+    router.push(`?step=${step}`);
+  }, [step, router]);
+
 
   async function fetchEntities() {
     const { data: fundData, error: fundError } = await supabase
@@ -405,12 +414,6 @@ export default function FormComponent({ userData }: { userData: any }) {
     setTimeout(() => {
       URL.revokeObjectURL(link.href)
     }, 100)
-  }
-
-  function resetForm() {
-    form.reset()
-    form.setValue("date", new Date())
-    setStep(1) // Reset step to 1 when form is reset
   }
 
   async function handleSelectChange(value: string) {
@@ -758,7 +761,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                 <Button
                   variant="secondary"
                   className="w-full"
-                  onClick={() => setStep(2)}
+                  onClick={() => setStep(1)}
                 >
                   Back
                 </Button>

@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { CalendarIcon } from "@radix-ui/react-icons"
@@ -40,7 +41,6 @@ import {
 } from "./ui/select"
 import { Textarea } from "./ui/textarea"
 import { toast } from "./ui/use-toast"
-import { useRouter, useSearchParams } from "next/navigation"
 
 const FormComponentSchema = z.object({
   companyName: z.string().optional(),
@@ -72,7 +72,14 @@ export default function FormComponent({ userData }: { userData: any }) {
   const supabase = createClient()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [step, setStep] = useState(parseInt(searchParams.get("step") || '1'));
+  const [step, setStep] = useState(parseInt(searchParams.get("step") || "1"))
+  const [investmentId, setInvestmentId] = useState<string | null>(
+    searchParams.get("id") || null
+  )
+  const [showConfetti, setShowConfetti] = useState(false)
+  const [entities, setEntities] = useState<any[]>([])
+  const [selectedEntity, setSelectedEntity] = useState("")
+  const isFormLocked = searchParams.get("sharing") === "true"
 
   const form = useForm<FormComponentValues>({
     resolver: zodResolver(FormComponentSchema),
@@ -99,24 +106,24 @@ export default function FormComponent({ userData }: { userData: any }) {
     },
   })
 
-  const [showConfetti, setShowConfetti] = useState(false)
-  const [entities, setEntities] = useState<any[]>([])
-  const [selectedEntity, setSelectedEntity] = useState("")
-  const [investmentId, setInvestmentId] = useState<string | null>(null)
-
   useEffect(() => {
     if (userData) {
       fetchEntities()
     }
   }, [userData])
 
-  // Update the URL when the step changes
+  // Update the URL when the step changes, including sharing state if applicable
   useEffect(() => {
-    const newSearchParams = new URLSearchParams(searchParams);
-    newSearchParams.set("step", step.toString());
-    router.push(`?step=${step}`);
-  }, [step, router]);
-
+    const newSearchParams = new URLSearchParams(searchParams)
+    newSearchParams.set("step", step.toString())
+    if (investmentId) {
+      newSearchParams.set("id", investmentId)
+    }
+    if (isFormLocked) {
+      newSearchParams.set("sharing", "true")
+    }
+    router.push(`?${newSearchParams.toString()}`)
+  }, [step, router, investmentId, isFormLocked])
 
   async function fetchEntities() {
     const { data: fundData, error: fundError } = await supabase
@@ -188,7 +195,10 @@ export default function FormComponent({ userData }: { userData: any }) {
     }
   }
 
-  async function processFundDetails(values: FormComponentValues, investorId: string) {
+  async function processFundDetails(
+    values: FormComponentValues,
+    investorId: string
+  ) {
     try {
       // Insert fund
       const fundData = {
@@ -251,7 +261,10 @@ export default function FormComponent({ userData }: { userData: any }) {
     }
   }
 
-  async function processCompanyDetails(values: FormComponentValues, founderId: string) {
+  async function processCompanyDetails(
+    values: FormComponentValues,
+    founderId: string
+  ) {
     try {
       // Insert company
       const companyData = {
@@ -288,7 +301,13 @@ export default function FormComponent({ userData }: { userData: any }) {
     }
   }
 
-  async function processInvestment(values: FormComponentValues, investorId: string | null, fundId: string | null, founderId: string | null, companyId: string | null) {
+  async function processInvestment(
+    values: FormComponentValues,
+    investorId: string | null,
+    fundId: string | null,
+    founderId: string | null,
+    companyId: string | null
+  ) {
     // Insert into investments table
     try {
       // Prepare investment data with non-null values
@@ -304,7 +323,7 @@ export default function FormComponent({ userData }: { userData: any }) {
         date: values.date,
         created_by: userData.auth_id,
       }
-    
+
       // If hasn't been added to investments table, add it
       if (!investmentId) {
         const { data: investmentInsertData, error: investmentInsertError } =
@@ -609,11 +628,19 @@ export default function FormComponent({ userData }: { userData: any }) {
                   const values = form.getValues()
                   const investorId = await processInvestorDetails(values)
                   const fundId = await processFundDetails(values, investorId)
-                  await processInvestment(values, investorId, fundId, null, null)
-                  setStep(2) // Move to the next step only after processing is complete
+                  await processInvestment(
+                    values,
+                    investorId,
+                    fundId,
+                    null,
+                    null
+                  )
+                  if (!isFormLocked) {
+                    setStep(2) // Move to the next step only after processing is complete
+                  }
                 }}
               >
-                Next
+                {isFormLocked ? "Save" : "Next"}
               </Button>
             </>
           )}
@@ -621,7 +648,9 @@ export default function FormComponent({ userData }: { userData: any }) {
             <>
               <div className="pt-4 flex justify-between">
                 <Label className="text-md font-bold">Company Details</Label>
-                <Share idString={"foo"} />
+                <Share
+                  idString={`${window.location.origin}/new?id=${investmentId}&step=${step}&sharing=true`}
+                />
               </div>
               <EntitySelector
                 entities={entities}
@@ -751,20 +780,52 @@ export default function FormComponent({ userData }: { userData: any }) {
                   onClick={async () => {
                     const values = form.getValues()
                     const founderId = await processFounderDetails(values)
-                    const companyId = await processCompanyDetails(values, founderId)
-                    await processInvestment(values, null, null, founderId, companyId)
-                    setStep(3) // Move to the next step only after processing is complete
+                    const companyId = await processCompanyDetails(
+                      values,
+                      founderId
+                    )
+                    await processInvestment(
+                      values,
+                      null,
+                      null,
+                      founderId,
+                      companyId
+                    )
+                    if (!isFormLocked) {
+                      setStep(3) // Move to the next step only after processing is complete
+                    } else {
+                      // Confetti and toast
+                      setShowConfetti(true)
+                      setTimeout(() => {
+                        setShowConfetti(false)
+                      }, 10000)
+                      toast({
+                        title: "Congratulations!",
+                        description:
+                          "Your information has been saved. You'll receive an email with the next steps shortly.",
+                      })
+                    }
                   }}
                 >
-                  Next
+                  {isFormLocked ? "Save" : "Next"}
                 </Button>
-                <Button
-                  variant="secondary"
-                  className="w-full"
-                  onClick={() => setStep(1)}
-                >
-                  Back
-                </Button>
+                {!isFormLocked ? (
+                  <Button
+                    variant="secondary"
+                    className="w-full"
+                    onClick={() => setStep(1)}
+                  >
+                    Back
+                  </Button>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    className="w-full"
+                    onClick={() => window.close()}
+                  >
+                    Exit
+                  </Button>
+                )}
               </div>
             </>
           )}

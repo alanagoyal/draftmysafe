@@ -14,6 +14,7 @@ import { z } from "zod"
 
 import { cn, formDescriptions } from "@/lib/utils"
 
+import AuthRefresh from "./auth-refresh"
 import { EntitySelector } from "./entity-selector"
 import { Share } from "./share"
 import { Button } from "./ui/button"
@@ -47,7 +48,7 @@ const FormComponentSchema = z.object({
   fundName: z.string().optional(),
   fundByline: z.string().optional(),
   purchaseAmount: z.string({ required_error: "Purchase amount is required" }),
-  type: z.enum(["valuation-cap", "discount", "mfn"]),
+  type: z.enum(["valuation-cap", "discount", "mfn", ""]),
   valuationCap: z.string().optional(),
   discount: z.string().optional(),
   stateOfIncorporation: z.string({
@@ -88,7 +89,7 @@ export default function FormComponent({ userData }: { userData: any }) {
       fundName: "",
       fundByline: "",
       purchaseAmount: "",
-      type: "valuation-cap",
+      type: "",
       valuationCap: "",
       discount: "",
       stateOfIncorporation: "",
@@ -536,6 +537,7 @@ export default function FormComponent({ userData }: { userData: any }) {
 
   return (
     <div className="flex flex-col items-center min-h-screen py-2 w-2/3">
+      <AuthRefresh />
       {showConfetti && <Confetti />}
       <h1 className="text-4xl font-bold mb-4">Get Started</h1>
       <h3 className="text-sm text-gray-500 mb-4">

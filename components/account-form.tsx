@@ -108,30 +108,32 @@ export default function AccountForm({
         name: data.name,
         title: data.title,
         updated_at: new Date(),
-      }
-
+      };
+  
       let { error: accountError } = await supabase
         .from("users")
         .update(accountUpdates)
-        .eq("auth_id", user.id)
-      if (accountError) throw accountError
-
-      if (data.type === "fund") {
-        await processFund(data)
-      } else if (data.type === "company") {
-        await processCompany(data)
+        .eq("auth_id", user.id);
+      if (accountError) throw accountError;
+  
+      if (data.entity_name || data.byline || data.street || data.city_state_zip || data.state_of_incorporation) {
+        if (data.type === "fund") {
+          await processFund(data);
+        } else if (data.type === "company") {
+          await processCompany(data);
+        }
       }
     } catch (error) {
-      console.error(error)
+      console.error(error);
       toast({
         variant: "destructive",
         description: "Error updating account",
-      })
+      });
     } finally {
       toast({
         description: "Account updated",
-      })
-      setShowAdditionalFields(false)
+      });
+      setShowAdditionalFields(false);
     }
   }
 

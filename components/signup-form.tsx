@@ -55,18 +55,6 @@ export function SignupForm({ signup }: SignupFormProps) {
     },
   })
 
-  async function signInWithEmail(data: SignupFormData) {
-    const { data: signInData, error: signInError } =
-      await supabase.auth.signInWithOtp({
-        email: data.email,
-        options: {
-          // set this to false if you do not want the user to be automatically signed up
-          shouldCreateUser: false,
-          emailRedirectTo: "http://127.0.0.1:3000",
-        },
-      })
-  }
-
   const onSubmit = async (data: SignupFormData) => {
     try {
       const response = await signup(data)

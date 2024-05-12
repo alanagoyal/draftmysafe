@@ -25,26 +25,23 @@ export function EntitySelector({
     (item) => entityType === "both" || item.type === entityType
   )
 
-  if (filteredEntities.length === 0) {
-    return null
-  }
-
   return (
     <>
       <Select
         key={`select-${entities.length}`}
-        value={entityType === "both" ? selectedEntity : undefined}
+        value={entityType === "both" && filteredEntities.length === 0 ? undefined : selectedEntity}
         onValueChange={onSelectChange}
       >
         <SelectTrigger className="w-full">
-        <SelectValue placeholder={entityType === "both" ? "Select or add an entity" : `Select a ${entityType}`} />
+          <SelectValue
+            placeholder={
+              entityType === "both"
+                ? "Select or add an entity"
+                : `Select a ${entityType}`
+            }
+          />
         </SelectTrigger>
         <SelectContent>
-          {filteredEntities.map((item) => (
-            <SelectItem key={`entity-${item.id}`} value={item.id}>
-              {item.name}
-            </SelectItem>
-          ))}
           {entityType === "both" && (
             <>
               <Separator />
@@ -56,6 +53,11 @@ export function EntitySelector({
               </SelectItem>
             </>
           )}
+          {filteredEntities.map((item) => (
+            <SelectItem key={`entity-${item.id}`} value={item.id}>
+              {item.name}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
       <FormDescription>

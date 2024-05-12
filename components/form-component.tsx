@@ -118,12 +118,64 @@ export default function FormComponent({ userData }: { userData: any }) {
     newSearchParams.set("step", step.toString())
     if (investmentId) {
       newSearchParams.set("id", investmentId)
+      fetchInvestmentDetails(investmentId)
     }
     if (isFormLocked) {
       newSearchParams.set("sharing", "true")
     }
     router.push(`?${newSearchParams.toString()}`)
   }, [step, router, investmentId, isFormLocked])
+
+  async function fetchInvestmentDetails(investmentId: string) {
+    const { data: dataIncorrectlyTyped, error } = await supabase
+      .from("investments")
+      .select(
+        `
+        purchase_amount,
+        investment_type,
+        valuation_cap,
+        discount,
+        date,
+        founder:users!founder_id (name, title, email),
+        company:companies (name, street, city_state_zip, state_of_incorporation),
+        investor:users!investor_id (name, title, email),
+        fund:funds (name, byline, street, city_state_zip)
+      `
+      )
+      .eq("id", investmentId)
+      .single()
+
+    if (error) {
+      console.error("Error fetching investment details:", error)
+      return
+    }
+
+    if (dataIncorrectlyTyped) {
+      const data = dataIncorrectlyTyped as any
+
+      form.reset({
+        companyName: data.company?.name || "",
+        fundName: data.fund?.name || "",
+        fundByline: data.fund?.byline || "",
+        purchaseAmount: data.purchase_amount || "",
+        type: data.investment_type || "valuation-cap",
+        valuationCap: data.valuation_cap || "",
+        discount: data.discount || "",
+        stateOfIncorporation: data.company?.state_of_incorporation || "",
+        date: data.date ? new Date(data.date) : new Date(),
+        investorName: data.investor?.name || "",
+        investorTitle: data.investor?.title || "",
+        investorEmail: data.investor?.email || "",
+        fundStreet: data.fund?.street || "",
+        fundCityStateZip: data.fund?.city_state_zip || "",
+        founderName: data.founder?.name || "",
+        founderTitle: data.founder?.title || "",
+        founderEmail: data.founder?.email || "",
+        companyStreet: data.company?.street || "",
+        companyCityStateZip: data.company?.city_state_zip || "",
+      })
+    }
+  }
 
   async function fetchEntities() {
     const { data: fundData, error: fundError } = await supabase

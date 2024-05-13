@@ -47,27 +47,26 @@ export default function Investments({ investments }: { investments: any }) {
           {investments.map((investment: any) => (
             <TableRow key={investment.id}>
               <TableCell>
-                {investment.company ? (
-                  <Link href={`/new?id=${investment.id}`}>
-                    {investment.company.name}
-                  </Link>
-                ) : (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <span className="text-red-500">
-                          <Icons.info className="inline-block mr-2" />
-                          Company Name Missing
-                        </span>{" "}
-                      </TooltipTrigger>
-
-                      <TooltipContent>
-                        Fill in company information or share the link with the
-                        founder
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
+                <Link href={`/new?id=${investment.id}`}>
+                  {investment.company ? (
+                    investment.company.name
+                  ) : (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <span className="text-red-500">
+                            <Icons.info className="inline-block mr-2" />
+                            Company Name Missing
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Fill in company information or share the link with the
+                          founder
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </Link>
               </TableCell>
               <TableCell>
                 {investment.investor

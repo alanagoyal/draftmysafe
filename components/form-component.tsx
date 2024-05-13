@@ -211,14 +211,15 @@ export default function FormComponent({ userData }: { userData: any }) {
     await processInvestment(values, null, null, null, null)
 
     setShowConfetti(true)
-    setTimeout(() => {
-      setShowConfetti(false)
-    }, 10000)
     toast({
       title: "Congratulations!",
       description:
         "Your SAFE agreement has been generated and can be found in your Downloads",
     })
+    setTimeout(() => {
+      setShowConfetti(false)
+      router.push("/investments")
+    }, 5000)
   }
 
   async function processInvestorDetails(values: FormComponentValues) {

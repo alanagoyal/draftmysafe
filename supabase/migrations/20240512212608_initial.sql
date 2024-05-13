@@ -315,36 +315,12 @@ to public
 using (true);
 
 
-create policy "Enable delete for users based on created_by"
+create policy "Enable all for all users"
 on "public"."investments"
 as permissive
-for delete
+for all
 to public
-using ((( SELECT auth.uid() AS uid) = created_by));
-
-
-create policy "Enable insert for users based on created_by"
-on "public"."investments"
-as permissive
-for insert
-to public
-with check ((( SELECT auth.uid() AS uid) = created_by));
-
-
-create policy "Enable select for users based on created_by"
-on "public"."investments"
-as permissive
-for select
-to public
-using ((( SELECT auth.uid() AS uid) = created_by));
-
-
-create policy "Enable update for users based on created_by"
-on "public"."investments"
-as permissive
-for update
-to public
-using ((( SELECT auth.uid() AS uid) = created_by));
+using (true);
 
 
 create policy "Enable delete for users based on auth_id"

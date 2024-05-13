@@ -1,27 +1,36 @@
-import AuthRefresh from "@/components/auth-refresh"
-import FormComponent from "@/components/form-component"
-import { createClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
+import { redirect } from "next/navigation"
+import { createClient } from "@/utils/supabase/server"
 
-export default async function Safe() {
-  const supabase = createClient();
+import FormComponent from "@/components/form-component"
+import MagicLink from "@/components/magic-link"
+
+export default async function Safe({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined }
+}) {
+  const supabase = createClient()
+  const sharing = searchParams.sharing === "true"
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect("/login");
+    if (sharing) {
+      return <MagicLink redirect="sharing" />
+    } else {
+      redirect("/login")
+    }
   }
 
   const { data: userData, error } = await supabase
     .from("users")
     .select()
     .eq("auth_id", user?.id)
-    .single();
+    .single()
   return (
     <div className="flex w-full justify-center min-h-screen">
-      <AuthRefresh/>
-      <FormComponent userData={userData}/>
+      <FormComponent userData={userData} />
     </div>
   )
 }

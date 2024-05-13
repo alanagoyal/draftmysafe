@@ -9,13 +9,215 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      companies: {
+        Row: {
+          city_state_zip: string | null
+          created_at: string
+          founder_id: string | null
+          id: string
+          name: string | null
+          state_of_incorporation: string | null
+          street: string | null
+        }
+        Insert: {
+          city_state_zip?: string | null
+          created_at?: string
+          founder_id?: string | null
+          id?: string
+          name?: string | null
+          state_of_incorporation?: string | null
+          street?: string | null
+        }
+        Update: {
+          city_state_zip?: string | null
+          created_at?: string
+          founder_id?: string | null
+          id?: string
+          name?: string | null
+          state_of_incorporation?: string | null
+          street?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "companies_founder_id_fkey"
+            columns: ["founder_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funds: {
+        Row: {
+          byline: string | null
+          city_state_zip: string | null
+          created_at: string
+          id: string
+          investor_id: string | null
+          name: string | null
+          street: string | null
+        }
+        Insert: {
+          byline?: string | null
+          city_state_zip?: string | null
+          created_at?: string
+          id?: string
+          investor_id?: string | null
+          name?: string | null
+          street?: string | null
+        }
+        Update: {
+          byline?: string | null
+          city_state_zip?: string | null
+          created_at?: string
+          id?: string
+          investor_id?: string | null
+          name?: string | null
+          street?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funds_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      investments: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          date: string | null
+          discount: string | null
+          founder_id: string | null
+          fund_id: string | null
+          id: string
+          investment_type: string | null
+          investor_id: string | null
+          purchase_amount: string | null
+          valuation_cap: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          date?: string | null
+          discount?: string | null
+          founder_id?: string | null
+          fund_id?: string | null
+          id?: string
+          investment_type?: string | null
+          investor_id?: string | null
+          purchase_amount?: string | null
+          valuation_cap?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          date?: string | null
+          discount?: string | null
+          founder_id?: string | null
+          fund_id?: string | null
+          id?: string
+          investment_type?: string | null
+          investor_id?: string | null
+          purchase_amount?: string | null
+          valuation_cap?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["auth_id"]
+          },
+          {
+            foreignKeyName: "investments_founder_id_fkey"
+            columns: ["founder_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investments_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_investments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_investments_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "funds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          auth_id: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string | null
+          title: string | null
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          auth_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          title?: string | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          auth_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          title?: string | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "users_auth_id_fkey"
+            columns: ["auth_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      checkIfUser: {
+        Args: {
+          given_mail: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

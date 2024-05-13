@@ -138,9 +138,9 @@ export default function FormComponent({ userData }: { userData: any }) {
         discount,
         date,
         founder:users!founder_id (name, title, email),
-        company:companies (name, street, city_state_zip, state_of_incorporation),
+        company:companies (id, name, street, city_state_zip, state_of_incorporation),
         investor:users!investor_id (name, title, email),
-        fund:funds (name, byline, street, city_state_zip)
+        fund:funds (id, name, byline, street, city_state_zip)
       `
       )
       .eq("id", investmentId)
@@ -175,6 +175,12 @@ export default function FormComponent({ userData }: { userData: any }) {
         companyStreet: data.company?.street || "",
         companyCityStateZip: data.company?.city_state_zip || "",
       })
+
+      if (data.fund && data.fund.id) {
+        setSelectedEntity(data.fund.id)
+      } else if (data.company && data.company.id) {
+        setSelectedEntity(data.company.id)
+      }
     }
   }
 

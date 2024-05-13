@@ -30,7 +30,7 @@ export default function MagicLink({ redirect }: { redirect: string }) {
       email: email,
       options: {
         shouldCreateUser: true,
-        emailRedirectTo: redirectUrl,
+        emailRedirectTo: window.location.href,
       },
     })
     setIsSubmitting(false)

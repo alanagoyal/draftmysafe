@@ -735,7 +735,7 @@ export default function FormComponent({ userData }: { userData: any }) {
           )}
           {step === 2 && (
             <>
-              <div className="pt-4 flex justify-between">
+              <div className="pt-4 flex justify-between items-center">
                 <Label className="text-md font-bold">Company Details</Label>
                 {!isFormLocked && (
                   <Share

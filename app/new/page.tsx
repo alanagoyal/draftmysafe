@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/utils/supabase/server"
+
 import FormComponent from "@/components/form-component"
-import Otp from "@/components/otp"
+import MagicLink from "@/components/magic-link"
 
 export default async function Safe({
   searchParams,
@@ -16,7 +17,7 @@ export default async function Safe({
 
   if (!user) {
     if (sharing) {
-      return <Otp />
+      return <MagicLink redirect="sharing" />
     } else {
       redirect("/login")
     }

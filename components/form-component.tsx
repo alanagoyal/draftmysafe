@@ -227,13 +227,15 @@ export default function FormComponent({ userData }: { userData: any }) {
         name: values.investorName,
         title: values.investorTitle,
         email: values.investorEmail,
+        updated_at: new Date(),
       }
 
       // Check if user already exists and update
-      const {data: existingInvestor, error: existingInvestorError} = await supabase
-        .from("users")
-        .select("id")
-        .eq("email", values.investorEmail)
+      const { data: existingInvestor, error: existingInvestorError } =
+        await supabase
+          .from("users")
+          .select("id")
+          .eq("email", values.investorEmail)
 
       if (existingInvestor && existingInvestor.length > 0) {
         const { error: updateError } = await supabase
@@ -243,7 +245,7 @@ export default function FormComponent({ userData }: { userData: any }) {
         if (updateError) throw updateError
         return existingInvestor[0].id
 
-      // Insert new user
+        // Insert new user
       } else {
         const { data, error } = await supabase
           .from("users")
@@ -286,7 +288,7 @@ export default function FormComponent({ userData }: { userData: any }) {
         if (updateError) throw updateError
         return existingFund[0].id
 
-      // Insert new fund
+        // Insert new fund
       } else {
         const { data: newFund, error: newFundError } = await supabase
           .from("funds")
@@ -306,13 +308,15 @@ export default function FormComponent({ userData }: { userData: any }) {
         name: values.founderName,
         title: values.founderTitle,
         email: values.founderEmail,
+        updated_at: new Date(),
       }
 
       // Check if the founder already exists and update
-      const {data: existingFounder, error: existingFounderError} = await supabase
-        .from("users")
-        .select("id")
-        .eq("email", values.founderEmail)
+      const { data: existingFounder, error: existingFounderError } =
+        await supabase
+          .from("users")
+          .select("id")
+          .eq("email", values.founderEmail)
 
       if (existingFounder && existingFounder.length > 0) {
         const { error: updateError } = await supabase
@@ -322,7 +326,7 @@ export default function FormComponent({ userData }: { userData: any }) {
         if (updateError) throw updateError
         return existingFounder[0].id
 
-      // Insert new founder
+        // Insert new founder
       } else {
         const { data: newFounder, error: newFounderError } = await supabase
           .from("users")
@@ -365,7 +369,7 @@ export default function FormComponent({ userData }: { userData: any }) {
         if (updateError) throw updateError
         return existingCompany[0].id
 
-      // Insert new company
+        // Insert new company
       } else {
         const { data: newCompany, error: newCompanyError } = await supabase
           .from("companies")
@@ -726,9 +730,11 @@ export default function FormComponent({ userData }: { userData: any }) {
             <>
               <div className="pt-4 flex justify-between">
                 <Label className="text-md font-bold">Company Details</Label>
-                <Share
-                  idString={`${window.location.origin}/new?id=${investmentId}&step=${step}&sharing=true`}
-                />
+                {!isFormLocked && (
+                  <Share
+                    idString={`${window.location.origin}/new?id=${investmentId}&step=${step}&sharing=true`}
+                  />
+                )}
               </div>
               <EntitySelector
                 entities={entities}

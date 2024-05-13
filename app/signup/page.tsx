@@ -1,5 +1,9 @@
 import Link from "next/link"
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import MagicLink from "@/components/magic-link"
 import { SignupForm } from "@/components/signup-form"
+
 import { signup } from "./actions"
 
 export default async function Signup() {
@@ -11,11 +15,19 @@ export default async function Signup() {
             <h1 className="text-2xl font-semibold tracking-tight">
               Create an account
             </h1>
-            <p className="text-sm text-muted-foreground">
-              Enter your email below to create your account
-            </p>
+            <Tabs defaultValue="email" className="w-[400px]">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="email">Email</TabsTrigger>
+                <TabsTrigger value="magic-link">Magic Link</TabsTrigger>
+              </TabsList>
+              <TabsContent value="email">
+                <SignupForm signup={signup} />
+              </TabsContent>
+              <TabsContent value="magic-link">
+                <MagicLink redirect="account" />
+              </TabsContent>
+            </Tabs>
           </div>
-          <SignupForm signup={signup} />
           <p className="px-8 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
             <Link

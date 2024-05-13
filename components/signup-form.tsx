@@ -18,6 +18,13 @@ import {
 } from "@/components/ui/form"
 
 import { Button } from "./ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card"
 import { Input } from "./ui/input"
 import { ToastAction } from "./ui/toast"
 import { toast } from "./ui/use-toast"
@@ -95,53 +102,65 @@ export function SignupForm({ signup }: SignupFormProps) {
   }
 
   return (
-    <div>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <div className="grid gap-2">
-            <div className="grid gap-1">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="name@email.com"
-                        autoComplete="off"
-                        {...field}
-                      ></Input>
-                    </FormControl>{" "}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div>
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        autoComplete="off"
-                        placeholder="••••••••"
-                        {...field}
-                      ></Input>
-                    </FormControl>{" "}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <Button type="submit">Sign Up</Button>
-          </div>
-        </form>
-      </Form>
-    </div>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold tracking-tight">
+            Sign Up With Email
+          </CardTitle>
+          <CardDescription>
+            Enter your email and password to sign up for an account
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <div className="grid gap-2">
+                <div className="grid gap-1">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="name@email.com"
+                            autoComplete="off"
+                            {...field}
+                          ></Input>
+                        </FormControl>{" "}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div>
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="password"
+                            autoComplete="off"
+                            placeholder="••••••••"
+                            {...field}
+                          ></Input>
+                        </FormControl>{" "}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <Button type="submit">Sign Up</Button>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </>
   )
 }

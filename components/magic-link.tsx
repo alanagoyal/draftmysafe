@@ -21,12 +21,6 @@ export default function MagicLink({ redirect }: { redirect: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   async function signInWithEmail(email: string) {
-    console.log(`window.location.href`, window.location.href)
-    console.log(`window.location.origin`, window.location.origin)
-    console.log(
-      `window.location.origin + "/account"`,
-      window.location.origin + "/account"
-    )
     setIsSubmitting(true)
     const redirectUrl =
       redirect === "sharing"
@@ -36,7 +30,7 @@ export default function MagicLink({ redirect }: { redirect: string }) {
       email: email,
       options: {
         shouldCreateUser: true,
-        emailRedirectTo: redirectUrl,
+        emailRedirectTo: window.location.href,
       },
     })
     setIsSubmitting(false)

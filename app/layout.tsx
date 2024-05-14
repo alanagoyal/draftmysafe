@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { SiteHeader } from "@/components/site-header"
 import { ThemeProvider } from "@/components/theme-provider"
 import { CommandMenu } from "@/components/command-menu"
+import SiteFooter from "@/components/site-footer"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -65,6 +66,7 @@ export default function RootLayout({
                   {children}
                 </div>
               </main>
+              <SiteFooter />
             </div>
           </div>
           <Toaster />

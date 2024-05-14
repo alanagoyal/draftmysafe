@@ -6,14 +6,10 @@ import { createClient } from "@/utils/supabase/client"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { CalendarIcon } from "@radix-ui/react-icons"
 import { format } from "date-fns"
-import Docxtemplater from "docxtemplater"
-import PizZip from "pizzip"
 import Confetti from "react-confetti"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-
 import { cn, formDescriptions } from "@/lib/utils"
-
 import AuthRefresh from "./auth-refresh"
 import { EntitySelector } from "./entity-selector"
 import { Share } from "./share"
@@ -138,9 +134,9 @@ export default function FormComponent({ userData }: { userData: any }) {
         discount,
         date,
         founder:users!founder_id (name, title, email),
-        company:companies (name, street, city_state_zip, state_of_incorporation),
+        company:companies (id, name, street, city_state_zip, state_of_incorporation),
         investor:users!investor_id (name, title, email),
-        fund:funds (name, byline, street, city_state_zip)
+        fund:funds (id, name, byline, street, city_state_zip)
       `
       )
       .eq("id", investmentId)
@@ -175,6 +171,12 @@ export default function FormComponent({ userData }: { userData: any }) {
         companyStreet: data.company?.street || "",
         companyCityStateZip: data.company?.city_state_zip || "",
       })
+
+      if (data.fund && data.fund.id) {
+        setSelectedEntity(data.fund.id)
+      } else if (data.company && data.company.id) {
+        setSelectedEntity(data.company.id)
+      }
     }
   }
 
@@ -200,25 +202,17 @@ export default function FormComponent({ userData }: { userData: any }) {
   }
 
   async function onSubmit(values: FormComponentValues) {
-    const formattedDate = formatSubmissionDate(values.date)
-    const templateFileName = selectTemplate(values.type)
-    const doc = await loadAndPrepareTemplate(
-      templateFileName,
-      values,
-      formattedDate
-    )
-    downloadDocument(doc, values.type)
     await processInvestment(values, null, null, null, null)
-
     setShowConfetti(true)
-    setTimeout(() => {
-      setShowConfetti(false)
-    }, 10000)
     toast({
       title: "Congratulations!",
       description:
-        "Your SAFE agreement has been generated and can be found in your Downloads",
+        "Your SAFE agreement has been saved. You can edit or download it by visiting your Investments.",
     })
+    setTimeout(() => {
+      setShowConfetti(false)
+      router.push("/investments")
+    }, 5000)
   }
 
   async function processInvestorDetails(values: FormComponentValues) {
@@ -229,6 +223,7 @@ export default function FormComponent({ userData }: { userData: any }) {
         email: values.investorEmail,
         updated_at: new Date(),
       }
+      console.log(investorData)
 
       // Check if user already exists and update
       const { data: existingInvestor, error: existingInvestorError } =
@@ -424,96 +419,6 @@ export default function FormComponent({ userData }: { userData: any }) {
     } catch (error) {
       console.error("Error processing investment details:", error)
     }
-  }
-
-  function formatSubmissionDate(date: Date): string {
-    const monthName = new Intl.DateTimeFormat("en-US", {
-      month: "long",
-    }).format(date)
-    const day = date.getDate()
-    const year = date.getFullYear()
-    const suffix = getNumberSuffix(day)
-    return `${monthName} ${day}${suffix}, ${year}`
-  }
-
-  function getNumberSuffix(day: number): string {
-    if (day >= 11 && day <= 13) {
-      return "th"
-    }
-    switch (day % 10) {
-      case 1:
-        return "st"
-      case 2:
-        return "nd"
-      case 3:
-        return "rd"
-      default:
-        return "th"
-    }
-  }
-
-  function selectTemplate(type: string): string {
-    switch (type) {
-      case "valuation-cap":
-        return "SAFE-Valuation-Cap.docx"
-      case "discount":
-        return "SAFE-Discount.docx"
-      case "mfn":
-        return "SAFE-MFN.docx"
-      default:
-        return "" // Default case to handle unexpected types
-    }
-  }
-
-  async function loadAndPrepareTemplate(
-    templateFileName: string,
-    values: FormComponentValues,
-    formattedDate: string
-  ): Promise<Docxtemplater> {
-    const response = await fetch(`/${templateFileName}`)
-    const arrayBuffer = await response.arrayBuffer()
-    const zip = new PizZip(arrayBuffer)
-    const doc = new Docxtemplater().loadZip(zip)
-    doc.setData({
-      company_name: values.companyName,
-      investing_entity_name: values.fundName,
-      byline: values.fundByline || "",
-      purchase_amount: values.purchaseAmount,
-      valuation_cap: values.valuationCap || "",
-      discount: values.discount
-        ? (100 - Number(values.discount)).toString()
-        : "",
-      state_of_incorporation: values.stateOfIncorporation,
-      date: formattedDate,
-      investor_name: values.investorName,
-      investor_title: values.investorTitle,
-      investor_email: values.investorEmail,
-      investor_address_1: values.fundStreet,
-      investor_address_2: values.fundCityStateZip,
-      founder_name: values.founderName,
-      founder_title: values.founderTitle,
-      founder_email: values.founderEmail || "",
-      company_address_1: values.companyStreet || "",
-      company_address_2: values.companyCityStateZip || "",
-    })
-    doc.render()
-    return doc
-  }
-
-  function downloadDocument(doc: Docxtemplater, type: string) {
-    const updatedContent = doc.getZip().generate({ type: "blob" })
-    const link = document.createElement("a")
-    link.href = URL.createObjectURL(updatedContent)
-    link.download =
-      type === "valuation-cap"
-        ? "YC-SAFE-Valuation-Cap.docx"
-        : type === "discount"
-        ? "YC-SAFE-Discount.docx"
-        : "YC-SAFE-MFN.docx"
-    link.click()
-    setTimeout(() => {
-      URL.revokeObjectURL(link.href)
-    }, 100)
   }
 
   async function handleSelectChange(value: string) {
@@ -728,7 +633,7 @@ export default function FormComponent({ userData }: { userData: any }) {
           )}
           {step === 2 && (
             <>
-              <div className="pt-4 flex justify-between">
+              <div className="pt-4 flex justify-between items-center">
                 <Label className="text-md font-bold">Company Details</Label>
                 {!isFormLocked && (
                   <Share

@@ -28,16 +28,12 @@ export function EntitySelector({
   if (entityType !== "both" && filteredEntities.length === 0) {
     return null
   }
-  
+
   return (
     <>
       <Select
         key={`select-${entities.length}`}
-        value={
-          entityType === "both" && filteredEntities.length === 0
-            ? undefined
-            : selectedEntity
-        }
+        value={selectedEntity}
         onValueChange={onSelectChange}
       >
         <SelectTrigger className="w-full">

@@ -4,7 +4,10 @@ import {
   SunMedium,
   type Icon as LucideIcon,
 } from "lucide-react"
-import { FaRegTrashAlt, FaShare } from "react-icons/fa";
+import { FaInfoCircle, FaRegTrashAlt, FaShareSquare } from "react-icons/fa";
+import { VscEllipsis } from "react-icons/vsc";
+import { CopyIcon } from "@radix-ui/react-icons"
+
 type IconProps = React.HTMLAttributes<SVGElement>
 
 export type Icon = LucideIcon
@@ -13,7 +16,10 @@ export const Icons = {
   sun: SunMedium,
   moon: Moon,
   trash: FaRegTrashAlt,
-  share: FaShare,
+  share: FaShareSquare,
+  info: FaInfoCircle,
+  menu: VscEllipsis,
+  copy: CopyIcon,
   twitter: (props: IconProps) => (
     <svg
       {...props}

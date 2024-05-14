@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
-import { LogOut, Moon, Plus, Sun, User } from "lucide-react"
+import { Briefcase, LogOut, Moon, Plus, Sun, User } from "lucide-react"
 import { useTheme } from "next-themes"
 
 import {
@@ -44,6 +44,10 @@ export function CommandMenu() {
           case "a":
             e.preventDefault()
             navigateAndCloseDialog("/account")
+            break
+          case "i":
+            e.preventDefault()
+            navigateAndCloseDialog("/investments")
             break
           case "o":
             e.preventDefault()
@@ -122,6 +126,13 @@ export function CommandMenu() {
               <User className="mr-2 h-4 w-4" />
               <span>Account</span>
               <CommandShortcut>⌘A</CommandShortcut>
+            </CommandItem>
+          </CommandLinkItem>
+          <CommandLinkItem href="/investments">
+            <CommandItem>
+              <Briefcase className="mr-2 h-4 w-4" />
+              <span>Investments</span>
+              <CommandShortcut>⌘I</CommandShortcut>
             </CommandItem>
           </CommandLinkItem>
           <CommandSeparator />

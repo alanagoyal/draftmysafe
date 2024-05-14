@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
-import { LogOut, Moon, Plus, Sun, User } from "lucide-react"
+import { Briefcase, LogOut, Moon, Plus, Sun, User } from "lucide-react"
 import { useTheme } from "next-themes"
 
 import { Avatar, AvatarFallback } from "./ui/avatar"
@@ -80,6 +80,15 @@ export default function UserNav({ user }: any) {
                 <span>Account</span>
               </div>
               <p className="text-xs text-muted-foreground">⌘A</p>
+            </DropdownMenuItem>
+          </Link>
+          <Link href="/investments">
+            <DropdownMenuItem className="cursor-pointer justify-between">
+              <div className="flex items-center">
+                <Briefcase className="mr-2 h-4 w-4" />
+                <span>Investments</span>
+              </div>
+              <p className="text-xs text-muted-foreground">⌘I</p>
             </DropdownMenuItem>
           </Link>
           <DropdownMenuSeparator />

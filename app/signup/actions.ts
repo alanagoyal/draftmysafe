@@ -4,16 +4,19 @@ import { revalidatePath } from "next/cache"
 import { createClient } from "@/utils/supabase/server"
 
 import { SignupFormData } from "@/components/signup-form"
-import { siteConfig } from "@/config/site"
 
 export async function signup(formData: SignupFormData) {
   const supabase = createClient()
   const { email, password } = formData
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+  let redirectTo = siteUrl + "/account"
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${siteConfig.url}/account`,
+      emailRedirectTo: redirectTo,
     },
   })
 

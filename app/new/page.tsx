@@ -17,7 +17,11 @@ export default async function Safe({
 
   if (!user) {
     if (sharing) {
-      return <MagicLink redirect="sharing" />
+      return (
+        <div className="w-full min-h-screen max-w-md flex flex-col pt-4">
+          <MagicLink redirect="sharing" />
+        </div>
+      )
     } else {
       redirect("/login")
     }

@@ -11,6 +11,9 @@ export async function login(formData: LoginFormData) {
   const { email, password } = formData
   const { error } = await supabase.auth.signInWithPassword({ email, password })
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+  let redirectTo = siteUrl + "/account"
+
   if (error) {
     const isAlreadyUser = await supabase.rpc("checkIfUser", {
       given_mail: email,

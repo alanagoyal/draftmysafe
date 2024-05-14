@@ -223,7 +223,6 @@ export default function FormComponent({ userData }: { userData: any }) {
         email: values.investorEmail,
         updated_at: new Date(),
       }
-      console.log(investorData)
 
       // Check if user already exists and update
       const { data: existingInvestor, error: existingInvestorError } =

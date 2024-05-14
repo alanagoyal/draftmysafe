@@ -90,7 +90,6 @@ export default function Investments({ investments }: { investments: any }) {
           {investments.map((investment: any) => (
             <TableRow
               key={investment.id}
-              className="cursor-pointer"
             >
               <TableCell>
                 {investment.company ? (

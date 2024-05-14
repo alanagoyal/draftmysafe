@@ -1,15 +1,20 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import { createClient } from "@/utils/supabase/client"
+import Docxtemplater from "docxtemplater"
+import { Plus } from "lucide-react"
+import PizZip from "pizzip"
+
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import Docxtemplater from "docxtemplater"
-import PizZip from "pizzip"
+
 import { Icons } from "./icons"
+import { Button } from "./ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,7 +29,6 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table"
-import { createClient } from "@/utils/supabase/client"
 import { toast } from "./ui/use-toast"
 
 export default function Investments({ investments }: { investments: any }) {
@@ -75,16 +79,18 @@ export default function Investments({ investments }: { investments: any }) {
 
   async function downloadInvestment(id: string) {
     // Find the specific investment data from the investments array using the provided id
-    const investmentData = investments.find((investment: any) => investment.id === id);
-  
+    const investmentData = investments.find(
+      (investment: any) => investment.id === id
+    )
+
     if (!investmentData) {
       toast({
         title: "Error",
         description: "Investment not found",
-      });
-      return;
+      })
+      return
     }
-  
+
     // Extract values from the investment data
     const values = {
       date: new Date(investmentData.date),
@@ -106,16 +112,16 @@ export default function Investments({ investments }: { investments: any }) {
       founderEmail: investmentData.founder.email,
       companyStreet: investmentData.company.street,
       companyCityStateZip: investmentData.company.city_state_zip,
-    };
-  
-    const formattedDate = formatSubmissionDate(values.date);
-    const templateFileName = selectTemplate(values.type);
+    }
+
+    const formattedDate = formatSubmissionDate(values.date)
+    const templateFileName = selectTemplate(values.type)
     const doc = await loadAndPrepareTemplate(
       templateFileName,
       values,
       formattedDate
-    );
-    downloadDocument(doc, values.type);
+    )
+    downloadDocument(doc, values.type)
   }
 
   function formatSubmissionDate(date: Date): string {
@@ -208,11 +214,20 @@ export default function Investments({ investments }: { investments: any }) {
     }, 100)
   }
 
-
   return (
     <div className="flex flex-col items-center min-h-screen py-2 w-4/5">
-      <h1 className="text-2xl font-bold mb-8">Investments</h1>
-      <Table>
+      <div className="flex justify-between items-center w-full">
+        <h1
+          className="text-2xl ml-10 font-bold text-center flex-grow"
+        >
+          Investments
+        </h1>
+        <Button variant="ghost" onClick={() => router.push("/new")}>
+          <Plus className="mr-2 h-4 w-4" />
+          <span>New</span>
+        </Button>
+      </div>
+      <Table className="w-full mt-10">
         <TableHeader>
           <TableRow>
             <TableHead>Company</TableHead>
@@ -225,9 +240,7 @@ export default function Investments({ investments }: { investments: any }) {
         </TableHeader>
         <TableBody>
           {investments.map((investment: any) => (
-            <TableRow
-              key={investment.id}
-            >
+            <TableRow key={investment.id}>
               <TableCell>
                 {investment.company ? (
                   investment.company.name
@@ -259,9 +272,21 @@ export default function Investments({ investments }: { investments: any }) {
                       <Icons.menu className="h-4 w-4 ml-2" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
-                      <DropdownMenuItem onClick={() => editInvestment(investment.id)}>Edit</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => deleteInvestment(investment.id)}>Delete</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => downloadInvestment(investment.id)}>Download</DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => editInvestment(investment.id)}
+                      >
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => deleteInvestment(investment.id)}
+                      >
+                        Delete
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => downloadInvestment(investment.id)}
+                      >
+                        Download
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>

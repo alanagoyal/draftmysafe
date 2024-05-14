@@ -1,5 +1,3 @@
-import { CopyIcon } from "@radix-ui/react-icons"
-
 import { Icons } from "./icons"
 import { Button } from "./ui/button"
 import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog"
@@ -44,7 +42,7 @@ export function Share({ idString }: { idString: string }) {
 
           <Button type="submit" size="sm" onClick={handleCopy} className="px-3">
             <span className="sr-only">Copy</span>
-            <CopyIcon className="h-4 w-4" />
+            <Icons.copy className="h-4 w-4" />
           </Button>
         </div>
       </DialogContent>

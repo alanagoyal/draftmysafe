@@ -5,6 +5,9 @@ import {
   type Icon as LucideIcon,
 } from "lucide-react"
 import { FaInfoCircle, FaRegTrashAlt, FaShareSquare } from "react-icons/fa";
+import { VscEllipsis } from "react-icons/vsc";
+import { CopyIcon } from "@radix-ui/react-icons"
+
 type IconProps = React.HTMLAttributes<SVGElement>
 
 export type Icon = LucideIcon
@@ -15,6 +18,8 @@ export const Icons = {
   trash: FaRegTrashAlt,
   share: FaShareSquare,
   info: FaInfoCircle,
+  menu: VscEllipsis,
+  copy: CopyIcon,
   twitter: (props: IconProps) => (
     <svg
       {...props}

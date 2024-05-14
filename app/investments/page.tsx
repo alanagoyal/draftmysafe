@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/utils/supabase/server"
 import Investments from "@/components/investments"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Briefcase } from "lucide-react"
 
 export default async function InvestmentsPage() {
   const supabase = createClient()
@@ -45,8 +48,18 @@ export default async function InvestmentsPage() {
     }
 
   return (
-    <div className="flex w-full justify-center min-h-screen">
+    (investmentData && investmentData.length > 0) ? (
+      <div className="flex w-full justify-center min-h-screen">
         <Investments investments={investmentData} />
-    </div>
+      </div>
+    ) : (
+      <div className="w-full px-4 flex justify-center items-center flex-col min-h-screen">
+        <h1 className="text-2xl text-center font-bold mb-4">You haven&apos;t created <br /> any investments yet</h1>
+        <Link className="flex justify-center pt-2" href="/new">
+          <Button variant="outline">Get Started</Button>
+        </Link>
+      </div>
+    )
   )
 }
+

@@ -218,11 +218,15 @@ export default function Investments({ investments }: { investments: any }) {
     <div className="flex flex-col items-center min-h-screen py-2 w-4/5">
       <div className="flex justify-between items-center w-full">
         <h1
-          className="text-2xl ml-10 font-bold text-center flex-grow"
+          className="text-2xl ml-24 font-bold text-center flex-grow"
         >
           Investments
         </h1>
-        <Button variant="ghost" onClick={() => router.push("/new")}>
+        <Button
+          variant="ghost"
+          onClick={() => router.push("/new")}
+          className="w-24"
+        >
           <Plus className="mr-2 h-4 w-4" />
           <span>New</span>
         </Button>

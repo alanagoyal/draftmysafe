@@ -68,16 +68,16 @@ const FormComponentSchema = z.object({
 type FormComponentValues = z.infer<typeof FormComponentSchema>
 
 type InvestmentData = {
-  founder_id?: string;
-  company_id?: string;
-  investor_id?: string;
-  fund_id?: string;
-  purchase_amount: string;
-  investment_type: "" | "valuation-cap" | "discount" | "mfn";
-  valuation_cap?: string;
-  discount?: string;
-  date: Date;
-  created_by?: string;
+  founder_id?: string
+  company_id?: string
+  investor_id?: string
+  fund_id?: string
+  purchase_amount: string
+  investment_type: "" | "valuation-cap" | "discount" | "mfn"
+  valuation_cap?: string
+  discount?: string
+  date: Date
+  created_by?: string
 }
 
 export default function FormComponent({ userData }: { userData: any }) {
@@ -120,15 +120,15 @@ export default function FormComponent({ userData }: { userData: any }) {
 
   useEffect(() => {
     if (userData) {
-      fetchEntities();
+      fetchEntities()
       if (isFormLocked) {
         form.reset({
           ...form.getValues(),
           founderEmail: userData.email, // Assuming userData.email holds the authenticated user's email
-        });
+        })
       }
     }
-  }, [userData, isFormLocked]);
+  }, [userData, isFormLocked])
 
   // Update the URL when the step changes, including sharing state if applicable
   useEffect(() => {
@@ -234,9 +234,17 @@ export default function FormComponent({ userData }: { userData: any }) {
       setShowConfetti(false)
       router.push("/investments")
     }, 5000)
+    
   }
 
   async function processInvestorDetails(values: FormComponentValues) {
+    if (
+      values.investorName === "" &&
+      values.investorTitle === "" &&
+      values.investorEmail === ""
+    )
+      return null
+
     try {
       const investorData = {
         name: values.investorName,
@@ -279,6 +287,14 @@ export default function FormComponent({ userData }: { userData: any }) {
     values: FormComponentValues,
     investorId: string
   ) {
+    if (
+      values.fundName === "" &&
+      values.fundByline === "" &&
+      values.fundStreet === "" &&
+      values.fundCityStateZip === ""
+    )
+      return null
+
     try {
       const fundData = {
         name: values.fundName,
@@ -318,6 +334,13 @@ export default function FormComponent({ userData }: { userData: any }) {
   }
 
   async function processFounderDetails(values: FormComponentValues) {
+    if (
+      values.founderName === "" &&
+      values.founderTitle === "" &&
+      values.founderEmail === ""
+    )
+      return null
+
     try {
       const founderData = {
         name: values.founderName,
@@ -359,6 +382,14 @@ export default function FormComponent({ userData }: { userData: any }) {
     values: FormComponentValues,
     founderId: string
   ) {
+    if (
+      values.companyName === "" &&
+      values.companyStreet === "" &&
+      values.companyCityStateZip === "" &&
+      values.stateOfIncorporation === ""
+    )
+      return null
+
     try {
       const companyData = {
         name: values.companyName,
@@ -426,6 +457,7 @@ export default function FormComponent({ userData }: { userData: any }) {
         const { data: investmentInsertData, error: investmentInsertError } =
           await supabase.from("investments").insert(investmentData).select()
         if (investmentInsertError) throw investmentInsertError
+        console.log("inserted investment")
         setInvestmentId(investmentInsertData[0].id)
       } else {
         // If it has been added, update it without changing the created_by
@@ -435,11 +467,12 @@ export default function FormComponent({ userData }: { userData: any }) {
             .upsert({ ...investmentData, id: investmentId })
             .select()
         if (investmentUpdateError) throw investmentUpdateError
+        console.log("updated investment")
         setInvestmentId(investmentUpdateData[0].id)
       }
     } catch (error) {
       console.error("Error processing investment details:", error)
-    }
+    } 
   }
 
   async function handleSelectChange(value: string) {

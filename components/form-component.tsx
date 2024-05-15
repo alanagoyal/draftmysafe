@@ -437,7 +437,15 @@ export default function FormComponent({ userData }: { userData: any }) {
     companyId: string | null
   ) {
     try {
-      // Prepare investment data with non-null values
+      console.log("Starting processInvestment");
+
+      if ((!investorId && !fundId) || (!founderId && !companyId)) {
+        console.log("Missing necessary IDs, exiting function");
+        return; // Ensure necessary IDs are present
+      }
+
+      console.log(`investorId: ${investorId}, fundId: ${fundId}, founderId: ${founderId}, companyId: ${companyId}`);
+
       const investmentData: InvestmentData = {
         ...(founderId && { founder_id: founderId }),
         ...(companyId && { company_id: companyId }),
@@ -448,37 +456,36 @@ export default function FormComponent({ userData }: { userData: any }) {
         ...(values.valuationCap && { valuation_cap: values.valuationCap }),
         ...(values.discount && { discount: values.discount }),
         date: values.date,
-      }
+      };
 
-      // If hasn't been added to investments table, add it
+      console.log("Prepared investment data:", investmentData);
+
       if (!investmentId) {
-        // Set created_by only when creating a new investment
-        investmentData.created_by = userData.auth_id
+        investmentData.created_by = userData.auth_id;
         const { data: investmentInsertData, error: investmentInsertError } =
-          await supabase.from("investments").insert(investmentData).select()
-        if (investmentInsertError) throw investmentInsertError
-        console.log("inserted investment")
-        setInvestmentId(investmentInsertData[0].id)
+          await supabase.from("investments").insert(investmentData).select();
+        if (investmentInsertError) throw investmentInsertError;
+        console.log("Inserted investment", investmentInsertData);
+        setInvestmentId(investmentInsertData[0].id);
       } else {
-        // If it has been added, update it without changing the created_by
         const { data: investmentUpdateData, error: investmentUpdateError } =
           await supabase
             .from("investments")
             .upsert({ ...investmentData, id: investmentId })
-            .select()
-        if (investmentUpdateError) throw investmentUpdateError
-        console.log("updated investment")
-        setInvestmentId(investmentUpdateData[0].id)
+            .select();
+        if (investmentUpdateError) throw investmentUpdateError;
+        console.log("Updated investment", investmentUpdateData);
+        setInvestmentId(investmentUpdateData[0].id);
       }
     } catch (error) {
-      console.error("Error processing investment details:", error)
-    } 
+      console.error("Error in processInvestment:", error);
+    }
   }
 
   async function handleSelectChange(value: string) {
-    setSelectedEntity(value)
+    setSelectedEntity(value);
 
-    const selectedEntityDetails = entities.find((entity) => entity.id === value)
+    const selectedEntityDetails = entities.find((entity) => entity.id === value);
 
     if (selectedEntityDetails.type === "fund") {
       form.reset({

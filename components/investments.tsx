@@ -228,7 +228,7 @@ export default function Investments({ investments }: { investments: any }) {
           className="w-24"
         >
           <Plus className="mr-2 h-4 w-4" />
-          <span>New</span>
+          <span>Create</span>
         </Button>
       </div>
       <Table className="w-full mt-10">

@@ -37,7 +37,7 @@ export function CommandMenu() {
 
       if (e.metaKey || e.ctrlKey) {
         switch (e.key) {
-          case "g":
+          case "c":
             e.preventDefault()
             navigateAndCloseDialog("/new")
             break
@@ -117,8 +117,8 @@ export function CommandMenu() {
           <CommandLinkItem href="/new">
             <CommandItem>
               <Plus className="mr-2 h-4 w-4" />
-              <span>Generate</span>
-              <CommandShortcut>⌘G</CommandShortcut>
+              <span>Create</span>
+              <CommandShortcut>⌘C</CommandShortcut>
             </CommandItem>
           </CommandLinkItem>
           <CommandLinkItem href="/account">

@@ -9,7 +9,9 @@ import { format } from "date-fns"
 import Confetti from "react-confetti"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
+
 import { cn, formDescriptions } from "@/lib/utils"
+
 import AuthRefresh from "./auth-refresh"
 import { EntitySelector } from "./entity-selector"
 import { Share } from "./share"
@@ -65,6 +67,19 @@ const FormComponentSchema = z.object({
 
 type FormComponentValues = z.infer<typeof FormComponentSchema>
 
+type InvestmentData = {
+  founder_id?: string;
+  company_id?: string;
+  investor_id?: string;
+  fund_id?: string;
+  purchase_amount: string;
+  investment_type: "" | "valuation-cap" | "discount" | "mfn";
+  valuation_cap?: string;
+  discount?: string;
+  date: Date;
+  created_by?: string;
+}
+
 export default function FormComponent({ userData }: { userData: any }) {
   const supabase = createClient()
   const router = useRouter()
@@ -105,9 +120,15 @@ export default function FormComponent({ userData }: { userData: any }) {
 
   useEffect(() => {
     if (userData) {
-      fetchEntities()
+      fetchEntities();
+      if (isFormLocked) {
+        form.reset({
+          ...form.getValues(),
+          founderEmail: userData.email, // Assuming userData.email holds the authenticated user's email
+        });
+      }
     }
-  }, [userData])
+  }, [userData, isFormLocked]);
 
   // Update the URL when the step changes, including sharing state if applicable
   useEffect(() => {
@@ -386,7 +407,7 @@ export default function FormComponent({ userData }: { userData: any }) {
   ) {
     try {
       // Prepare investment data with non-null values
-      const investmentData = {
+      const investmentData: InvestmentData = {
         ...(founderId && { founder_id: founderId }),
         ...(companyId && { company_id: companyId }),
         ...(investorId && { investor_id: investorId }),
@@ -396,17 +417,18 @@ export default function FormComponent({ userData }: { userData: any }) {
         ...(values.valuationCap && { valuation_cap: values.valuationCap }),
         ...(values.discount && { discount: values.discount }),
         date: values.date,
-        created_by: userData.auth_id,
       }
 
       // If hasn't been added to investments table, add it
       if (!investmentId) {
+        // Set created_by only when creating a new investment
+        investmentData.created_by = userData.auth_id
         const { data: investmentInsertData, error: investmentInsertError } =
           await supabase.from("investments").insert(investmentData).select()
         if (investmentInsertError) throw investmentInsertError
         setInvestmentId(investmentInsertData[0].id)
       } else {
-        // If it has been added, update it
+        // If it has been added, update it without changing the created_by
         const { data: investmentUpdateData, error: investmentUpdateError } =
           await supabase
             .from("investments")

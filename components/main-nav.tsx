@@ -10,7 +10,7 @@ interface MainNavProps {
   items?: NavItem[]
 }
 
-export function MainNav({ items }: MainNavProps) {
+export default function MainNav({ items }: MainNavProps) {
   return (
     <div className="flex gap-6 md:gap-10">
       {items?.length ? (

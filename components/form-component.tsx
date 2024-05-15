@@ -9,7 +9,9 @@ import { format } from "date-fns"
 import Confetti from "react-confetti"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
+
 import { cn, formDescriptions } from "@/lib/utils"
+
 import AuthRefresh from "./auth-refresh"
 import { EntitySelector } from "./entity-selector"
 import { Share } from "./share"
@@ -44,7 +46,7 @@ const FormComponentSchema = z.object({
   fundName: z.string().optional(),
   fundByline: z.string().optional(),
   purchaseAmount: z.string({ required_error: "Purchase amount is required" }),
-  type: z.enum(["valuation-cap", "discount", "mfn", ""]),
+  type: z.enum(["", "valuation-cap", "discount", "mfn"]),
   valuationCap: z.string().optional(),
   discount: z.string().optional(),
   stateOfIncorporation: z.string({
@@ -64,6 +66,19 @@ const FormComponentSchema = z.object({
 })
 
 type FormComponentValues = z.infer<typeof FormComponentSchema>
+
+type InvestmentData = {
+  founder_id?: string
+  company_id?: string
+  investor_id?: string
+  fund_id?: string
+  purchase_amount: string
+  investment_type: "" | "valuation-cap" | "discount" | "mfn"
+  valuation_cap?: string
+  discount?: string
+  date: Date
+  created_by?: string
+}
 
 export default function FormComponent({ userData }: { userData: any }) {
   const supabase = createClient()
@@ -106,8 +121,14 @@ export default function FormComponent({ userData }: { userData: any }) {
   useEffect(() => {
     if (userData) {
       fetchEntities()
+      if (isFormLocked) {
+        form.reset({
+          ...form.getValues(),
+          founderEmail: userData.email, // Assuming userData.email holds the authenticated user's email
+        })
+      }
     }
-  }, [userData])
+  }, [userData, isFormLocked])
 
   // Update the URL when the step changes, including sharing state if applicable
   useEffect(() => {
@@ -155,7 +176,7 @@ export default function FormComponent({ userData }: { userData: any }) {
         fundName: data.fund?.name || "",
         fundByline: data.fund?.byline || "",
         purchaseAmount: data.purchase_amount || "",
-        type: data.investment_type || "valuation-cap",
+        type: data.investment_type || "",
         valuationCap: data.valuation_cap || "",
         discount: data.discount || "",
         stateOfIncorporation: data.company?.state_of_incorporation || "",
@@ -202,12 +223,25 @@ export default function FormComponent({ userData }: { userData: any }) {
   }
 
   async function onSubmit(values: FormComponentValues) {
+    // Check if the values are their default or empty values
+    if (
+      values.purchaseAmount === "" &&
+      values.type === ""
+    ) {
+      toast({
+        title: "Unable to create SAFE agreement",
+        description:
+          "You must enter valid purchase amount, investment type, and date.",
+      })
+      return
+    }
     await processInvestment(values, null, null, null, null)
+
     setShowConfetti(true)
     toast({
-      title: "Congratulations!",
+      title: "Your SAFE agreement has been created",
       description:
-        "Your SAFE agreement has been saved. You can edit or download it by visiting your Investments.",
+        "You can view, edit, or download it by visiting your Investments.",
     })
     setTimeout(() => {
       setShowConfetti(false)
@@ -216,6 +250,13 @@ export default function FormComponent({ userData }: { userData: any }) {
   }
 
   async function processInvestorDetails(values: FormComponentValues) {
+    if (
+      values.investorName === "" &&
+      values.investorTitle === "" &&
+      values.investorEmail === ""
+    )
+      return null
+
     try {
       const investorData = {
         name: values.investorName,
@@ -258,6 +299,13 @@ export default function FormComponent({ userData }: { userData: any }) {
     values: FormComponentValues,
     investorId: string
   ) {
+    if (
+      values.fundName === "" &&
+      values.fundByline === "" &&
+      values.fundStreet === "" &&
+      values.fundCityStateZip === ""
+    )
+      return null
     try {
       const fundData = {
         name: values.fundName,
@@ -297,6 +345,13 @@ export default function FormComponent({ userData }: { userData: any }) {
   }
 
   async function processFounderDetails(values: FormComponentValues) {
+    if (
+      values.founderName === "" &&
+      values.founderTitle === "" &&
+      values.founderEmail === ""
+    )
+      return null
+
     try {
       const founderData = {
         name: values.founderName,
@@ -338,6 +393,14 @@ export default function FormComponent({ userData }: { userData: any }) {
     values: FormComponentValues,
     founderId: string
   ) {
+    if (
+      values.companyName === "" &&
+      values.companyStreet === "" &&
+      values.companyCityStateZip === "" &&
+      values.stateOfIncorporation === ""
+    )
+      return null
+
     try {
       const companyData = {
         name: values.companyName,
@@ -386,7 +449,7 @@ export default function FormComponent({ userData }: { userData: any }) {
   ) {
     try {
       // Prepare investment data with non-null values
-      const investmentData = {
+      const investmentData: InvestmentData = {
         ...(founderId && { founder_id: founderId }),
         ...(companyId && { company_id: companyId }),
         ...(investorId && { investor_id: investorId }),
@@ -396,17 +459,18 @@ export default function FormComponent({ userData }: { userData: any }) {
         ...(values.valuationCap && { valuation_cap: values.valuationCap }),
         ...(values.discount && { discount: values.discount }),
         date: values.date,
-        created_by: userData.auth_id,
       }
 
       // If hasn't been added to investments table, add it
       if (!investmentId) {
+        // Set created_by only when creating a new investment
+        investmentData.created_by = userData.auth_id
         const { data: investmentInsertData, error: investmentInsertError } =
           await supabase.from("investments").insert(investmentData).select()
         if (investmentInsertError) throw investmentInsertError
         setInvestmentId(investmentInsertData[0].id)
       } else {
-        // If it has been added, update it
+        // If it has been added, update it without changing the created_by
         const { data: investmentUpdateData, error: investmentUpdateError } =
           await supabase
             .from("investments")
@@ -463,6 +527,42 @@ export default function FormComponent({ userData }: { userData: any }) {
         founderName: founderData[0].name,
         founderTitle: founderData[0].title,
         founderEmail: founderData[0].email,
+      })
+    }
+  }
+
+  async function advanceStepOne() {
+    const values = form.getValues()
+    const investorId = await processInvestorDetails(values)
+    const fundId = await processFundDetails(values, investorId)
+    if (investorId || fundId) {
+      await processInvestment(values, investorId, fundId, null, null)
+    }
+    if (!isFormLocked) {
+      setStep(2) // Move to the next step only after processing is complete
+    }
+  }
+
+  async function advanceStepTwo() {
+    const values = form.getValues()
+    const founderId = await processFounderDetails(values)
+    const companyId = await processCompanyDetails(values, founderId)
+    if (founderId || companyId) {
+      await processInvestment(values, null, null, founderId, companyId)
+    }
+    if (!isFormLocked) {
+      setStep(3) // Move to the next step only after processing is complete
+
+      // If being shared
+    } else {
+      setShowConfetti(true)
+      setTimeout(() => {
+        setShowConfetti(false)
+      }, 10000)
+      toast({
+        title: "Congratulations!",
+        description:
+          "Your information has been saved. You'll receive an email with the next steps shortly.",
       })
     }
   }
@@ -610,21 +710,7 @@ export default function FormComponent({ userData }: { userData: any }) {
               <Button
                 type="button"
                 className="mt-4 w-full"
-                onClick={async () => {
-                  const values = form.getValues()
-                  const investorId = await processInvestorDetails(values)
-                  const fundId = await processFundDetails(values, investorId)
-                  await processInvestment(
-                    values,
-                    investorId,
-                    fundId,
-                    null,
-                    null
-                  )
-                  if (!isFormLocked) {
-                    setStep(2) // Move to the next step only after processing is complete
-                  }
-                }}
+                onClick={advanceStepOne}
               >
                 {isFormLocked ? "Save" : "Next"}
               </Button>
@@ -636,7 +722,11 @@ export default function FormComponent({ userData }: { userData: any }) {
                 <Label className="text-md font-bold">Company Details</Label>
                 {!isFormLocked && (
                   <Share
-                    idString={`${window.location.origin}/new?id=${investmentId}&step=${step}&sharing=true`}
+                    idString={
+                      typeof window !== "undefined"
+                        ? `${window.location.origin}/new?id=${investmentId}&step=${step}&sharing=true`
+                        : ""
+                    }
                   />
                 )}
               </div>
@@ -765,35 +855,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                 <Button
                   type="button"
                   className="w-full"
-                  onClick={async () => {
-                    const values = form.getValues()
-                    const founderId = await processFounderDetails(values)
-                    const companyId = await processCompanyDetails(
-                      values,
-                      founderId
-                    )
-                    await processInvestment(
-                      values,
-                      null,
-                      null,
-                      founderId,
-                      companyId
-                    )
-                    if (!isFormLocked) {
-                      setStep(3) // Move to the next step only after processing is complete
-                    } else {
-                      // Confetti and toast
-                      setShowConfetti(true)
-                      setTimeout(() => {
-                        setShowConfetti(false)
-                      }, 10000)
-                      toast({
-                        title: "Congratulations!",
-                        description:
-                          "Your information has been saved. You'll receive an email with the next steps shortly.",
-                      })
-                    }
-                  }}
+                  onClick={advanceStepTwo}
                 >
                   {isFormLocked ? "Save" : "Next"}
                 </Button>

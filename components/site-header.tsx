@@ -1,83 +1,36 @@
-"use client"
-
-import { useEffect, useState } from "react"
 import Link from "next/link"
-import { createClient } from "@/utils/supabase/client"
-
-import { siteConfig } from "@/config/site"
-import { Button, buttonVariants } from "@/components/ui/button"
-import { Icons } from "@/components/icons"
-import { MainNav } from "@/components/main-nav"
-import { ThemeToggle } from "@/components/theme-toggle"
-
+import { Button } from "@/components/ui/button"
 import UserNav from "./user-nav"
 
-export function SiteHeader() {
-  const [user, setUser] = useState<any>(null)
-  const supabase = createClient()
-
-  useEffect(() => {
-    async function getUser() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      setUser(user)
-    }
-
-    getUser()
-  }, [user])
-
+export function SiteHeader({ user }: { user: any }) {
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background">
-      <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0">
-        <a className="text-xl font-bold pr-6" href="/">
-          Draftmysafe
-        </a>
-        {user ? <MainNav items={siteConfig.mainNav} /> : null}
-        <div className="flex flex-1 items-center justify-end space-x-4">
-          <nav className="flex items-center space-x-1">
-            <Link
-              href={siteConfig.links.github}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <div
-                className={buttonVariants({
-                  size: "sm",
-                  variant: "ghost",
-                })}
+    <nav>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          <Link href="/">
+            <span className="text-2xl font-bold">Draftmysafe</span>
+          </Link>
+          <div className="flex items-center mx-1">
+            <div className="items-center space-x-2">
+              <Link
+                href="https://github.com/alanagoyal/safebase"
+                target="_blank"
+                rel="noreferrer"
+                className="hidden sm:inline-block"
               >
-                <Icons.gitHub className="h-5 w-5" />
-                <span className="sr-only">GitHub</span>
-              </div>
-            </Link>
-            <Link
-              href={siteConfig.links.twitter}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <div
-                className={buttonVariants({
-                  size: "sm",
-                  variant: "ghost",
-                })}
-              >
-                <Icons.twitter className="h-5 w-5 fill-current" />
-                <span className="sr-only">Twitter</span>
-              </div>
-            </Link>
-            <ThemeToggle />
-            {user ? (
-              <UserNav user={user} />
-            ) : (
-              <Link href="login">
-                <Button className="ml-4">Log In</Button>
+                <Button variant="ghost">View on GitHub</Button>
               </Link>
-            )}
-          </nav>
+              {user ? (
+                <UserNav user={user} />
+              ) : (
+                <Link href="login">
+                  <Button className="ml-4">Log In</Button>
+                </Link>
+              )}
+            </div>
+          </div>
         </div>
       </div>
-    </header>
+    </nav>
   )
 }

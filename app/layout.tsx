@@ -1,25 +1,37 @@
-import "@/styles/globals.css"
-import { Inter } from "next/font/google"
-
+import type { Metadata } from "next";
+import "@/styles/globals.css";
 import { siteConfig } from "@/config/site"
-import { cn } from "@/lib/utils"
-import { Toaster } from "@/components/ui/toaster"
-import { SiteHeader } from "@/components/site-header"
-import { ThemeProvider } from "@/components/theme-provider"
-import { CommandMenu } from "@/components/command-menu"
-import SiteFooter from "@/components/site-footer"
+import { Inter } from "next/font/google";
+import { SiteHeader } from "@/components/site-header";
+import { Toaster } from "@/components/ui/toaster";
+import { ThemeProvider } from "@/components/theme-provider";
+import { cn } from "@/lib/utils";
+import SiteFooter from "@/components/site-footer";
+import { CommandMenu } from "@/components/command-menu";
+import { createClient } from "@/utils/supabase/server";
 
 const inter = Inter({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-inter",
-})
+});
 
-export default function RootLayout({
+export const metadata: Metadata = {
+  title: "Branded",
+  description: "AI-generated names for your next project",
+};
+
+export default async function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
+  const supabase = createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -59,10 +71,10 @@ export default function RootLayout({
         >
           <div vaul-drawer-wrapper="">
             <div className="relative flex flex-col bg-background">
-              <SiteHeader />
+              <SiteHeader user={user} />
               <CommandMenu />
               <main className="flex-1">
-                <div className="flex flex-col items-center pt-10 py-2 max-w-7xl mx-auto">
+                <div className="flex flex-col items-center pt-10 py-2 max-w-5xl mx-auto">
                   {children}
                 </div>
               </main>
@@ -73,5 +85,5 @@ export default function RootLayout({
         </ThemeProvider>
       </body>
     </html>
-  )
+  );
 }

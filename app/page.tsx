@@ -18,7 +18,7 @@ export default async function IndexPage() {
           </div>
           <div className="flex gap-4">
             <Link href="/new">
-              <Button className=" text-white px-8 py-4 rounded-md text-base">
+              <Button>
                 Get Started
               </Button>
             </Link>

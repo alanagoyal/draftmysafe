@@ -12,7 +12,7 @@ export default async function IndexPage() {
             <div className="text-3xl font-extrabold leading-tight tracking-tighter sm:text-3xl md:text-5xl lg:text-6xl">
               Draftmysafe
             </div>
-            <p className="max-w-[700px] text-lg text-muted-foreground sm:text-xl">
+            <p className="max-w-[700px] text-lg text-muted-foreground sm:text-xl pt-2">
               Skip the paperwork & generate a YC SAFE agreement in minutes
             </p>
           </div>

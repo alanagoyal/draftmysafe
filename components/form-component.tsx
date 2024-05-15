@@ -46,7 +46,7 @@ const FormComponentSchema = z.object({
   fundName: z.string().optional(),
   fundByline: z.string().optional(),
   purchaseAmount: z.string({ required_error: "Purchase amount is required" }),
-  type: z.enum(["valuation-cap", "discount", "mfn", ""]),
+  type: z.enum(["", "valuation-cap", "discount", "mfn"]),
   valuationCap: z.string().optional(),
   discount: z.string().optional(),
   stateOfIncorporation: z.string({
@@ -176,7 +176,7 @@ export default function FormComponent({ userData }: { userData: any }) {
         fundName: data.fund?.name || "",
         fundByline: data.fund?.byline || "",
         purchaseAmount: data.purchase_amount || "",
-        type: data.investment_type || "valuation-cap",
+        type: data.investment_type || "",
         valuationCap: data.valuation_cap || "",
         discount: data.discount || "",
         stateOfIncorporation: data.company?.state_of_incorporation || "",
@@ -223,13 +223,25 @@ export default function FormComponent({ userData }: { userData: any }) {
   }
 
   async function onSubmit(values: FormComponentValues) {
+    // Check if the values are their default or empty values
+    if (
+      values.purchaseAmount === "" &&
+      values.type === ""
+    ) {
+      toast({
+        title: "Unable to create SAFE agreement",
+        description:
+          "You must enter valid purchase amount, investment type, and date.",
+      })
+      return
+    }
     await processInvestment(values, null, null, null, null)
 
     setShowConfetti(true)
     toast({
-      title: "Congratulations!",
+      title: "Your SAFE agreement has been created",
       description:
-        "Your SAFE agreement has been saved. You can edit or download it by visiting your Investments.",
+        "You can view, edit, or download it by visiting your Investments.",
     })
     setTimeout(() => {
       setShowConfetti(false)

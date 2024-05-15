@@ -1,27 +1,22 @@
-import Link from "next/link";
-import { createClient } from "@/utils/supabase/server";
-import UserNav from "./user-nav";
-import { Button } from "@/components/ui/button";
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import UserNav from "./user-nav"
 
-export async function SiteHeader() {
-  const supabase = createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+export function SiteHeader({ user }: { user: any }) {
   return (
     <nav>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <span className="text-2xl font-bold">Draftmysafe</span>
+          <Link href="/">
+            <span className="text-2xl font-bold">Draftmysafe</span>
+          </Link>
           <div className="flex items-center mx-1">
             <div className="items-center space-x-2">
               <Link
                 href="https://github.com/alanagoyal/safebase"
                 target="_blank"
                 rel="noreferrer"
-                className="hidden sm:inline-block" 
+                className="hidden sm:inline-block"
               >
                 <Button variant="ghost">View on GitHub</Button>
               </Link>
@@ -37,5 +32,5 @@ export async function SiteHeader() {
         </div>
       </div>
     </nav>
-  );
+  )
 }

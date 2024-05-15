@@ -17,8 +17,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Branded",
-  description: "AI-generated names for your next project",
+  title: siteConfig.name,
+  description: siteConfig.description,
 };
 
 export default async function RootLayout({

@@ -68,9 +68,9 @@ export default function UserNav({ user }: any) {
             <DropdownMenuItem className="cursor-pointer justify-between">
               <div className="flex items-center">
                 <Plus className="mr-2 h-4 w-4" />
-                <span>New</span>
+                <span>Create</span>
               </div>
-              <p className="text-xs text-muted-foreground">⌘G</p>
+              <p className="text-xs text-muted-foreground">⌘C</p>
             </DropdownMenuItem>
           </Link>
           <Link href="/account">

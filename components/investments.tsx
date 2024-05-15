@@ -198,28 +198,48 @@ export default function Investments({ investments }: { investments: any }) {
     return doc
   }
 
-  function downloadDocument(doc: Docxtemplater, type: string) {
+  async function downloadDocument(doc: Docxtemplater, type: string) {
+    console.log("in downloadDocument")
     const updatedContent = doc.getZip().generate({ type: "blob" })
-    const link = document.createElement("a")
-    link.href = URL.createObjectURL(updatedContent)
-    link.download =
-      type === "valuation-cap"
-        ? "YC-SAFE-Valuation-Cap.docx"
-        : type === "discount"
-        ? "YC-SAFE-Discount.docx"
-        : "YC-SAFE-MFN.docx"
-    link.click()
-    setTimeout(() => {
-      URL.revokeObjectURL(link.href)
-    }, 100)
+    const file = new FormData()
+    file.append("file", updatedContent)
+
+    try {
+      const response = await fetch("/convert-to-pdf", {
+        method: "POST",
+        body: file,
+      })
+
+      console.log(response)
+
+      if (!response.ok) {
+        throw new Error(`HTTP error with status: ${response.status}`)
+      }
+
+      const pdfBlob = await response.blob()
+      const link = document.createElement("a")
+      link.href = URL.createObjectURL(pdfBlob)
+      link.download =
+        type === "valuation-cap"
+          ? "YC-SAFE-Valuation-Cap.pdf"
+          : type === "discount"
+          ? "YC-SAFE-Discount.pdf"
+          : "YC-SAFE-MFN.pdf"
+      link.click()
+      link.click()
+
+      setTimeout(() => {
+        URL.revokeObjectURL(link.href)
+      }, 100)
+    } catch (error) {
+      console.error("Error downloading PDF:", error)
+    }
   }
 
   return (
     <div className="flex flex-col items-center min-h-screen py-2 w-4/5">
       <div className="flex justify-between items-center w-full">
-        <h1
-          className="text-2xl ml-24 font-bold text-center flex-grow"
-        >
+        <h1 className="text-2xl ml-24 font-bold text-center flex-grow">
           Investments
         </h1>
         <Button

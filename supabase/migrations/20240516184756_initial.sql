@@ -123,12 +123,23 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$begin
-  insert into public.users (auth_id, email)
-  values (new.id, new.email);
-  return new;
-end;$function$
-;
+AS $function$
+BEGIN
+  -- Check if a user with this email already exists
+  IF EXISTS (SELECT 1 FROM public.users WHERE email = new.email) THEN
+    -- Update the existing user's auth_id
+    UPDATE public.users
+    SET auth_id = new.id,
+        updated_at = now()
+    WHERE email = new.email;
+  ELSE
+    -- Insert a new user if no existing user is found
+    INSERT INTO public.users (auth_id, email, created_at)
+    VALUES (new.id, new.email, now());
+  END IF;
+  RETURN new;
+END;
+$function$;
 
 grant delete on table "public"."companies" to "anon";
 

@@ -91,7 +91,6 @@ export default function Investments({
           cacheControl: "3600",
         })
       if (uploadError) throw uploadError
-      console.log("uploaded doc")
     }
 
     // Generate a url
@@ -99,6 +98,7 @@ export default function Investments({
     if (!publicUrl) {
       throw new Error("Failed to get public URL")
     }
+    window.open(publicUrl.publicUrl, "_blank")
   }
 
   async function generateDocument(id: string) {

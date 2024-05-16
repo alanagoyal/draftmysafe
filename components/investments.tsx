@@ -74,31 +74,40 @@ export default function Investments({
 
   async function downloadInvestment(id: string) {
     const filepath = `${id}.docx`
-    const { data: downloadData, error: downloadError } = await supabase.storage
-      .from("documents")
-      .download(filepath)
+    try {
+      const { data: downloadData, error: downloadError } =
+        await supabase.storage.from("documents").download(filepath)
 
-    // If file doesn't exist, generate and upload
-    if (downloadError) {
-      const doc = await generateDocument(id)
-      const file = doc.getZip().generate({ type: "nodebuffer" })
-      const { error: uploadError } = await supabase.storage
-        .from("documents")
-        .upload(filepath, file, {
-          upsert: true,
-          contentType:
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          cacheControl: "3600",
-        })
-      if (uploadError) throw uploadError
+      // If file doesn't exist, generate and upload
+      if (downloadError) {
+        const doc = await generateDocument(id)
+        const file = doc.getZip().generate({ type: "nodebuffer" })
+        const { error: uploadError } = await supabase.storage
+          .from("documents")
+          .upload(filepath, file, {
+            upsert: true,
+            contentType:
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            cacheControl: "3600",
+          })
+        if (uploadError) throw uploadError
+      }
+    } catch (downloadError) {
+      console.error(downloadError)
     }
 
     // Generate a url
-    const { data: publicUrl } = supabase.storage.from("documents").getPublicUrl(filepath)
-    if (!publicUrl) {
-      throw new Error("Failed to get public URL")
+    const { data, error } = await supabase.storage
+      .from("documents")
+      .createSignedUrl(filepath, 3600)
+
+    if (data) {
+      window.open(data.signedUrl, "_blank")
     }
-    window.open(publicUrl.publicUrl, "_blank")
+
+    if (error) {
+      console.error(error)
+    }
   }
 
   async function generateDocument(id: string) {

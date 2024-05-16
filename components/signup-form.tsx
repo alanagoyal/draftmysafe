@@ -109,7 +109,7 @@ export function SignupForm({ signup }: SignupFormProps) {
             Sign Up With Email
           </CardTitle>
           <CardDescription>
-            Enter your email and password to sign up for an account
+            Enter your email and password to sign up
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">

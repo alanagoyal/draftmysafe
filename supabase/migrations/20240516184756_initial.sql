@@ -48,7 +48,6 @@ create table "public"."users" (
     "name" text,
     "updated_at" timestamp without time zone,
     "title" text,
-    "type" text,
     "id" uuid not null default gen_random_uuid(),
     "auth_id" uuid
 );
@@ -299,39 +298,135 @@ grant truncate on table "public"."users" to "service_role";
 
 grant update on table "public"."users" to "service_role";
 
-create policy "Founder + creator of investment can do all"
+create policy "Authenticated users can insert"
 on "public"."companies"
 as permissive
-for all
-to public
-using (((auth.uid() = ( SELECT users.auth_id
-   FROM users
-  WHERE (users.id = companies.founder_id))) OR (auth.uid() = ( SELECT i.created_by
-   FROM investments i
-  WHERE (i.company_id = companies.id)))));
+for insert
+to authenticated
+with check (true);
 
 
-create policy "Investor + creator of investment can do all"
-on "public"."funds"
+create policy "Authenticated users can read"
+on "public"."companies"
 as permissive
-for all
-to public
-using (((auth.uid() = ( SELECT users.auth_id
-   FROM users
-  WHERE (users.id = funds.investor_id))) OR (auth.uid() = ( SELECT i.created_by
-   FROM investments i
-  WHERE (i.fund_id = funds.id)))));
-
-
-create policy "Authenticated can do all"
-on "public"."investments"
-as permissive
-for all
+for select
 to authenticated
 using (true);
 
 
-create policy "Enable delete for users based on auth_id"
+create policy "Investors and founders in investment with fund can delete"
+on "public"."companies"
+as permissive
+for delete
+to public
+using (((auth.uid() = ( SELECT users.auth_id
+   FROM users
+  WHERE (users.id = companies.founder_id))) OR (EXISTS ( SELECT 1
+   FROM (investments i
+     JOIN users u ON ((u.id = i.investor_id)))
+  WHERE ((i.company_id = companies.id) AND (u.auth_id = auth.uid()))))));
+
+
+create policy "Investors and founders in investment with fund can update"
+on "public"."companies"
+as permissive
+for update
+to public
+using (((auth.uid() = ( SELECT users.auth_id
+   FROM users
+  WHERE (users.id = companies.founder_id))) OR (EXISTS ( SELECT 1
+   FROM (investments i
+     JOIN users u ON ((u.id = i.investor_id)))
+  WHERE ((i.company_id = companies.id) AND (u.auth_id = auth.uid()))))));
+
+
+create policy "Authenticated users can insert"
+on "public"."funds"
+as permissive
+for insert
+to authenticated
+with check (true);
+
+
+create policy "Authenticated users can read"
+on "public"."funds"
+as permissive
+for select
+to authenticated
+using (true);
+
+
+create policy "Founders and investors of investment with company can delete"
+on "public"."funds"
+as permissive
+for delete
+to public
+using (((auth.uid() = ( SELECT users.auth_id
+   FROM users
+  WHERE (users.id = funds.investor_id))) OR (EXISTS ( SELECT 1
+   FROM (investments i
+     JOIN users u ON ((u.id = i.founder_id)))
+  WHERE ((i.fund_id = funds.id) AND (u.auth_id = auth.uid()))))));
+
+
+create policy "Founders and investors of investment with company can update"
+on "public"."funds"
+as permissive
+for update
+to public
+using (((auth.uid() = ( SELECT users.auth_id
+   FROM users
+  WHERE (users.id = funds.investor_id))) OR (EXISTS ( SELECT 1
+   FROM (investments i
+     JOIN users u ON ((u.id = i.founder_id)))
+  WHERE ((i.fund_id = funds.id) AND (u.auth_id = auth.uid()))))));
+
+
+create policy "Authenticated users can insert"
+on "public"."investments"
+as permissive
+for insert
+to public
+with check (true);
+
+
+create policy "Authenticated users can read"
+on "public"."investments"
+as permissive
+for select
+to authenticated
+using (true);
+
+
+create policy "Authenticated users can update"
+on "public"."investments"
+as permissive
+for update
+to authenticated
+using (true);
+
+
+create policy "Founders or investors in investment can delete"
+on "public"."investments"
+as permissive
+for delete
+to public
+using (((auth.uid() = ( SELECT users.auth_id
+   FROM users
+  WHERE (users.id = investments.founder_id))) OR (auth.uid() = ( SELECT users.auth_id
+   FROM users
+  WHERE (users.id = investments.investor_id))) OR (auth.uid() IN ( SELECT users.auth_id
+   FROM users
+  WHERE (users.id IN ( SELECT funds.investor_id
+           FROM funds
+          WHERE (funds.id = investments.fund_id))))) OR (auth.uid() IN ( SELECT users.auth_id
+   FROM users
+  WHERE (users.id IN ( SELECT companies.founder_id
+           FROM companies
+          WHERE (companies.id = investments.company_id)))))));
+
+
+create policy "Authenticated users can delete themselves"
 on "public"."users"
 as permissive
 for delete
@@ -339,7 +434,7 @@ to public
 using ((( SELECT auth.uid() AS uid) = auth_id));
 
 
-create policy "Enable insert access for authenticated"
+create policy "Authenticated users can insert"
 on "public"."users"
 as permissive
 for insert
@@ -347,7 +442,7 @@ to authenticated
 with check (true);
 
 
-create policy "Enable select for authenticated users"
+create policy "Authenticated users can read"
 on "public"."users"
 as permissive
 for select
@@ -355,7 +450,7 @@ to authenticated
 using (true);
 
 
-create policy "Enable update for users based on auth_id"
+create policy "Authenticated users can update themselves"
 on "public"."users"
 as permissive
 for update

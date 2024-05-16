@@ -299,27 +299,35 @@ grant truncate on table "public"."users" to "service_role";
 
 grant update on table "public"."users" to "service_role";
 
-create policy "Enable all for all users"
+create policy "Founder + creator of investment can do all"
 on "public"."companies"
 as permissive
 for all
 to public
-using (true);
+using (((auth.uid() = ( SELECT users.auth_id
+   FROM users
+  WHERE (users.id = companies.founder_id))) OR (auth.uid() = ( SELECT i.created_by
+   FROM investments i
+  WHERE (i.company_id = companies.id)))));
 
 
-create policy "Enable all for all users"
+create policy "Investor + creator of investment can do all"
 on "public"."funds"
 as permissive
 for all
 to public
-using (true);
+using (((auth.uid() = ( SELECT users.auth_id
+   FROM users
+  WHERE (users.id = funds.investor_id))) OR (auth.uid() = ( SELECT i.created_by
+   FROM investments i
+  WHERE (i.fund_id = funds.id)))));
 
 
-create policy "Enable all for all users"
+create policy "Authenticated can do all"
 on "public"."investments"
 as permissive
 for all
-to public
+to authenticated
 using (true);
 
 
@@ -331,19 +339,19 @@ to public
 using ((( SELECT auth.uid() AS uid) = auth_id));
 
 
-create policy "Enable insert access for all users"
+create policy "Enable insert access for authenticated"
 on "public"."users"
 as permissive
 for insert
-to public
+to authenticated
 with check (true);
 
 
-create policy "Enable select for all users"
+create policy "Enable select for authenticated users"
 on "public"."users"
 as permissive
 for select
-to public
+to authenticated
 using (true);
 
 
@@ -355,6 +363,65 @@ to public
 using ((( SELECT auth.uid() AS uid) = auth_id));
 
 
+
+create type "auth"."one_time_token_type" as enum ('confirmation_token', 'reauthentication_token', 'recovery_token', 'email_change_token_new', 'email_change_token_current', 'phone_change_token');
+
+create table "auth"."one_time_tokens" (
+    "id" uuid not null,
+    "user_id" uuid not null,
+    "token_type" auth.one_time_token_type not null,
+    "token_hash" text not null,
+    "relates_to" text not null,
+    "created_at" timestamp without time zone not null default now(),
+    "updated_at" timestamp without time zone not null default now()
+);
+
+
+CREATE UNIQUE INDEX one_time_tokens_pkey ON auth.one_time_tokens USING btree (id);
+
+CREATE INDEX one_time_tokens_relates_to_hash_idx ON auth.one_time_tokens USING hash (relates_to);
+
+CREATE INDEX one_time_tokens_token_hash_hash_idx ON auth.one_time_tokens USING hash (token_hash);
+
+CREATE UNIQUE INDEX one_time_tokens_user_id_token_type_key ON auth.one_time_tokens USING btree (user_id, token_type);
+
+alter table "auth"."one_time_tokens" add constraint "one_time_tokens_pkey" PRIMARY KEY using index "one_time_tokens_pkey";
+
+alter table "auth"."one_time_tokens" add constraint "one_time_tokens_token_hash_check" CHECK ((char_length(token_hash) > 0)) not valid;
+
+alter table "auth"."one_time_tokens" validate constraint "one_time_tokens_token_hash_check";
+
+alter table "auth"."one_time_tokens" add constraint "one_time_tokens_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE not valid;
+
+alter table "auth"."one_time_tokens" validate constraint "one_time_tokens_user_id_fkey";
+
+grant delete on table "auth"."one_time_tokens" to "dashboard_user";
+
+grant insert on table "auth"."one_time_tokens" to "dashboard_user";
+
+grant references on table "auth"."one_time_tokens" to "dashboard_user";
+
+grant select on table "auth"."one_time_tokens" to "dashboard_user";
+
+grant trigger on table "auth"."one_time_tokens" to "dashboard_user";
+
+grant truncate on table "auth"."one_time_tokens" to "dashboard_user";
+
+grant update on table "auth"."one_time_tokens" to "dashboard_user";
+
+grant delete on table "auth"."one_time_tokens" to "postgres";
+
+grant insert on table "auth"."one_time_tokens" to "postgres";
+
+grant references on table "auth"."one_time_tokens" to "postgres";
+
+grant select on table "auth"."one_time_tokens" to "postgres";
+
+grant trigger on table "auth"."one_time_tokens" to "postgres";
+
+grant truncate on table "auth"."one_time_tokens" to "postgres";
+
+grant update on table "auth"."one_time_tokens" to "postgres";
 
 CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 

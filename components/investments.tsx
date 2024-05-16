@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/client"
 import Docxtemplater from "docxtemplater"
 import { Plus } from "lucide-react"
 import PizZip from "pizzip"
+
 import { Icons } from "./icons"
 import { Button } from "./ui/button"
 import {
@@ -23,7 +24,13 @@ import {
 } from "./ui/table"
 import { toast } from "./ui/use-toast"
 
-export default function Investments({ investments }: { investments: any }) {
+export default function Investments({
+  investments,
+  user,
+}: {
+  investments: any
+  user: any
+}) {
   const router = useRouter()
   const supabase = createClient()
 
@@ -66,6 +73,41 @@ export default function Investments({ investments }: { investments: any }) {
   }
 
   async function downloadInvestment(id: string) {
+    const filepath = `${id}.docx`
+    try {
+      const { error } =
+        await supabase.storage.from("documents").download(filepath)
+
+      // If file doesn't exist, generate and upload
+      if (error) {
+        const doc = await generateDocument(id)
+        const file = doc.getZip().generate({ type: "nodebuffer" })
+        const { error: uploadError } = await supabase.storage
+          .from("documents")
+          .upload(filepath, file, {
+            upsert: true,
+            contentType:
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            cacheControl: "3600",
+          })
+        if (uploadError) throw uploadError
+      }
+    } catch (downloadError) {
+      console.error(downloadError)
+    }
+
+    // Generate a url
+    const { data, error } = await supabase.storage
+      .from("documents")
+      .createSignedUrl(filepath, 3600)
+    if (error) throw error
+    
+    if (data) {
+      window.open(data.signedUrl, "_blank")
+    }
+  }
+
+  async function generateDocument(id: string) {
     // Find the specific investment data from the investments array using the provided id
     const investmentData = investments.find(
       (investment: any) => investment.id === id
@@ -76,7 +118,7 @@ export default function Investments({ investments }: { investments: any }) {
         title: "Error",
         description: "Investment not found",
       })
-      return
+      throw new Error("Investment data not found")
     }
 
     // Extract values from the investment data
@@ -109,7 +151,7 @@ export default function Investments({ investments }: { investments: any }) {
       values,
       formattedDate
     )
-    downloadDocument(doc, values.type)
+    return doc
   }
 
   function formatSubmissionDate(date: Date): string {

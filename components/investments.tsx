@@ -75,11 +75,11 @@ export default function Investments({
   async function downloadInvestment(id: string) {
     const filepath = `${id}.docx`
     try {
-      const { data: downloadData, error: downloadError } =
+      const { error } =
         await supabase.storage.from("documents").download(filepath)
 
       // If file doesn't exist, generate and upload
-      if (downloadError) {
+      if (error) {
         const doc = await generateDocument(id)
         const file = doc.getZip().generate({ type: "nodebuffer" })
         const { error: uploadError } = await supabase.storage
@@ -100,13 +100,10 @@ export default function Investments({
     const { data, error } = await supabase.storage
       .from("documents")
       .createSignedUrl(filepath, 3600)
-
+    if (error) throw error
+    
     if (data) {
       window.open(data.signedUrl, "_blank")
-    }
-
-    if (error) {
-      console.error(error)
     }
   }
 

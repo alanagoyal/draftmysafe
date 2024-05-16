@@ -37,7 +37,12 @@ export default function Investments({ investments }: { investments: any }) {
 
   // Mapping investment types to user-friendly strings
   type InvestmentTypeKey = "valuation-cap" | "discount" | "mfn"
-  const formatInvestmentType = (type: InvestmentTypeKey | string): string => {
+  const formatInvestmentType = (
+    type: InvestmentTypeKey | string
+  ): JSX.Element | string => {
+    if (!type) {
+      return <MissingInfoTooltip message="Investment type not set" />
+    }
     const investmentTypes: Record<InvestmentTypeKey, string> = {
       "valuation-cap": "Valuation Cap",
       discount: "Discount",
@@ -46,21 +51,12 @@ export default function Investments({ investments }: { investments: any }) {
     return investmentTypes[type as InvestmentTypeKey] || type
   }
 
-  // Tooltip for missing company information
-  const MissingCompanyTooltip = () => (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger>
-          <span className="text-red-500">
-            <Icons.info className="inline-block mr-2" />
-            Company Name Missing
-          </span>
-        </TooltipTrigger>
-        <TooltipContent>
-          Fill in company information or share the link with the founder
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+  // Reusable Tooltip for missing information
+  const MissingInfoTooltip = ({ message }: { message: string }) => (
+    <span className="text-red-500">
+      <Icons.info className="inline-block mr-2" />
+      {message}
+    </span>
   )
 
   const editInvestment = (id: string) => {
@@ -159,7 +155,7 @@ export default function Investments({ investments }: { investments: any }) {
       case "mfn":
         return "SAFE-MFN.docx"
       default:
-        return "" // Default case to handle unexpected types
+        return ""
     }
   }
 
@@ -217,9 +213,7 @@ export default function Investments({ investments }: { investments: any }) {
   return (
     <div className="flex flex-col items-center min-h-screen py-2 w-4/5">
       <div className="flex justify-between items-center w-full">
-        <h1
-          className="text-2xl ml-24 font-bold text-center flex-grow"
-        >
+        <h1 className="text-2xl ml-24 font-bold text-center flex-grow">
           Investments
         </h1>
         <Button
@@ -249,24 +243,32 @@ export default function Investments({ investments }: { investments: any }) {
                 {investment.company ? (
                   investment.company.name
                 ) : (
-                  <MissingCompanyTooltip />
+                  <MissingInfoTooltip message="Company name missing" />
                 )}
               </TableCell>
               <TableCell>
-                {investment.founder
-                  ? `${investment.founder.name} (${investment.founder.email})`
-                  : "N/A"}
+                {investment.founder ? (
+                  `${investment.founder.name} (${investment.founder.email})`
+                ) : (
+                  <MissingInfoTooltip message="Founder information missing" />
+                )}
               </TableCell>
               <TableCell>
-                {investment.fund ? `${investment.fund.name}` : "N/A"}
+                {investment.fund ? (
+                  `${investment.fund.name}`
+                ) : (
+                  <MissingInfoTooltip message="Fund name missing" />
+                )}
               </TableCell>
               <TableCell>
                 {formatInvestmentType(investment.investment_type)}
               </TableCell>
               <TableCell>
-                {investment.purchase_amount
-                  ? `$${investment.purchase_amount}`
-                  : "N/A"}
+                {investment.purchase_amount ? (
+                  `$${investment.purchase_amount}`
+                ) : (
+                  <MissingInfoTooltip message="Purchase amount not set" />
+                )}
               </TableCell>
               <TableCell>
                 <div className="flex justify-between items-center">

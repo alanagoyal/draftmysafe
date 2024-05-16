@@ -867,15 +867,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                   >
                     Back
                   </Button>
-                ) : (
-                  <Button
-                    variant="secondary"
-                    className="w-full"
-                    onClick={() => window.close()}
-                  >
-                    Exit
-                  </Button>
-                )}
+                ) : null}
               </div>
             </>
           )}

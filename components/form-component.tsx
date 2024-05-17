@@ -243,6 +243,7 @@ export default function FormComponent({ userData }: { userData: any }) {
     setTimeout(() => {
       setShowConfetti(false)
       router.push("/investments")
+      router.refresh()
     }, 5000)
   }
 

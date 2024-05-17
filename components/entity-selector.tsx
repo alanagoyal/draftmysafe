@@ -1,4 +1,4 @@
-import { FormDescription } from "./ui/form"
+import { FormDescription, FormItem, FormLabel } from "./ui/form"
 import {
   Select,
   SelectContent,
@@ -24,10 +24,6 @@ export function EntitySelector({
   const filteredEntities = entities.filter(
     (item) => entityType === "both" || item.type === entityType
   )
-
-  if (entityType !== "both" && filteredEntities.length === 0) {
-    return null
-  }
 
   return (
     <>
@@ -64,11 +60,11 @@ export function EntitySelector({
           ))}
         </SelectContent>
       </Select>
-      <FormDescription>
-        {entityType === "both"
-          ? "Add or edit an entity to be used in your signature block"
-          : `Choose a ${entityType} to be used in your signature block`}
-      </FormDescription>
+      {entityType === "both" && (
+        <FormDescription>
+          Add or edit an entity to be used in your signature block
+        </FormDescription>
+      )}
     </>
   )
 }

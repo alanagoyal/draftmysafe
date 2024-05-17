@@ -6,8 +6,17 @@ import Docxtemplater from "docxtemplater"
 import { Plus } from "lucide-react"
 import PizZip from "pizzip"
 
+import { DocusignAuthProvider } from "./docusign-auth"
 import { Icons } from "./icons"
 import { Button } from "./ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -75,8 +84,9 @@ export default function Investments({
   async function downloadInvestment(id: string) {
     const filepath = `${id}.docx`
     try {
-      const { error } =
-        await supabase.storage.from("documents").download(filepath)
+      const { error } = await supabase.storage
+        .from("documents")
+        .download(filepath)
 
       // If file doesn't exist, generate and upload
       if (error) {
@@ -101,7 +111,7 @@ export default function Investments({
       .from("documents")
       .createSignedUrl(filepath, 3600)
     if (error) throw error
-    
+
     if (data) {
       window.open(data.signedUrl, "_blank")
     }
@@ -244,6 +254,27 @@ export default function Investments({
     }, 100)
   }
 
+/*   async function sendDocumentForSignature() {
+    const docuSignClient = new docusign.ApiClient()
+    docuSignClient.setBasePath("https://proxy.withampersand.com")
+
+    docuSignClient.addDefaultHeader("Content-Type", "application/json")
+    docuSignClient.addDefaultHeader(
+      "x-amp-project-id",
+      process.env.NEXT_PUBLIC_AMPERSAND_PROJECT_ID!
+    )
+    docuSignClient.addDefaultHeader(
+      "x-api-key",
+      process.env.NEXT_PUBLIC_AMPERSAND_API_KEY!
+    )
+    docuSignClient.addDefaultHeader("x-amp-proxy-version", "1")
+    docuSignClient.addDefaultHeader(
+      "x-amp-integration-name",
+      "docusignDeveloperIntegration"
+    )
+    docuSignClient.addDefaultHeader("x-amp-group-ref", user.auth_id)
+  } */
+
   return (
     <div className="flex flex-col items-center min-h-screen py-2 w-4/5">
       <div className="flex justify-between items-center w-full">
@@ -327,6 +358,23 @@ export default function Investments({
                       >
                         Download
                       </DropdownMenuItem>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <DropdownMenuItem>
+                            Send with DocuSign
+                          </DropdownMenuItem>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>DocuSign Authentication</DialogTitle>
+                            <DialogDescription>
+                              Authenticate with DocuSign to proceed with sending
+                              the document.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <DocusignAuthProvider user={user} />
+                        </DialogContent>
+                      </Dialog>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>

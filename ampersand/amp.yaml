@@ -1,0 +1,15 @@
+specVersion: 1.0.0
+integrations:
+#  Start by integrating with Docusign developer accounts
+#  Learn more here: https://developers.docusign.com/platform/account/
+  - name: docusignDeveloperIntegration
+    displayName: Connect to DocuSign Developer Instances
+    provider: docusignDeveloper
+    proxy:
+      enabled: true
+#  For now, our docusign (prod instance) connector is blocked on an issue
+#  - name: docusignIntegration
+#    displayName: Connect to DocuSign
+#    provider: docusign
+#    proxy:
+#      enabled: true 

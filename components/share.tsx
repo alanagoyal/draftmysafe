@@ -2,6 +2,12 @@ import { Icons } from "./icons"
 import { Button } from "./ui/button"
 import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog"
 import { Input } from "./ui/input"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip"
 import { toast } from "./ui/use-toast"
 
 export function Share({ idString }: { idString: string }) {
@@ -25,10 +31,21 @@ export function Share({ idString }: { idString: string }) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="ghost">
-          <span className="text-sm">Share</span>
-          <Icons.share className="ml-2 h-4 w-4" />
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost">
+                <span className="text-sm">Share</span>
+                <Icons.share className="ml-2 h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>
+                You can send this form to the founder to enter their details
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </DialogTrigger>
       <DialogContent>
         <div className="flex flex-col space-y-2 text-center sm:text-left">

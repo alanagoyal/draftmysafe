@@ -224,10 +224,7 @@ export default function FormComponent({ userData }: { userData: any }) {
 
   async function onSubmit(values: FormComponentValues) {
     // Check if the values are their default or empty values
-    if (
-      values.purchaseAmount === "" &&
-      values.type === ""
-    ) {
+    if (values.purchaseAmount === "" && values.type === "") {
       toast({
         title: "Unable to create SAFE agreement",
         description:
@@ -246,6 +243,7 @@ export default function FormComponent({ userData }: { userData: any }) {
     setTimeout(() => {
       setShowConfetti(false)
       router.push("/investments")
+      router.refresh()
     }, 5000)
   }
 
@@ -582,15 +580,24 @@ export default function FormComponent({ userData }: { userData: any }) {
         >
           {step === 1 && (
             <>
-              <div className="pt-4">
+              <div className="pt-4 flex justify-between items-center h-10">
                 <Label className="text-md font-bold">Investor Details</Label>
               </div>
-              <EntitySelector
-                entities={entities}
-                selectedEntity={selectedEntity}
-                onSelectChange={handleSelectChange}
-                entityType="fund"
-              />
+              {entities.some((entity) => entity.type === "fund") && (
+                <FormItem>
+                  <FormLabel>Select Entity</FormLabel>
+                  <EntitySelector
+                    entities={entities}
+                    selectedEntity={selectedEntity}
+                    onSelectChange={handleSelectChange}
+                    entityType="fund"
+                  />
+                  <FormDescription>
+                    Choose an existing fund to be used in your signature block or
+                    add one below
+                  </FormDescription>
+                </FormItem>
+              )}
               <FormField
                 control={form.control}
                 name="fundName"
@@ -644,7 +651,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                 name="fundCityStateZip"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>City, State, Zip Code</FormLabel>
+                    <FormLabel>City, State, ZIP Code</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -674,7 +681,6 @@ export default function FormComponent({ userData }: { userData: any }) {
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={form.control}
                 name="investorTitle"
@@ -718,7 +724,7 @@ export default function FormComponent({ userData }: { userData: any }) {
           )}
           {step === 2 && (
             <>
-              <div className="pt-4 flex justify-between items-center">
+              <div className="pt-4 flex justify-between items-center h-10">
                 <Label className="text-md font-bold">Company Details</Label>
                 {!isFormLocked && (
                   <Share
@@ -730,12 +736,21 @@ export default function FormComponent({ userData }: { userData: any }) {
                   />
                 )}
               </div>
-              <EntitySelector
-                entities={entities}
-                selectedEntity={selectedEntity}
-                onSelectChange={handleSelectChange}
-                entityType="company"
-              />
+              {entities.some((entity) => entity.type === "company") && (
+                <FormItem>
+                  <FormLabel>Select Entity</FormLabel>
+                  <EntitySelector
+                    entities={entities}
+                    selectedEntity={selectedEntity}
+                    onSelectChange={handleSelectChange}
+                    entityType="company"
+                  />
+                  <FormDescription>
+                    Choose an existing company to be used in your signature
+                    block or add one below
+                  </FormDescription>
+                </FormItem>
+              )}
               <FormField
                 control={form.control}
                 name="companyName"
@@ -773,7 +788,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                 name="companyCityStateZip"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>City, State, Zip Code</FormLabel>
+                    <FormLabel>City, State, ZIP Code</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -873,7 +888,7 @@ export default function FormComponent({ userData }: { userData: any }) {
           )}
           {step === 3 && (
             <>
-              <div className="pt-4">
+              <div className="pt-4 flex justify-between items-center h-10">
                 <Label className="text-md font-bold">Deal Terms</Label>
               </div>
               <FormField

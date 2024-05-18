@@ -2,8 +2,13 @@ import { Icons } from "./icons"
 import { Button } from "./ui/button"
 import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog"
 import { Input } from "./ui/input"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip"
 import { toast } from "./ui/use-toast"
-import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip" // Import the necessary tooltip components
 
 export function Share({ idString }: { idString: string }) {
   const handleCopy = () => {
@@ -35,7 +40,9 @@ export function Share({ idString }: { idString: string }) {
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>You can send this form to the founder to enter their details</p>
+              <p>
+                You can send this form to the founder to enter their details
+              </p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

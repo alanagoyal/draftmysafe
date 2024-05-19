@@ -1,12 +1,16 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Label } from "@radix-ui/react-label"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
+
 import { formDescriptions } from "@/lib/utils"
+
+import AuthRefresh from "./auth-refresh"
 import { EntitySelector } from "./entity-selector"
 import { Icons } from "./icons"
 import { Button } from "./ui/button"
@@ -21,8 +25,8 @@ import {
 } from "./ui/form"
 import { Input } from "./ui/input"
 import { Textarea } from "./ui/textarea"
+import { ToastAction } from "./ui/toast"
 import { toast } from "./ui/use-toast"
-import AuthRefresh from "./auth-refresh"
 
 const accountFormSchema = z.object({
   email: z.string().email(),
@@ -45,6 +49,7 @@ export default function AccountForm({
   user: any
   userData: any
 }) {
+  const router = useRouter()
   const supabase = createClient()
   const [entities, setEntities] = useState<any[]>([])
   const [selectedEntity, setSelectedEntity] = useState<string>("")
@@ -108,32 +113,38 @@ export default function AccountForm({
         name: data.name,
         title: data.title,
         updated_at: new Date(),
-      };
-  
+      }
+
       let { error: accountError } = await supabase
         .from("users")
         .update(accountUpdates)
-        .eq("auth_id", user.id);
-      if (accountError) throw accountError;
-  
-      if (data.entity_name || data.byline || data.street || data.city_state_zip || data.state_of_incorporation) {
+        .eq("auth_id", user.id)
+      if (accountError) throw accountError
+
+      if (
+        data.entity_name ||
+        data.byline ||
+        data.street ||
+        data.city_state_zip ||
+        data.state_of_incorporation
+      ) {
         if (data.type === "fund") {
-          await processFund(data);
+          await processFund(data)
         } else if (data.type === "company") {
-          await processCompany(data);
+          await processCompany(data)
         }
       }
     } catch (error) {
-      console.error(error);
+      console.error(error)
       toast({
         variant: "destructive",
         description: "Error updating account",
-      });
+      })
     } finally {
       toast({
         description: "Account updated",
-      });
-      setShowAdditionalFields(false);
+      })
+      setShowAdditionalFields(false)
     }
   }
 
@@ -242,62 +253,59 @@ export default function AccountForm({
   }
 
   async function deleteEntity() {
-    if (
-      selectedEntity === "add-new-fund" ||
-      selectedEntity === "add-new-company"
-    ) {
+    if (selectedEntity === "add-new-fund" || selectedEntity === "add-new-company") {
       toast({
-        description: `${
-          selectedEntity === "add-new-fund" ? "New fund" : "New company"
-        } discarded`,
-      })
-      setSelectedEntity(entities.length > 0 ? entities[0].id : "add-new")
-      setShowAdditionalFields(false)
-      return
+        description: `${selectedEntity === "add-new-fund" ? "New fund" : "New company"} discarded`,
+      });
+      setSelectedEntity(entities.length > 0 ? entities[0].id : "add-new");
+      setShowAdditionalFields(false);
+      return;
     }
-    const selectedEntityDetails = entities.find(
-      (entity) => entity.id === selectedEntity
-    )
-    if (selectedEntityDetails.type === "fund") {
-      const { error } = await supabase
-        .from("funds")
-        .delete()
-        .eq("id", selectedEntity)
-
+  
+    const selectedEntityDetails = entities.find(entity => entity.id === selectedEntity);
+    if (!selectedEntityDetails) return;
+  
+    const entityType = selectedEntityDetails.type;
+    const tableName = entityType === "fund" ? "funds" : "companies";
+  
+    try {
+      const { error } = await supabase.from(tableName).delete().eq("id", selectedEntity);
+  
       if (error) {
-        console.error("Error deleting fund:", error)
-        toast({
-          variant: "destructive",
-          description: "Failed to delete the fund",
-        })
+        if (error.code === "23503") {
+          toast({
+            title: `Unable to delete ${entityType}`,
+            description: `This ${entityType} is currently associated with an active investment.`,
+            action: (
+              <ToastAction
+                onClick={() => router.push("/investments")}
+                altText="Investments"
+              >
+                Investments
+              </ToastAction>
+            ),
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            description: `Failed to delete the ${entityType}`,
+          });
+          console.error(`Error deleting ${entityType}:`, error);
+        }
       } else {
         toast({
-          description: "Fund deleted",
-        })
-        setEntities(entities.filter((entity) => entity.id !== selectedEntity))
-        setSelectedEntity(entities.length > 0 ? entities[0].id : "add-new")
-        setShowAdditionalFields(false)
+          description: `${entityType.charAt(0).toUpperCase() + entityType.slice(1)} deleted`,
+        });
+        setEntities(entities.filter(entity => entity.id !== selectedEntity));
+        setSelectedEntity(entities.length > 0 ? entities[0].id : "add-new");
+        setShowAdditionalFields(false);
       }
-    } else if (selectedEntityDetails.type === "company") {
-      const { error } = await supabase
-        .from("companies")
-        .delete()
-        .eq("id", selectedEntity)
-
-      if (error) {
-        toast({
-          variant: "destructive",
-          description: "Failed to delete the company",
-        })
-        console.error("Error deleting company:", error)
-      } else {
-        toast({
-          description: "Company deleted",
-        })
-        setEntities(entities.filter((entity) => entity.id !== selectedEntity))
-        setSelectedEntity(entities.length > 0 ? entities[0].id : "add-new")
-        setShowAdditionalFields(false)
-      }
+    } catch (error) {
+      console.error(`Error processing deletion of ${entityType}:`, error);
+      toast({
+        variant: "destructive",
+        description: `An error occurred while deleting the ${entityType}`,
+      });
     }
   }
 

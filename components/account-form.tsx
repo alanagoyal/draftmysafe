@@ -253,59 +253,75 @@ export default function AccountForm({
   }
 
   async function deleteEntity() {
-    if (selectedEntity === "add-new-fund" || selectedEntity === "add-new-company") {
+    if (
+      selectedEntity === "add-new-fund" ||
+      selectedEntity === "add-new-company"
+    ) {
       toast({
-        description: `${selectedEntity === "add-new-fund" ? "New fund" : "New company"} discarded`,
-      });
-      setSelectedEntity(entities.length > 0 ? entities[0].id : "add-new");
-      setShowAdditionalFields(false);
-      return;
+        description: `${
+          selectedEntity === "add-new-fund" ? "New fund" : "New company"
+        } discarded`,
+      })
+      setSelectedEntity(entities.length > 0 ? entities[0].id : "add-new")
+      setShowAdditionalFields(false)
+      return
     }
   
-    const selectedEntityDetails = entities.find(entity => entity.id === selectedEntity);
-    if (!selectedEntityDetails) return;
+    const selectedEntityDetails = entities.find(
+      (entity) => entity.id === selectedEntity
+    )
+    if (!selectedEntityDetails) return
   
-    const entityType = selectedEntityDetails.type;
-    const tableName = entityType === "fund" ? "funds" : "companies";
+    const entityType = selectedEntityDetails.type
+    const tableName = entityType === "fund" ? "funds" : "companies"
+    const referenceColumn = entityType === "fund" ? "fund_id" : "company_id"
   
     try {
-      const { error } = await supabase.from(tableName).delete().eq("id", selectedEntity);
+      const { data: investmentData, error: investmentError } = await supabase
+        .from("investments")
+        .select()
+        .eq(referenceColumn, selectedEntity)
+  
+      if (investmentData && investmentData.length > 0) {
+        toast({
+          title: `Unable to delete ${entityType}`,
+          description: `This ${entityType} is currently associated with an active investment.`,
+          action: (
+            <ToastAction
+              onClick={() => router.push("/investments")}
+              altText="Investments"
+            >
+              Investments
+            </ToastAction>
+          ),
+        })
+        return
+      }
+      const { error } = await supabase
+        .from(tableName)
+        .delete()
+        .eq("id", selectedEntity)
   
       if (error) {
-        if (error.code === "23503") {
-          toast({
-            title: `Unable to delete ${entityType}`,
-            description: `This ${entityType} is currently associated with an active investment.`,
-            action: (
-              <ToastAction
-                onClick={() => router.push("/investments")}
-                altText="Investments"
-              >
-                Investments
-              </ToastAction>
-            ),
-          });
-        } else {
-          toast({
-            variant: "destructive",
-            description: `Failed to delete the ${entityType}`,
-          });
-          console.error(`Error deleting ${entityType}:`, error);
-        }
+        toast({
+          variant: "destructive",
+          description: `Failed to delete the ${entityType}`,
+        })
+        console.error(`Error deleting ${entityType}:`, error)
       } else {
         toast({
           description: `${entityType.charAt(0).toUpperCase() + entityType.slice(1)} deleted`,
-        });
-        setEntities(entities.filter(entity => entity.id !== selectedEntity));
-        setSelectedEntity(entities.length > 0 ? entities[0].id : "add-new");
-        setShowAdditionalFields(false);
+        })
+        setEntities(entities.filter((entity) => entity.id !== selectedEntity))
+        setSelectedEntity(entities.length > 0 ? entities[0].id : "add-new")
+        setShowAdditionalFields(false)
       }
     } catch (error) {
-      console.error(`Error processing deletion of ${entityType}:`, error);
+      console.error(`Error processing deletion of ${entityType}:`, error)
       toast({
         variant: "destructive",
         description: `An error occurred while deleting the ${entityType}`,
-      });
+      })
     }
   }
 

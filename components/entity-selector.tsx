@@ -10,7 +10,7 @@ import { Separator } from "./ui/separator"
 
 type EntitySelectorProps = {
   entities: any[]
-  selectedEntity: string
+  selectedEntity: string | undefined
   onSelectChange: (value: string) => void
   entityType: "fund" | "company" | "both"
 }
@@ -24,6 +24,7 @@ export function EntitySelector({
   const filteredEntities = entities.filter(
     (item) => entityType === "both" || item.type === entityType
   )
+  console.log(`in EntitySelector with selectedEntity ${selectedEntity}`)
 
   return (
     <>

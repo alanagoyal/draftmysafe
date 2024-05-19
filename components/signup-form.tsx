@@ -1,8 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/utils/supabase/client"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -10,7 +8,6 @@ import { z } from "zod"
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -51,7 +48,6 @@ const formSchema = z.object({
 })
 
 export function SignupForm({ signup }: SignupFormProps) {
-  const supabase = createClient()
   const router = useRouter()
 
   const form = useForm<z.infer<typeof formSchema>>({

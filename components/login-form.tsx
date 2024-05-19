@@ -4,7 +4,6 @@ import * as React from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-
 import {
   Form,
   FormControl,
@@ -13,19 +12,15 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-
-import MagicLink from "./magic-link"
 import { Button } from "./ui/button"
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "./ui/card"
 import { Input } from "./ui/input"
-import { Separator } from "./ui/separator"
 import { toast } from "./ui/use-toast"
 
 export interface LoginFormData {

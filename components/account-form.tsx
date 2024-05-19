@@ -323,16 +323,10 @@ export default function AccountForm({
   }
 
   function handleSelectChange(value: string) {
-    console.log(
-      `in handleSelectChange with value: ${value}, setting showAdditionalFields to true`
-    )
     setSelectedEntity(value)
     setShowAdditionalFields(true)
 
     if (value === "add-new-fund" || value === "add-new-company") {
-      console.log(
-        `value is add-new-fund or add-new-company and displaying empty form`
-      )
       form.reset({
         ...form.getValues(),
         type: value === "add-new-fund" ? "fund" : "company",
@@ -343,9 +337,6 @@ export default function AccountForm({
         state_of_incorporation: "",
       })
     } else {
-      console.log(
-        `value is not add-new-fund or add-new-company and displaying form`
-      )
       // Fetch the selected entity's details and set them in the form
       const selectedEntityDetails = entities.find(
         (entity) => entity.id === value

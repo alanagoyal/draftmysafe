@@ -194,13 +194,10 @@ export default function FormComponent({ userData }: { userData: any }) {
         companyStreet: data.company?.street || "",
         companyCityStateZip: data.company?.city_state_zip || "",
       })
-
-      if (data.fund && data.fund.id) {
+      if (step === 1 && data.fund && data.fund.id) {
         setSelectedEntity(data.fund.id)
-        console.log(`setSelectedEntity to ${data.fund.id}`)
-      } else if (data.company && data.company.id) {
+      } else if (step === 2 && data.company && data.company.id) {
         setSelectedEntity(data.company.id)
-        console.log(`setSelectedEntity to ${data.company.id}`)
       }
     }
   }

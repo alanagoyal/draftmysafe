@@ -24,7 +24,6 @@ export function EntitySelector({
   const filteredEntities = entities.filter(
     (item) => entityType === "both" || item.type === entityType
   )
-  console.log(`in EntitySelector with selectedEntity ${selectedEntity}`)
 
   return (
     <>

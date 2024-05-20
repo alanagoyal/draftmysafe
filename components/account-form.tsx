@@ -52,7 +52,9 @@ export default function AccountForm({
   const router = useRouter()
   const supabase = createClient()
   const [entities, setEntities] = useState<any[]>([])
-  const [selectedEntity, setSelectedEntity] = useState<string>("")
+  const [selectedEntity, setSelectedEntity] = useState<string | undefined>(
+    undefined
+  )
   const [showAdditionalFields, setShowAdditionalFields] = useState(false)
 
   const form = useForm<AccountFormValues>({
@@ -94,15 +96,8 @@ export default function AccountForm({
         type: "company",
       }))
       setEntities([...typedFundData, ...typedCompanyData])
-
-      if (typedFundData.length === 0 && typedCompanyData.length === 0) {
-        setSelectedEntity("add-new")
-      } else {
-        setSelectedEntity(typedFundData[0]?.id || typedCompanyData[0]?.id)
-      }
     } else {
       console.error(fundError || companyError)
-      setSelectedEntity("add-new")
     }
   }
 
@@ -193,7 +188,7 @@ export default function AccountForm({
           ...prevEntities,
           { ...fundUpdates, id: newFund[0].id, type: "fund" },
         ])
-        setSelectedEntity(newFund[0].id)
+        setSelectedEntity(undefined)
       }
     }
   }
@@ -247,7 +242,7 @@ export default function AccountForm({
           ...prevEntities,
           { ...companyUpdates, id: newCompany[0].id, type: "company" },
         ])
-        setSelectedEntity(newCompany[0].id)
+        setSelectedEntity(undefined)
       }
     }
   }
@@ -262,26 +257,26 @@ export default function AccountForm({
           selectedEntity === "add-new-fund" ? "New fund" : "New company"
         } discarded`,
       })
-      setSelectedEntity(entities.length > 0 ? entities[0].id : "add-new")
+      setSelectedEntity(undefined)
       setShowAdditionalFields(false)
       return
     }
-  
+
     const selectedEntityDetails = entities.find(
       (entity) => entity.id === selectedEntity
     )
     if (!selectedEntityDetails) return
-  
+
     const entityType = selectedEntityDetails.type
     const tableName = entityType === "fund" ? "funds" : "companies"
     const referenceColumn = entityType === "fund" ? "fund_id" : "company_id"
-  
+
     try {
       const { data: investmentData, error: investmentError } = await supabase
         .from("investments")
         .select()
         .eq(referenceColumn, selectedEntity)
-  
+
       if (investmentData && investmentData.length > 0) {
         toast({
           title: `Unable to delete ${entityType}`,
@@ -301,7 +296,7 @@ export default function AccountForm({
         .from(tableName)
         .delete()
         .eq("id", selectedEntity)
-  
+
       if (error) {
         toast({
           variant: "destructive",
@@ -310,10 +305,12 @@ export default function AccountForm({
         console.error(`Error deleting ${entityType}:`, error)
       } else {
         toast({
-          description: `${entityType.charAt(0).toUpperCase() + entityType.slice(1)} deleted`,
+          description: `${
+            entityType.charAt(0).toUpperCase() + entityType.slice(1)
+          } deleted`,
         })
         setEntities(entities.filter((entity) => entity.id !== selectedEntity))
-        setSelectedEntity(entities.length > 0 ? entities[0].id : "add-new")
+        setSelectedEntity(undefined)
         setShowAdditionalFields(false)
       }
     } catch (error) {

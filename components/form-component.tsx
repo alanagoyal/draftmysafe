@@ -90,7 +90,9 @@ export default function FormComponent({ userData }: { userData: any }) {
   )
   const [showConfetti, setShowConfetti] = useState(false)
   const [entities, setEntities] = useState<any[]>([])
-  const [selectedEntity, setSelectedEntity] = useState("")
+  const [selectedEntity, setSelectedEntity] = useState<string | undefined>(
+    undefined
+  )
   const isFormLocked = searchParams.get("sharing") === "true"
 
   const form = useForm<FormComponentValues>({
@@ -192,10 +194,9 @@ export default function FormComponent({ userData }: { userData: any }) {
         companyStreet: data.company?.street || "",
         companyCityStateZip: data.company?.city_state_zip || "",
       })
-
-      if (data.fund && data.fund.id) {
+      if (step === 1 && data.fund && data.fund.id) {
         setSelectedEntity(data.fund.id)
-      } else if (data.company && data.company.id) {
+      } else if (step === 2 && data.company && data.company.id) {
         setSelectedEntity(data.company.id)
       }
     }
@@ -593,8 +594,8 @@ export default function FormComponent({ userData }: { userData: any }) {
                     entityType="fund"
                   />
                   <FormDescription>
-                    Choose an existing fund to be used in your signature block or
-                    add one below
+                    Choose an existing fund to be used in your signature block
+                    or add one below
                   </FormDescription>
                 </FormItem>
               )}

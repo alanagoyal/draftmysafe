@@ -10,7 +10,7 @@ import { Separator } from "./ui/separator"
 
 type EntitySelectorProps = {
   entities: any[]
-  selectedEntity: string
+  selectedEntity: string | undefined
   onSelectChange: (value: string) => void
   entityType: "fund" | "company" | "both"
 }

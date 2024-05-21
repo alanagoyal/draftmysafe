@@ -2,7 +2,6 @@ import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LoginForm } from "@/components/login-form"
 import MagicLink from "@/components/magic-link"
-
 import { login } from "./actions"
 
 export default async function Login() {

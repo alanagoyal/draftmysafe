@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/utils/supabase/server"
-
 import { SignupFormData } from "@/components/signup-form"
 
 export async function signup(formData: SignupFormData) {

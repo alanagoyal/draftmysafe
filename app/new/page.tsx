@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/utils/supabase/server"
-
 import FormComponent from "@/components/form-component"
 import MagicLink from "@/components/magic-link"
 

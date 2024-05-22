@@ -46,7 +46,7 @@ const FormComponentSchema = z.object({
   fundName: z.string().optional(),
   fundByline: z.string().optional(),
   purchaseAmount: z.string({ required_error: "Purchase amount is required" }),
-  type: z.enum(["", "valuation-cap", "discount", "mfn"]),
+  type: z.enum(["valuation-cap", "discount", "mfn"]),
   valuationCap: z.string().optional(),
   discount: z.string().optional(),
   stateOfIncorporation: z.string({
@@ -73,7 +73,7 @@ type InvestmentData = {
   investor_id?: string
   fund_id?: string
   purchase_amount: string
-  investment_type: "" | "valuation-cap" | "discount" | "mfn"
+  investment_type: "valuation-cap" | "discount" | "mfn"
   valuation_cap?: string
   discount?: string
   date: Date
@@ -102,7 +102,7 @@ export default function FormComponent({ userData }: { userData: any }) {
       fundName: "",
       fundByline: "",
       purchaseAmount: "",
-      type: "",
+      type: undefined,
       valuationCap: "",
       discount: "",
       stateOfIncorporation: "",
@@ -178,7 +178,7 @@ export default function FormComponent({ userData }: { userData: any }) {
         fundName: data.fund?.name || "",
         fundByline: data.fund?.byline || "",
         purchaseAmount: data.purchase_amount || "",
-        type: data.investment_type || "",
+        type: data.investment_type || undefined,
         valuationCap: data.valuation_cap || "",
         discount: data.discount || "",
         stateOfIncorporation: data.company?.state_of_incorporation || "",
@@ -225,7 +225,7 @@ export default function FormComponent({ userData }: { userData: any }) {
 
   async function onSubmit(values: FormComponentValues) {
     // Check if the values are their default or empty values
-    if (values.purchaseAmount === "" && values.type === "") {
+    if (values.purchaseAmount === "" && values.type === undefined) {
       toast({
         title: "Unable to create SAFE agreement",
         description:
@@ -931,18 +931,15 @@ export default function FormComponent({ userData }: { userData: any }) {
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="" />
+                          <SelectValue placeholder="Select an investment type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectGroup>
-                          <SelectLabel>Placement</SelectLabel>
                           <SelectItem value="valuation-cap">
                             Valuation Cap
                           </SelectItem>
                           <SelectItem value="discount">Discount</SelectItem>
                           <SelectItem value="mfn">MFN</SelectItem>
-                        </SelectGroup>
                       </SelectContent>
                     </Select>
                     <FormDescription>

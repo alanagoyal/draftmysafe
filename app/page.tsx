@@ -9,19 +9,19 @@ export default async function Home() {
     {
       title: "Document Creation",
       subtitle:
-        "Save time with our streamlined YC SAFE creation process. Create your account, store your signature block, and effortlessly pre-fill future agreements. Focus more on your investments and less on paperwork.",
+        "Focus more on your investments and less on paperwork with our streamlined document creation. Simply create an account, store your signature blocks, and effortlessly pre-fill your documents in seconds.",
       icon: Icons.files,
     },
     {
       title: "Secure Sharing",
       subtitle:
-        "Send a secure link to founders to gather necessary information for the SAFE agreement. Our platform ensures data security and simplicity, making the process smooth for both you and the founders.",
+        "Skip the back-and-forth and gather necessary information from founders with our secure sharing feature. Draftmysafe ensures data security and simplicity, making the process smooth for both you and your founders.",
       icon: Icons.lock,
     },
     {
       title: "Easy E-Signatures",
       subtitle:
-        "Finalize your agreements with ease using our integrated e-signature feature. Send out documents for signing securely and keep everything organized within our app, ensuring a professional and efficient investment process.",
+        "Close investments faster and finalize your agreements with ease using our integrated e-signature feature. Send out documents for signatures without the additional cost or hassle of dealing with another tool.",
       icon: Icons.signature,
     },
   ]

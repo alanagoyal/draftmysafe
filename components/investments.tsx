@@ -261,12 +261,12 @@ export default function Investments({
       <Table className="w-full mt-10">
         <TableHeader>
           <TableRow>
-            <TableHead>Company</TableHead>
-            <TableHead>Founder</TableHead>
-            <TableHead>Fund</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Amount</TableHead>
-            <TableHead>Date</TableHead>
+            <TableHead className="w-1/6">Company</TableHead>
+            <TableHead className="w-1/6">Founder</TableHead>
+            <TableHead className="w-1/6">Fund</TableHead>
+            <TableHead className="w-1/6">Type</TableHead>
+            <TableHead className="w-1/6">Amount</TableHead>
+            <TableHead className="w-1/6">Date</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

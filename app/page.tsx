@@ -33,7 +33,7 @@ export default async function Home() {
           Draftmysafe
         </div>
         <p className="max-w-[700px] text-lg text-muted-foreground sm:text-xl pt-4">
-          Skip the paperwork & generate a YC SAFE agreement in minutes
+          Skip the paperwork and close investments in minutes
         </p>
         <div className="py-4">
           <Link href="/new">

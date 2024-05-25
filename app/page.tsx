@@ -45,7 +45,7 @@ export default async function Home() {
         {sections.map((section, index) => (
           <Card
             key={index}
-            className={`flex flex-col w-full md:w-1/3 shadow-lg rounded-lg mx-2 my-4`}
+            className={`flex flex-col w-full md:w-1/3 rounded-lg mx-2 my-4`}
           >
             <CardHeader>
               <div className="flex flex-col items-center">

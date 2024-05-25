@@ -5,7 +5,6 @@ import { createClient } from "@/utils/supabase/client"
 import Docxtemplater from "docxtemplater"
 import { Plus } from "lucide-react"
 import PizZip from "pizzip"
-
 import { Icons } from "./icons"
 import { Button } from "./ui/button"
 import {
@@ -247,16 +246,16 @@ export default function Investments({
   return (
     <div className="flex flex-col items-center min-h-screen py-2 w-4/5">
       <div className="flex justify-between items-center w-full">
-        <h1 className="text-2xl ml-24 font-bold text-center flex-grow">
+        <h1 className="text-2xl ml-28 font-bold text-center flex-grow">
           Investments
         </h1>
         <Button
           variant="ghost"
           onClick={() => router.push("/new")}
-          className="w-24"
+          className="w-28"
         >
           <Plus className="mr-2 h-4 w-4" />
-          <span>Create</span>
+          <span>Generate</span>
         </Button>
       </div>
       <Table className="w-full mt-10">

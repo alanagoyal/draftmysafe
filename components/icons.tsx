@@ -7,6 +7,11 @@ import {
 import { FaInfoCircle, FaRegTrashAlt, FaShareSquare } from "react-icons/fa";
 import { VscEllipsis } from "react-icons/vsc";
 import { CopyIcon } from "@radix-ui/react-icons"
+import { PiSignature } from "react-icons/pi";
+import { PiFolderSimpleLock } from "react-icons/pi";
+import { PiFiles } from "react-icons/pi";
+
+
 
 type IconProps = React.HTMLAttributes<SVGElement>
 
@@ -19,6 +24,9 @@ export const Icons = {
   share: FaShareSquare,
   info: FaInfoCircle,
   menu: VscEllipsis,
+  signature: PiSignature,
+  lock: PiFolderSimpleLock,
+  files: PiFiles,
   copy: CopyIcon,
   twitter: (props: IconProps) => (
     <svg

@@ -74,7 +74,7 @@ export default async function RootLayout({
               <SiteHeader user={user} />
               <CommandMenu />
               <main className="flex-1">
-                <div className="flex flex-col items-center pt-10 py-2 max-w-5xl mx-auto">
+                <div className="flex flex-col items-center justify-center pt-10 py-2 max-w-5xl mx-auto px-2">
                   {children}
                 </div>
               </main>

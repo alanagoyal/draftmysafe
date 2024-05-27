@@ -243,6 +243,22 @@ export default function Investments({
     }, 100)
   }
 
+  async function sendEmail(id: string) {
+    try {
+      const response = await fetch("/send-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id }),
+      })
+      const data = await response.json()
+      console.log(data)
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
   return (
     <div className="flex flex-col items-center min-h-screen py-2 w-4/5">
       <div className="flex justify-between items-center w-full">
@@ -325,6 +341,11 @@ export default function Investments({
                         onClick={() => downloadInvestment(investment.id)}
                       >
                         Download
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => sendEmail(investment.id)}
+                      >
+                        Send
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

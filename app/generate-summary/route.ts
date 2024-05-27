@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { init, initLogger, traced, wrapOpenAI } from "braintrust"
+import { initLogger, traced, wrapOpenAI, loadPrompt } from "braintrust"
 import { OpenAI } from "openai"
 
 const logger = initLogger({
@@ -14,11 +14,15 @@ const openai = wrapOpenAI(
   })
 )
 
-console.log(process.env.BRAINTRUST_API_KEY)
-
 export async function POST(req: Request, res: NextResponse) {
   try {
     const body = await req.json()
+
+    const prompt = await loadPrompt({
+        projectName: "draftmysafe",
+        slug: "summary",
+    })
+
     const completion = await traced(
       async (span) => {
         const response = await openai.chat.completions.create({

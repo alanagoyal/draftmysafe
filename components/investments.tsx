@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/client"
 import Docxtemplater from "docxtemplater"
 import { Plus } from "lucide-react"
 import PizZip from "pizzip"
+
 import { Icons } from "./icons"
 import { Button } from "./ui/button"
 import {
@@ -74,8 +75,9 @@ export default function Investments({
   async function downloadInvestment(id: string) {
     const filepath = `${id}.docx`
     try {
-      const { error } =
-        await supabase.storage.from("documents").download(filepath)
+      const { error } = await supabase.storage
+        .from("documents")
+        .download(filepath)
 
       // If file doesn't exist, generate and upload
       if (error) {
@@ -100,7 +102,7 @@ export default function Investments({
       .from("documents")
       .createSignedUrl(filepath, 3600)
     if (error) throw error
-    
+
     if (data) {
       window.open(data.signedUrl, "_blank")
     }
@@ -189,6 +191,57 @@ export default function Investments({
         return "SAFE-MFN.docx"
       default:
         return ""
+    }
+  }
+
+  async function readBlobAsText(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = reject
+      reader.readAsText(blob)
+    })
+  }
+
+  async function summarizeInvestment(id: string) {
+    console.log("in summarizeInvestment")
+    const filepath = `${id}.docx`
+    try {
+      const { error } = await supabase.storage
+        .from("documents")
+        .download(filepath)
+      if (error) throw error
+
+      const doc = await generateDocument(id)
+      const blob = doc.getZip().generate({ type: "blob" })
+      const content = await readBlobAsText(blob)
+      console.log(JSON.stringify({ content }))
+      const response = await fetch("/generate-summary", {
+        method: "POST",
+        body: JSON.stringify({ content }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        toast({
+          title: "Error",
+          description: "Failed to summarize investment",
+        })
+        throw new Error("Failed to summarize investment")
+      }
+
+      if (data.length === 0) {
+        toast({
+          title: "Error",
+          description: "Failed to summarize investment",
+        })
+        throw new Error("Failed to summarize investment")
+      }
+
+      console.log(data)
+    } catch (error) {
+      console.error(error)
     }
   }
 
@@ -325,6 +378,11 @@ export default function Investments({
                         onClick={() => downloadInvestment(investment.id)}
                       >
                         Download
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => summarizeInvestment(investment.id)}
+                      >
+                        Summarize
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

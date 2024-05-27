@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/client"
 import Docxtemplater from "docxtemplater"
 import { Plus } from "lucide-react"
 import PizZip from "pizzip"
+
 import { Icons } from "./icons"
 import { Button } from "./ui/button"
 import {
@@ -74,8 +75,9 @@ export default function Investments({
   async function downloadInvestment(id: string) {
     const filepath = `${id}.docx`
     try {
-      const { error } =
-        await supabase.storage.from("documents").download(filepath)
+      const { error } = await supabase.storage
+        .from("documents")
+        .download(filepath)
 
       // If file doesn't exist, generate and upload
       if (error) {
@@ -100,7 +102,7 @@ export default function Investments({
       .from("documents")
       .createSignedUrl(filepath, 3600)
     if (error) throw error
-    
+
     if (data) {
       window.open(data.signedUrl, "_blank")
     }
@@ -244,13 +246,19 @@ export default function Investments({
   }
 
   async function sendEmail(id: string) {
+    const body = {
+      id: id,
+      investmentData: investments.find(
+        (investment: any) => investment.id === id
+      ),
+    }
     try {
       const response = await fetch("/send-email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify(body),
       })
       const data = await response.json()
       console.log(data)

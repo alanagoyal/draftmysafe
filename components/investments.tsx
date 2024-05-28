@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/client"
 import Docxtemplater from "docxtemplater"
 import { Plus } from "lucide-react"
 import PizZip from "pizzip"
+
 import { Icons } from "./icons"
 import { Button } from "./ui/button"
 import {
@@ -74,8 +75,9 @@ export default function Investments({
   async function downloadInvestment(id: string) {
     const filepath = `${id}.docx`
     try {
-      const { error } =
-        await supabase.storage.from("documents").download(filepath)
+      const { error } = await supabase.storage
+        .from("documents")
+        .download(filepath)
 
       // If file doesn't exist, generate and upload
       if (error) {
@@ -100,7 +102,7 @@ export default function Investments({
       .from("documents")
       .createSignedUrl(filepath, 3600)
     if (error) throw error
-    
+
     if (data) {
       window.open(data.signedUrl, "_blank")
     }
@@ -243,6 +245,33 @@ export default function Investments({
     }, 100)
   }
 
+  async function sendEmail(id: string) {
+    const investmentData = investments.find(
+      (investment: any) => investment.id === id
+    )
+    const doc = await generateDocument(id)
+    const body = {
+      investmentData: investmentData,
+      content: doc.getZip().generate({ type: "nodebuffer" }),
+    }
+    try {
+      const response = await fetch("/send-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      })
+    } catch (error) {
+      console.error(error)
+    } finally {
+      toast({
+        title: "Email sent",
+        description: `The email has been sent to ${investmentData.founder.email}`,
+      })
+    }
+  }
+
   return (
     <div className="flex flex-col items-center min-h-screen py-2 w-4/5">
       <div className="flex justify-between items-center w-full">
@@ -325,6 +354,11 @@ export default function Investments({
                         onClick={() => downloadInvestment(investment.id)}
                       >
                         Download
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => sendEmail(investment.id)}
+                      >
+                        Send
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

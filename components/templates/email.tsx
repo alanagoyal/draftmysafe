@@ -1,13 +1,17 @@
-import * as React from 'react';
+import * as React from "react"
 
 interface EmailTemplateProps {
-  firstName: string;
+  investmentData: any
 }
 
 export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({
-  firstName,
+  investmentData,
 }) => (
   <div>
-    <h1>Welcome, {firstName}!</h1>
+    <p>Hi {investmentData.founder.name.split(' ')[0]},</p>
+    <p>
+      {investmentData.fund.name} has shared a SAFE agreement with you. Please
+      find the document attached to this email.
+    </p>
   </div>
-);
+)

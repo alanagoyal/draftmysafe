@@ -246,11 +246,13 @@ export default function Investments({
   }
 
   async function sendEmail(id: string) {
+    const investmentData = investments.find(
+      (investment: any) => investment.id === id
+    )
+    const doc = await generateDocument(id)
     const body = {
-      id: id,
-      investmentData: investments.find(
-        (investment: any) => investment.id === id
-      ),
+      investmentData: investmentData,
+      content: doc.getZip().generate({ type: "nodebuffer" }),
     }
     try {
       const response = await fetch("/send-email", {
@@ -260,10 +262,13 @@ export default function Investments({
         },
         body: JSON.stringify(body),
       })
-      const data = await response.json()
-      console.log(data)
     } catch (error) {
       console.error(error)
+    } finally {
+      toast({
+        title: "Email sent",
+        description: `The email has been sent to ${investmentData.founder.email}`,
+      })
     }
   }
 

@@ -204,7 +204,6 @@ export default function Investments({
   }
 
   async function summarizeInvestment(id: string) {
-    console.log("in summarizeInvestment")
     const filepath = `${id}.docx`
     try {
       const { error } = await supabase.storage
@@ -215,7 +214,6 @@ export default function Investments({
       const doc = await generateDocument(id)
       const blob = doc.getZip().generate({ type: "blob" })
       const content = await readBlobAsText(blob)
-      console.log(JSON.stringify({ content }))
       const response = await fetch("/generate-summary", {
         method: "POST",
         body: JSON.stringify({ content }),

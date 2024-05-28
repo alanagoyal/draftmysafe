@@ -25,20 +25,9 @@ export async function POST(req: Request, res: NextResponse) {
 
     const completion = await traced(
       async (span) => {
-        const response = await openai.chat.completions.create({
-          model: "gpt-3.5-turbo",
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are a legal assistant for a venture capital firm. You are given a document and you need to summarize it. Please summarize the document in a few sentences.",
-            },
-            {
-              role: "user",
-              content: body["content"],
-            },
-          ],
-        })
+        const response = await openai.chat.completions.create(  prompt.build({
+          question: body["content"],
+        }),)
         console.log(response)
         const output = response.choices[0].message.content
         span.log({ input: body, output })
@@ -46,6 +35,7 @@ export async function POST(req: Request, res: NextResponse) {
       },
       { name: "generate-summary", event: body }
     )
+    console.log(completion)
 
     return new Response(completion, {
       status: 200,

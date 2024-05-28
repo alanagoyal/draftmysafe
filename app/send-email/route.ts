@@ -23,11 +23,19 @@ export async function POST(req: Request) {
     })
 
     if (error) {
-      return Response.json({ error }, { status: 500 })
+      return new Response(JSON.stringify({ error }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      })
     }
 
-    return Response.json(data)
+    return new Response(JSON.stringify(data), {
+      headers: { "Content-Type": "application/json" },
+    })
   } catch (error) {
-    return Response.json({ error }, { status: 500 })
+    return new Response(JSON.stringify({ error }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    })
   }
 }

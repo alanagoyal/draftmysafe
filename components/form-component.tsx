@@ -35,9 +35,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "./ui/select"
@@ -48,7 +46,7 @@ const FormComponentSchema = z.object({
   companyName: z.string().optional(),
   fundName: z.string().optional(),
   fundByline: z.string().optional(),
-  purchaseAmount: z.string({ required_error: "Purchase amount is required" }),
+  purchaseAmount: z.string().min(1, { message: "Purchase amount is required" }),
   type: z.enum(["valuation-cap", "discount", "mfn"]),
   valuationCap: z.string().optional(),
   discount: z.string().optional(),
@@ -229,36 +227,28 @@ export default function FormComponent({ userData }: { userData: any }) {
   }
 
   async function onSubmit(values: FormComponentValues) {
-    // Check if the values are their default or empty values
-    if (values.purchaseAmount === "" && values.type === undefined) {
-      toast({
-        title: "Unable to create SAFE agreement",
-        description:
-          "You must enter valid purchase amount, investment type, and date.",
-      })
-      return
-    }
-    await processInvestment(values, null, null, null, null)
-    // Generate document URL and summary and update db
-    const documentUrl = await createUrl(values)
-    const investmentSummary = await summarizeInvestment(values)
-    const { data: investmentUpdateData, error: investmentUpdateError } =
-      await supabase
-        .from("investments")
-        .update({ url: documentUrl, summary: investmentSummary })
-        .eq("id", investmentId)
-
+    // Process the investment
+    const investmentId = await processInvestment(values)
     setShowConfetti(true)
     toast({
       title: "Your SAFE agreement has been created",
       description:
         "You can view, edit, or download it by visiting your Investments.",
     })
-    setTimeout(() => {
-      setShowConfetti(false)
-      router.push("/investments")
-      router.refresh()
-    }, 5000)
+
+    // Generate document URL and summary and update db
+    const documentUrl = await createUrl(values)
+    const investmentSummary = await summarizeInvestment(values)
+    const { error: investmentUpdateError } = await supabase
+      .from("investments")
+      .update({ url: documentUrl, summary: investmentSummary })
+      .eq("id", investmentId)
+
+    if (investmentUpdateError) throw investmentUpdateError
+
+    setShowConfetti(false)
+    router.push("/investments")
+    router.refresh()
   }
 
   async function processInvestorDetails(values: FormComponentValues) {
@@ -454,11 +444,11 @@ export default function FormComponent({ userData }: { userData: any }) {
 
   async function processInvestment(
     values: FormComponentValues,
-    investorId: string | null,
-    fundId: string | null,
-    founderId: string | null,
-    companyId: string | null
-  ) {
+    investorId?: string | null,
+    fundId?: string | null,
+    founderId?: string | null,
+    companyId?: string | null
+  ): Promise<string | null> {
     try {
       // Prepare investment data with non-null values
       const investmentData: InvestmentData = {
@@ -473,70 +463,76 @@ export default function FormComponent({ userData }: { userData: any }) {
         date: values.date,
       }
 
+      let investmentIdResult: string | null = null
+
       // If hasn't been added to investments table, add it
       if (!investmentId) {
         // Set created_by only when creating a new investment
         investmentData.created_by = userData.auth_id
         const { data: investmentInsertData, error: investmentInsertError } =
-          await supabase.from("investments").insert(investmentData).select()
+          await supabase.from("investments").insert(investmentData).select("id")
         if (investmentInsertError) throw investmentInsertError
-        setInvestmentId(investmentInsertData[0].id)
+        investmentIdResult = investmentInsertData[0].id
+        setInvestmentId(investmentIdResult)
       } else {
         // If it has been added, update it without changing the created_by
         const { data: investmentUpdateData, error: investmentUpdateError } =
           await supabase
             .from("investments")
             .upsert({ ...investmentData, id: investmentId })
-            .select()
+            .select("id")
         if (investmentUpdateError) throw investmentUpdateError
-        setInvestmentId(investmentUpdateData[0].id)
+        investmentIdResult = investmentUpdateData[0].id
+        setInvestmentId(investmentIdResult)
       }
+
+      return investmentIdResult // Return the investment ID
     } catch (error) {
       console.error("Error processing investment details:", error)
+      return null
     }
   }
 
   async function createUrl(
     values: FormComponentValues
   ): Promise<string | null> {
-    const formattedDate = format(values.date, 'yyyy-MM-dd-HH-mm-ss');
-    const filepath = `${values.companyName}-SAFE-${formattedDate}.docx`;
-  
+    const formattedDate = format(values.date, "yyyy-MM-dd-HH-mm-ss")
+    const filepath = `${values.companyName}-SAFE-${formattedDate}.docx`
+
     try {
       // Attempt to download the file to check if it exists
-      const { data: downloadData, error: downloadError } = await supabase.storage
-        .from("documents")
-        .download(filepath);
-  
+      const { data: downloadData, error: downloadError } =
+        await supabase.storage.from("documents").download(filepath)
+
       // If the file does not exist (404 error), generate and upload it
       if (!downloadData) {
-        const doc = await generateDocument(values);
-        const file = doc.getZip().generate({ type: "nodebuffer" });
+        const doc = await generateDocument(values)
+        const file = doc.getZip().generate({ type: "nodebuffer" })
         const { error: uploadError } = await supabase.storage
           .from("documents")
           .upload(filepath, file, {
             upsert: true,
-            contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            contentType:
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             cacheControl: "3600",
-          });
+          })
         if (uploadError) {
-          console.error("Upload error:", uploadError);
-          throw uploadError;
+          console.error("Upload error:", uploadError)
+          throw uploadError
         }
-      } 
+      }
 
       // Generate a signed URL for the file
-      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-        .from("documents")
-        .createSignedUrl(filepath, 3600);
+      const { data: signedUrlData, error: signedUrlError } =
+        await supabase.storage.from("documents").createSignedUrl(filepath, 3600)
       if (signedUrlError) {
-        console.error("Failed to create signed URL:", signedUrlError);
-        return null;
+        console.error("Failed to create signed URL:", signedUrlError)
+        return null
       }
-      return signedUrlData?.signedUrl || null;
+      return signedUrlData?.signedUrl || null
     } catch (error) {
-      console.error("Error in createUrl function:", error);
-      return null;
+      console.error("Error in createUrl function:", error)
+      return null
     }
   }
 
@@ -600,26 +596,27 @@ export default function FormComponent({ userData }: { userData: any }) {
     const zip = new PizZip(arrayBuffer)
     const doc = new Docxtemplater().loadZip(zip)
     doc.setData({
-      company_name: values.companyName,
-      investing_entity_name: values.fundName,
-      byline: values.fundByline || "",
-      purchase_amount: values.purchaseAmount,
-      valuation_cap: values.valuationCap || "",
+      company_name: values.companyName || "{company_name}",
+      investing_entity_name: values.fundName || "{investing_entity_name}",
+      byline: values.fundByline || "{byline}",
+      purchase_amount: values.purchaseAmount || "{purchase_amount}",
+      valuation_cap: values.valuationCap || "{valuation_cap}",
       discount: values.discount
         ? (100 - Number(values.discount)).toString()
-        : "",
-      state_of_incorporation: values.stateOfIncorporation,
-      date: formattedDate,
-      investor_name: values.investorName,
-      investor_title: values.investorTitle,
-      investor_email: values.investorEmail,
-      investor_address_1: values.fundStreet,
-      investor_address_2: values.fundCityStateZip,
-      founder_name: values.founderName,
-      founder_title: values.founderTitle,
-      founder_email: values.founderEmail || "",
-      company_address_1: values.companyStreet || "",
-      company_address_2: values.companyCityStateZip || "",
+        : "{discount}",
+      state_of_incorporation:
+        values.stateOfIncorporation || "{state_of_incorporation}",
+      date: formattedDate || "{date}",
+      investor_name: values.investorName || "{investor_name}",
+      investor_title: values.investorTitle || "{investor_title}",
+      investor_email: values.investorEmail || "{investor_email}",
+      investor_address_1: values.fundStreet || "{investor_address_1}",
+      investor_address_2: values.fundCityStateZip || "{investor_address_2}",
+      founder_name: values.founderName || "{founder_name}",
+      founder_title: values.founderTitle || "{founder_title}",
+      founder_email: values.founderEmail || "{founder_email}",
+      company_address_1: values.companyStreet || "{company_address_1}",
+      company_address_2: values.companyCityStateZip || "{company_address_2}",
     })
     doc.render()
     return doc
@@ -629,10 +626,9 @@ export default function FormComponent({ userData }: { userData: any }) {
     values: FormComponentValues
   ): Promise<string | null> {
     try {
+      // Convert DOCX to HTML using Mammoth
       const doc = await generateDocument(values)
       const blob = doc.getZip().generate({ type: "blob" })
-
-      // Convert DOCX to HTML using Mammoth
       const arrayBuffer = await blob.arrayBuffer()
       const { value: htmlContent } = await mammoth.convertToHtml({
         arrayBuffer,

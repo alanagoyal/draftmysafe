@@ -42,7 +42,7 @@ export default async function InvestmentsPage() {
         summary
       `
     )
-    .or(`investor_id.eq.${userData.id},founder_id.eq.${userData.id}`)
+    .or(`investor_id.eq.${userData.id},founder_id.eq.${userData.id},created_by.eq.${userData.auth_id}`)
 
   if (investmentError) {
     console.error(investmentError)

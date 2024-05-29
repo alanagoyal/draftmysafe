@@ -43,7 +43,7 @@ export async function POST(req: Request, res: NextResponse) {
       headers: { "Content-Type": "application/json" },
     })
   } catch (error) {
-    console.log(error)
+    console.error(error)
     return NextResponse.json({ error })
   }
 }

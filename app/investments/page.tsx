@@ -50,7 +50,7 @@ export default async function InvestmentsPage() {
 
   return investmentData && investmentData.length > 0 ? (
     <div className="flex w-full justify-center min-h-screen">
-      <Investments investments={investmentData} user={userData}/>
+      <Investments investments={investmentData} />
     </div>
   ) : (
     <div className="w-full px-4 flex justify-center items-center flex-col min-h-screen">

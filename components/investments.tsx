@@ -1,9 +1,11 @@
 "use client"
 
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
 import Docxtemplater from "docxtemplater"
 import { Plus } from "lucide-react"
+import mammoth from "mammoth"
 import PizZip from "pizzip"
 
 import { Icons } from "./icons"
@@ -245,14 +247,84 @@ export default function Investments({
     }, 100)
   }
 
+  async function readBlobAsText(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = reject
+      reader.readAsText(blob)
+    })
+  }
+
+  async function summarizeInvestment(id: string) {
+    // check if summary in investmentsdata
+    const investmentData = investments.find(
+      (investment: any) => investment.id === id
+    )
+    if (investmentData.summary) {
+      return
+    } else {
+      try {
+        const doc = await generateDocument(id)
+        const blob = doc.getZip().generate({ type: "blob" })
+
+        // Convert DOCX to HTML using Mammoth
+        const arrayBuffer = await blob.arrayBuffer()
+        const { value: htmlContent } = await mammoth.convertToHtml({
+          arrayBuffer,
+        })
+
+        const response = await fetch("/generate-summary", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ content: htmlContent }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          toast({
+            title: "Error",
+            description: "Failed to summarize investment",
+          })
+          throw new Error("Failed to summarize investment")
+        }
+
+        if (data.summary.length === 0) {
+          toast({
+            title: "Error",
+            description: "Failed to summarize investment",
+          })
+          throw new Error("Failed to summarize investment")
+        }
+
+        // add to investments table colum summary
+        const { data: updateData, error: updateError } = await supabase
+          .from("investments")
+          .update({ summary: data.summary })
+          .eq("id", id)
+        if (updateError) throw updateError
+
+        return data.summary
+      } catch (error) {
+        console.error(error)
+      }
+    }
+  }
+
   async function sendEmail(id: string) {
     const investmentData = investments.find(
       (investment: any) => investment.id === id
     )
     const doc = await generateDocument(id)
+    const summary = await summarizeInvestment(id)
+    console.log(summary)
     const body = {
       investmentData: investmentData,
       content: doc.getZip().generate({ type: "nodebuffer" }),
+      summary: summary,
     }
     try {
       const response = await fetch("/send-email", {
@@ -359,6 +431,11 @@ export default function Investments({
                         onClick={() => sendEmail(investment.id)}
                       >
                         Send
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => summarizeInvestment(investment.id)}
+                      >
+                        Summarize
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

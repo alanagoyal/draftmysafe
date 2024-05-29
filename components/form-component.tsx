@@ -6,6 +6,9 @@ import { createClient } from "@/utils/supabase/client"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { CalendarIcon } from "@radix-ui/react-icons"
 import { format } from "date-fns"
+import Docxtemplater from "docxtemplater"
+import mammoth from "mammoth"
+import PizZip from "pizzip"
 import Confetti from "react-confetti"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -78,6 +81,8 @@ type InvestmentData = {
   discount?: string
   date: Date
   created_by?: string
+  url?: string | null
+  summary?: string | null
 }
 
 export default function FormComponent({ userData }: { userData: any }) {
@@ -234,6 +239,14 @@ export default function FormComponent({ userData }: { userData: any }) {
       return
     }
     await processInvestment(values, null, null, null, null)
+    // Generate document URL and summary and update db
+    const documentUrl = await createUrl(values)
+    const investmentSummary = await summarizeInvestment(values)
+    const { data: investmentUpdateData, error: investmentUpdateError } =
+      await supabase
+        .from("investments")
+        .update({ url: documentUrl, summary: investmentSummary })
+        .eq("id", investmentId)
 
     setShowConfetti(true)
     toast({
@@ -480,6 +493,177 @@ export default function FormComponent({ userData }: { userData: any }) {
       }
     } catch (error) {
       console.error("Error processing investment details:", error)
+    }
+  }
+
+  async function createUrl(
+    values: FormComponentValues
+  ): Promise<string | null> {
+    const filepath = `${values.companyName}-SAFE.docx`
+    try {
+      const { error } = await supabase.storage
+        .from("documents")
+        .download(filepath)
+
+      // If file doesn't exist, generate and upload
+      if (error) {
+        const doc = await generateDocument(values)
+        const file = doc.getZip().generate({ type: "nodebuffer" })
+        const { error: uploadError } = await supabase.storage
+          .from("documents")
+          .upload(filepath, file, {
+            upsert: true,
+            contentType:
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            cacheControl: "3600",
+          })
+        if (uploadError) throw uploadError
+      }
+    } catch (downloadError) {
+      console.error(downloadError)
+      return null
+    }
+
+    // Generate a url
+    const { data, error } = await supabase.storage
+      .from("documents")
+      .createSignedUrl(filepath, 3600)
+    if (error) {
+      console.error("Failed to create signed URL:", error)
+      return null
+    }
+
+    return data?.signedUrl || null
+  }
+
+  async function generateDocument(values: FormComponentValues) {
+    const formattedDate = formatSubmissionDate(values.date)
+    const templateFileName = selectTemplate(values.type)
+    const doc = await loadAndPrepareTemplate(
+      templateFileName,
+      values,
+      formattedDate
+    )
+    return doc
+  }
+
+  function formatSubmissionDate(date: Date): string {
+    const monthName = new Intl.DateTimeFormat("en-US", {
+      month: "long",
+    }).format(date)
+    const day = date.getDate()
+    const year = date.getFullYear()
+    const suffix = getNumberSuffix(day)
+    return `${monthName} ${day}${suffix}, ${year}`
+  }
+
+  function getNumberSuffix(day: number): string {
+    if (day >= 11 && day <= 13) {
+      return "th"
+    }
+    switch (day % 10) {
+      case 1:
+        return "st"
+      case 2:
+        return "nd"
+      case 3:
+        return "rd"
+      default:
+        return "th"
+    }
+  }
+
+  function selectTemplate(type: string): string {
+    switch (type) {
+      case "valuation-cap":
+        return "SAFE-Valuation-Cap.docx"
+      case "discount":
+        return "SAFE-Discount.docx"
+      case "mfn":
+        return "SAFE-MFN.docx"
+      default:
+        return ""
+    }
+  }
+
+  async function loadAndPrepareTemplate(
+    templateFileName: string,
+    values: any,
+    formattedDate: string
+  ): Promise<Docxtemplater> {
+    const response = await fetch(`/${templateFileName}`)
+    const arrayBuffer = await response.arrayBuffer()
+    const zip = new PizZip(arrayBuffer)
+    const doc = new Docxtemplater().loadZip(zip)
+    doc.setData({
+      company_name: values.companyName,
+      investing_entity_name: values.fundName,
+      byline: values.fundByline || "",
+      purchase_amount: values.purchaseAmount,
+      valuation_cap: values.valuationCap || "",
+      discount: values.discount
+        ? (100 - Number(values.discount)).toString()
+        : "",
+      state_of_incorporation: values.stateOfIncorporation,
+      date: formattedDate,
+      investor_name: values.investorName,
+      investor_title: values.investorTitle,
+      investor_email: values.investorEmail,
+      investor_address_1: values.fundStreet,
+      investor_address_2: values.fundCityStateZip,
+      founder_name: values.founderName,
+      founder_title: values.founderTitle,
+      founder_email: values.founderEmail || "",
+      company_address_1: values.companyStreet || "",
+      company_address_2: values.companyCityStateZip || "",
+    })
+    doc.render()
+    return doc
+  }
+
+  async function summarizeInvestment(
+    values: FormComponentValues
+  ): Promise<string | null> {
+    try {
+      const doc = await generateDocument(values)
+      const blob = doc.getZip().generate({ type: "blob" })
+
+      // Convert DOCX to HTML using Mammoth
+      const arrayBuffer = await blob.arrayBuffer()
+      const { value: htmlContent } = await mammoth.convertToHtml({
+        arrayBuffer,
+      })
+
+      const response = await fetch("/generate-summary", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content: htmlContent }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        toast({
+          title: "Error",
+          description: "Failed to summarize investment",
+        })
+        throw new Error("Failed to summarize investment")
+      }
+
+      if (data.summary.length === 0) {
+        toast({
+          title: "Error",
+          description: "Failed to summarize investment",
+        })
+        throw new Error("Failed to summarize investment")
+      }
+
+      return data.summary
+    } catch (error) {
+      console.error("Error in summarizing investment:", error)
+      return null
     }
   }
 
@@ -935,11 +1119,11 @@ export default function FormComponent({ userData }: { userData: any }) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                          <SelectItem value="valuation-cap">
-                            Valuation Cap
-                          </SelectItem>
-                          <SelectItem value="discount">Discount</SelectItem>
-                          <SelectItem value="mfn">MFN</SelectItem>
+                        <SelectItem value="valuation-cap">
+                          Valuation Cap
+                        </SelectItem>
+                        <SelectItem value="discount">Discount</SelectItem>
+                        <SelectItem value="mfn">MFN</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormDescription>

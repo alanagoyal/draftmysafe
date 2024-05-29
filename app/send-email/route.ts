@@ -6,17 +6,17 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(req: Request) {
   const body = await req.json()
-  const { investmentData, content, summary } = body
+  const { investmentData, content } = body
 
   try {
     const { data, error } = await resend.emails.send({
       from: "Draftmysafe <hi@basecase.vc>",
       to: investmentData.founder.email,
       subject: `${investmentData.company.name} <> ${investmentData.fund.name}`,
-      react: EmailTemplate({ investmentData: investmentData, summary: summary }),
+      react: EmailTemplate({ investmentData: investmentData }),
       attachments: [
         {
-          filename: `${investmentData.company.name} SAFE.docx`,
+          filename: `${investmentData.company.name}-SAFE.docx`,
           content: content,
         },
       ],

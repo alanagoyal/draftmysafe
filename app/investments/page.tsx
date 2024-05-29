@@ -37,7 +37,9 @@ export default async function InvestmentsPage() {
         founder:users!founder_id (name, title, email),
         company:companies (name, street, city_state_zip, state_of_incorporation),
         investor:users!investor_id (name, title, email),
-        fund:funds (name, byline, street, city_state_zip)
+        fund:funds (name, byline, street, city_state_zip),
+        url,
+        summary
       `
     )
     .or(`investor_id.eq.${userData.id},founder_id.eq.${userData.id}`)

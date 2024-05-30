@@ -14,21 +14,20 @@ const openai = wrapOpenAI(
   })
 )
 
-export const runtime = 'edge'
+export const runtime = "edge"
 
 export async function POST(req: Request, res: NextResponse) {
   try {
     let ctrl: ReadableStreamDefaultController | undefined
-    
+
     const stream = new ReadableStream({
       start(controller) {
         ctrl = controller
-      }
+      },
     })
-    
+
     new Promise<void>(async (resolve) => {
       try {
-        
         const content = await req.json()
 
         const prompt = await loadPrompt({
@@ -42,21 +41,26 @@ export async function POST(req: Request, res: NextResponse) {
             const response = await openai.chat.completions.create(
               prompt.build({
                 question: content,
-              })
+              }),
+              {
+                headers: {
+                  Accept: "application/json",
+                },
+              }
             )
-            
+
             const output = response.choices[0].message.content
             span.log({ input: content, output })
             return output
           },
           { name: "generate-summary", event: content }
         )
-        
+
         ctrl?.enqueue(JSON.stringify({ summary: completion }))
         ctrl?.close()
         resolve()
       } catch (err) {
-        console.error(`Failed to generate completion`, err);
+        console.error(`Failed to generate completion`, err)
       }
     })
 

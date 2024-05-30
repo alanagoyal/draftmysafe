@@ -44,7 +44,7 @@ export async function POST(req: Request, res: NextResponse) {
               }),
               {
                 headers: {
-                  "Content-Type": "application/json",
+                  "Accept": "application/json",
                 },
               }
             )

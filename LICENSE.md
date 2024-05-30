@@ -1,6 +1,6 @@
 MIT License
 
-SafeBase: a simple application that allows you to generate a standard YC SAFE for your startup in seconds. Just give us the details and go back to building!
+Draftmysafe: a simple application that allows you to generate a standard YC SAFE for your startup in seconds. Just give us the details and go back to building!
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -9,7 +9,7 @@ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-SafeBase must retain the above copyright notice,
+Draftmysafe must retain the above copyright notice,
 this list of conditions and the following disclaimer.
 
 The above copyright notice and this permission notice shall be

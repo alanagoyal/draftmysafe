@@ -20,6 +20,8 @@ export async function POST(req: Request, res: NextResponse) {
   try {
     let ctrl: ReadableStreamDefaultController | undefined
 
+    ctrl?.enqueue('')
+
     const stream = new ReadableStream({
       start(controller) {
         ctrl = controller

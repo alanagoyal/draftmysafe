@@ -34,36 +34,29 @@ export async function POST(req: Request, res: NextResponse) {
         const prompt = await loadPrompt({
           projectName: "draftmysafe",
           slug: "summarize",
+          apiKey: process.env.BRAINTRUST_API_KEY,
         })
-        console.log("Loaded prompt:", prompt); // Log the loaded prompt
 
         const completion = await traced(
           async (span) => {
-            console.log("Creating completion with content:", content); // Log before creating completion
             const response = await openai.chat.completions.create(
               prompt.build({
                 question: content,
-                apiKey: process.env.BRAINTRUST_API_KEY,
               })
             )
-            console.log("Received response from OpenAI:", response); // Log the response from OpenAI
             
             const output = response.choices[0].message.content
             span.log({ input: content, output })
-            console.log("Output generated:", output); // Log the generated output
             return output
           },
           { name: "generate-summary", event: content }
         )
         
         ctrl?.enqueue(JSON.stringify({ summary: completion }))
-        console.log("Enqueued completion"); // Log after enqueuing the completion
         ctrl?.close()
-        console.log("Stream closed"); // Log when stream is closed
         resolve()
       } catch (err) {
         console.error(`Failed to generate completion`, err);
-        console.log("Error in generating completion:", err); // Log detailed error
       }
     })
 
@@ -73,7 +66,6 @@ export async function POST(req: Request, res: NextResponse) {
     })
   } catch (error) {
     console.error(error)
-    console.log("Error in POST function:", error); // Log error in POST function
     return NextResponse.json({ error })
   }
 }

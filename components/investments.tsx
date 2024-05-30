@@ -2,10 +2,11 @@
 
 import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
+import { format } from "date-fns"
 import Docxtemplater from "docxtemplater"
 import { Plus } from "lucide-react"
 import PizZip from "pizzip"
-import { format } from "date-fns"
+
 import { Icons } from "./icons"
 import { Button } from "./ui/button"
 import {
@@ -24,11 +25,11 @@ import {
 } from "./ui/table"
 import { toast } from "./ui/use-toast"
 
-export default function Investments({
-  investments,
-}: {
-  investments: any
-}) {
+const downloadInvestmentFile = (url: string) => {
+  window.open(url, "_blank")
+}
+
+export default function Investments({ investments }: { investments: any }) {
   const router = useRouter()
   const supabase = createClient()
 
@@ -73,10 +74,10 @@ export default function Investments({
   async function sendEmail(id: string) {
     const investmentData = investments.find(
       (investment: any) => investment.id === id
-    )  
-    const formattedDate = format(investmentData.date, 'yyyy-MM-dd-HH-mm-ss');
-    const filepath = `${investmentData.company.name}-SAFE-${formattedDate}.docx`;
-  
+    )
+    const formattedDate = format(investmentData.date, "yyyy-MM-dd-HH-mm-ss")
+    const filepath = `${investmentData.company.name}-SAFE-${formattedDate}.docx`
+
     try {
       // Download the document from Supabase storage
       const { data, error } = await supabase.storage
@@ -182,6 +183,18 @@ export default function Investments({
                       <Icons.menu className="h-4 w-4 ml-2" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
+                      {investment.url && (
+                        <DropdownMenuItem
+                          onClick={() => downloadInvestmentFile(investment.url)}
+                        >
+                          Download
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem
+                        onClick={() => sendEmail(investment.id)}
+                      >
+                        Send
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => editInvestment(investment.id)}
                       >
@@ -191,11 +204,6 @@ export default function Investments({
                         onClick={() => deleteInvestment(investment.id)}
                       >
                         Delete
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => sendEmail(investment.id)}
-                      >
-                        Send
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

@@ -500,36 +500,58 @@ export default function FormComponent({ userData }: { userData: any }) {
     const filepath = `${values.companyName}-SAFE-${formattedDate}.docx`
 
     try {
-      // Attempt to download the file to check if it exists
-      const { data: downloadData, error: downloadError } =
-        await supabase.storage.from("documents").download(filepath)
+      // Check if the file exists in the storage
+      const { data: fileList, error: listError } = await supabase.storage
+        .from("documents")
+        .list("", {
+          limit: 1,
+          offset: 0,
+          sortBy: { column: "name", order: "asc" },
+          search: filepath,
+        })
 
-      // If the file does not exist (404 error), generate and upload it
-      if (!downloadData) {
-        const doc = await generateDocument(values)
-        const file = doc.getZip().generate({ type: "nodebuffer" })
-        const { error: uploadError } = await supabase.storage
-          .from("documents")
-          .upload(filepath, file, {
-            upsert: true,
-            contentType:
-              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            cacheControl: "3600",
-          })
-        if (uploadError) {
-          console.error("Upload error:", uploadError)
-          throw uploadError
+      // If the file exists, attempt to create a signed URL
+      if (fileList && fileList.length > 0) {
+        const { data: signedUrlData, error: signedUrlError } =
+          await supabase.storage
+            .from("documents")
+            .createSignedUrl(filepath, 3600)
+        if (signedUrlError) {
+          console.error("Failed to create signed URL:", signedUrlError)
+          return null
         }
+        return signedUrlData?.signedUrl || null
       }
 
-      // Generate a signed URL for the file
-      const { data: signedUrlData, error: signedUrlError } =
-        await supabase.storage.from("documents").createSignedUrl(filepath, 3600)
-      if (signedUrlError) {
-        console.error("Failed to create signed URL:", signedUrlError)
+      // If the file does not exist, generate and upload it
+      const doc = await generateDocument(values)
+      const file = doc.getZip().generate({ type: "nodebuffer" })
+      const { error: uploadError } = await supabase.storage
+        .from("documents")
+        .upload(filepath, file, {
+          upsert: true,
+          contentType:
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          cacheControl: "3600",
+        })
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError)
         return null
       }
-      return signedUrlData?.signedUrl || null
+
+      // After uploading, attempt to create a signed URL again
+      const { data: newSignedUrlData, error: newSignedUrlError } =
+        await supabase.storage.from("documents").createSignedUrl(filepath, 3600)
+      if (newSignedUrlError) {
+        console.error(
+          "Failed to create signed URL after upload:",
+          newSignedUrlError
+        )
+        return null
+      }
+
+      return newSignedUrlData?.signedUrl || null
     } catch (error) {
       console.error("Error in createUrl function:", error)
       return null

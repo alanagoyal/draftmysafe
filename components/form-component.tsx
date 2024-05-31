@@ -450,7 +450,6 @@ export default function FormComponent({ userData }: { userData: any }) {
     companyId?: string | null
   ): Promise<string | null> {
     try {
-      // Prepare investment data with non-null values
       const investmentData: InvestmentData = {
         ...(founderId && { founder_id: founderId }),
         ...(companyId && { company_id: companyId }),
@@ -465,9 +464,7 @@ export default function FormComponent({ userData }: { userData: any }) {
 
       let investmentIdResult: string | null = null
 
-      // If hasn't been added to investments table, add it
       if (!investmentId) {
-        // Set created_by only when creating a new investment
         investmentData.created_by = userData.auth_id
         const { data: investmentInsertData, error: investmentInsertError } =
           await supabase.from("investments").insert(investmentData).select("id")
@@ -475,7 +472,6 @@ export default function FormComponent({ userData }: { userData: any }) {
         investmentIdResult = investmentInsertData[0].id
         setInvestmentId(investmentIdResult)
       } else {
-        // If it has been added, update it without changing the created_by
         const { data: investmentUpdateData, error: investmentUpdateError } =
           await supabase
             .from("investments")
@@ -486,7 +482,14 @@ export default function FormComponent({ userData }: { userData: any }) {
         setInvestmentId(investmentIdResult)
       }
 
-      return investmentIdResult // Return the investment ID
+      // Generate a new summary after updating investment details
+      const newSummary = await summarizeInvestment(values)
+      await supabase
+        .from("investments")
+        .update({ summary: newSummary })
+        .eq("id", investmentIdResult)
+
+      return investmentIdResult
     } catch (error) {
       console.error("Error processing investment details:", error)
       return null

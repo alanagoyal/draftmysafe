@@ -48,7 +48,6 @@ export async function POST(req: Request, res: NextResponse) {
                 headers: {
                   "Accept": "application/json",
                 },
-                stream: true,
               }
             )
 
@@ -59,7 +58,7 @@ export async function POST(req: Request, res: NextResponse) {
           { name: "generate-summary", event: content }
         )
 
-        ctrl?.enqueue(JSON.stringify({ summary: completion }))
+        ctrl?.enqueue(new TextEncoder().encode(JSON.stringify({ summary: completion })))
         ctrl?.close()
         resolve()
       } catch (err) {

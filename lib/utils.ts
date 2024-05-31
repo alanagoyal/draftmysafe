@@ -13,7 +13,7 @@ export const formDescriptions = {
   investmentType:
     "The type of SAFE agreement (Valuation Cap, Discount, or MFN)",
   valuationCap: "The valuation cap of the investment in USD",
-  discount: "The discount rate of the investment as [100 minus the discount]% of the investment price",
+  discount: "The discount rate of the investment as a percentage of the investment price",
   stateOfIncorporation: "The state of incorporation of the company",
   date: "The approximate date of the SAFE agreement",
   investorName: "The full legal name of the investing entity's signatory",

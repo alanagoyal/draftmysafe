@@ -15,5 +15,10 @@ export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({
       document and its terms below.
     </p>
     <p>{investmentData.summary}</p>
+    <p>
+      Disclaimer: This summary is for informational purposes only and does not
+      constitute legal advice. For any legal matters or specific questions, you
+      should consult with a qualified attorney.
+    </p>
   </div>
 )

@@ -37,10 +37,12 @@ export default async function InvestmentsPage() {
         founder:users!founder_id (name, title, email),
         company:companies (name, street, city_state_zip, state_of_incorporation),
         investor:users!investor_id (name, title, email),
-        fund:funds (name, byline, street, city_state_zip)
+        fund:funds (name, byline, street, city_state_zip),
+        url,
+        summary
       `
     )
-    .or(`investor_id.eq.${userData.id},founder_id.eq.${userData.id}`)
+    .or(`investor_id.eq.${userData.id},founder_id.eq.${userData.id},created_by.eq.${userData.auth_id}`)
 
   if (investmentError) {
     console.error(investmentError)
@@ -48,7 +50,7 @@ export default async function InvestmentsPage() {
 
   return investmentData && investmentData.length > 0 ? (
     <div className="flex w-full justify-center min-h-screen">
-      <Investments investments={investmentData} user={userData}/>
+      <Investments investments={investmentData} />
     </div>
   ) : (
     <div className="w-full px-4 flex justify-center items-center flex-col min-h-screen">

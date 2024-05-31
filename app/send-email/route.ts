@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       react: EmailTemplate({ investmentData: investmentData }),
       attachments: [
         {
-          filename: `${investmentData.company.name} SAFE.docx`,
+          filename: `${investmentData.company.name}-SAFE.docx`,
           content: content,
         },
       ],

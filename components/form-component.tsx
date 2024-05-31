@@ -6,6 +6,9 @@ import { createClient } from "@/utils/supabase/client"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { CalendarIcon } from "@radix-ui/react-icons"
 import { format } from "date-fns"
+import Docxtemplater from "docxtemplater"
+import mammoth from "mammoth"
+import PizZip from "pizzip"
 import Confetti from "react-confetti"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -32,9 +35,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "./ui/select"
@@ -45,7 +46,7 @@ const FormComponentSchema = z.object({
   companyName: z.string().optional(),
   fundName: z.string().optional(),
   fundByline: z.string().optional(),
-  purchaseAmount: z.string({ required_error: "Purchase amount is required" }),
+  purchaseAmount: z.string().min(1, { message: "Purchase amount is required" }),
   type: z.enum(["valuation-cap", "discount", "mfn"]),
   valuationCap: z.string().optional(),
   discount: z.string().optional(),
@@ -78,6 +79,8 @@ type InvestmentData = {
   discount?: string
   date: Date
   created_by?: string
+  url?: string | null
+  summary?: string | null
 }
 
 export default function FormComponent({ userData }: { userData: any }) {
@@ -224,28 +227,28 @@ export default function FormComponent({ userData }: { userData: any }) {
   }
 
   async function onSubmit(values: FormComponentValues) {
-    // Check if the values are their default or empty values
-    if (values.purchaseAmount === "" && values.type === undefined) {
-      toast({
-        title: "Unable to create SAFE agreement",
-        description:
-          "You must enter valid purchase amount, investment type, and date.",
-      })
-      return
-    }
-    await processInvestment(values, null, null, null, null)
-
+    // Process the investment
+    const investmentId = await processInvestment(values)
     setShowConfetti(true)
     toast({
       title: "Your SAFE agreement has been created",
       description:
         "You can view, edit, or download it by visiting your Investments.",
     })
-    setTimeout(() => {
-      setShowConfetti(false)
-      router.push("/investments")
-      router.refresh()
-    }, 5000)
+
+    // Generate document URL and summary and update db
+    const documentUrl = await createUrl(values)
+    const investmentSummary = await summarizeInvestment(values)
+    const { error: investmentUpdateError } = await supabase
+      .from("investments")
+      .update({ url: documentUrl, summary: investmentSummary })
+      .eq("id", investmentId)
+
+    if (investmentUpdateError) throw investmentUpdateError
+
+    setShowConfetti(false)
+    router.push("/investments")
+    router.refresh()
   }
 
   async function processInvestorDetails(values: FormComponentValues) {
@@ -441,11 +444,11 @@ export default function FormComponent({ userData }: { userData: any }) {
 
   async function processInvestment(
     values: FormComponentValues,
-    investorId: string | null,
-    fundId: string | null,
-    founderId: string | null,
-    companyId: string | null
-  ) {
+    investorId?: string | null,
+    fundId?: string | null,
+    founderId?: string | null,
+    companyId?: string | null
+  ): Promise<string | null> {
     try {
       // Prepare investment data with non-null values
       const investmentData: InvestmentData = {
@@ -460,26 +463,229 @@ export default function FormComponent({ userData }: { userData: any }) {
         date: values.date,
       }
 
+      let investmentIdResult: string | null = null
+
       // If hasn't been added to investments table, add it
       if (!investmentId) {
         // Set created_by only when creating a new investment
         investmentData.created_by = userData.auth_id
         const { data: investmentInsertData, error: investmentInsertError } =
-          await supabase.from("investments").insert(investmentData).select()
+          await supabase.from("investments").insert(investmentData).select("id")
         if (investmentInsertError) throw investmentInsertError
-        setInvestmentId(investmentInsertData[0].id)
+        investmentIdResult = investmentInsertData[0].id
+        setInvestmentId(investmentIdResult)
       } else {
         // If it has been added, update it without changing the created_by
         const { data: investmentUpdateData, error: investmentUpdateError } =
           await supabase
             .from("investments")
             .upsert({ ...investmentData, id: investmentId })
-            .select()
+            .select("id")
         if (investmentUpdateError) throw investmentUpdateError
-        setInvestmentId(investmentUpdateData[0].id)
+        investmentIdResult = investmentUpdateData[0].id
+        setInvestmentId(investmentIdResult)
       }
+
+      return investmentIdResult // Return the investment ID
     } catch (error) {
       console.error("Error processing investment details:", error)
+      return null
+    }
+  }
+
+  async function createUrl(
+    values: FormComponentValues
+  ): Promise<string | null> {
+    const formattedDate = format(values.date, "yyyy-MM-dd-HH-mm-ss")
+    const filepath = `${values.companyName}-SAFE-${formattedDate}.docx`
+
+    try {
+      // Check if the file exists in the storage
+      const { data: fileList, error: listError } = await supabase.storage
+        .from("documents")
+        .list("", {
+          limit: 1,
+          offset: 0,
+          sortBy: { column: "name", order: "asc" },
+          search: filepath,
+        })
+
+      // If the file exists, attempt to create a signed URL
+      if (fileList && fileList.length > 0) {
+        const { data: signedUrlData, error: signedUrlError } =
+          await supabase.storage
+            .from("documents")
+            .createSignedUrl(filepath, 3600)
+        if (signedUrlError) {
+          console.error("Failed to create signed URL:", signedUrlError)
+          return null
+        }
+        return signedUrlData?.signedUrl || null
+      }
+
+      // If the file does not exist, generate and upload it
+      const doc = await generateDocument(values)
+      const file = doc.getZip().generate({ type: "nodebuffer" })
+      const { error: uploadError } = await supabase.storage
+        .from("documents")
+        .upload(filepath, file, {
+          upsert: true,
+          contentType:
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          cacheControl: "3600",
+        })
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError)
+        return null
+      }
+
+      // After uploading, attempt to create a signed URL again
+      const { data: newSignedUrlData, error: newSignedUrlError } =
+        await supabase.storage.from("documents").createSignedUrl(filepath, 3600)
+      if (newSignedUrlError) {
+        console.error(
+          "Failed to create signed URL after upload:",
+          newSignedUrlError
+        )
+        return null
+      }
+
+      return newSignedUrlData?.signedUrl || null
+    } catch (error) {
+      console.error("Error in createUrl function:", error)
+      return null
+    }
+  }
+
+  async function generateDocument(values: FormComponentValues) {
+    const formattedDate = formatSubmissionDate(values.date)
+    const templateFileName = selectTemplate(values.type)
+    const doc = await loadAndPrepareTemplate(
+      templateFileName,
+      values,
+      formattedDate
+    )
+    return doc
+  }
+
+  function formatSubmissionDate(date: Date): string {
+    const monthName = new Intl.DateTimeFormat("en-US", {
+      month: "long",
+    }).format(date)
+    const day = date.getDate()
+    const year = date.getFullYear()
+    const suffix = getNumberSuffix(day)
+    return `${monthName} ${day}${suffix}, ${year}`
+  }
+
+  function getNumberSuffix(day: number): string {
+    if (day >= 11 && day <= 13) {
+      return "th"
+    }
+    switch (day % 10) {
+      case 1:
+        return "st"
+      case 2:
+        return "nd"
+      case 3:
+        return "rd"
+      default:
+        return "th"
+    }
+  }
+
+  function selectTemplate(type: string): string {
+    switch (type) {
+      case "valuation-cap":
+        return "SAFE-Valuation-Cap.docx"
+      case "discount":
+        return "SAFE-Discount.docx"
+      case "mfn":
+        return "SAFE-MFN.docx"
+      default:
+        return ""
+    }
+  }
+
+  async function loadAndPrepareTemplate(
+    templateFileName: string,
+    values: any,
+    formattedDate: string
+  ): Promise<Docxtemplater> {
+    const response = await fetch(`/${templateFileName}`)
+    const arrayBuffer = await response.arrayBuffer()
+    const zip = new PizZip(arrayBuffer)
+    const doc = new Docxtemplater().loadZip(zip)
+    doc.setData({
+      company_name: values.companyName || "{company_name}",
+      investing_entity_name: values.fundName || "{investing_entity_name}",
+      byline: values.fundByline || "{byline}",
+      purchase_amount: values.purchaseAmount || "{purchase_amount}",
+      valuation_cap: values.valuationCap || "{valuation_cap}",
+      discount: values.discount
+        ? (100 - Number(values.discount)).toString()
+        : "{discount}",
+      state_of_incorporation:
+        values.stateOfIncorporation || "{state_of_incorporation}",
+      date: formattedDate || "{date}",
+      investor_name: values.investorName || "{investor_name}",
+      investor_title: values.investorTitle || "{investor_title}",
+      investor_email: values.investorEmail || "{investor_email}",
+      investor_address_1: values.fundStreet || "{investor_address_1}",
+      investor_address_2: values.fundCityStateZip || "{investor_address_2}",
+      founder_name: values.founderName || "{founder_name}",
+      founder_title: values.founderTitle || "{founder_title}",
+      founder_email: values.founderEmail || "{founder_email}",
+      company_address_1: values.companyStreet || "{company_address_1}",
+      company_address_2: values.companyCityStateZip || "{company_address_2}",
+    })
+    doc.render()
+    return doc
+  }
+
+  async function summarizeInvestment(
+    values: FormComponentValues
+  ): Promise<string | null> {
+    try {
+      // Convert DOCX to HTML using Mammoth
+      const doc = await generateDocument(values)
+      const blob = doc.getZip().generate({ type: "blob" })
+      const arrayBuffer = await blob.arrayBuffer()
+      const { value: htmlContent } = await mammoth.convertToHtml({
+        arrayBuffer,
+      })
+
+      const response = await fetch("/generate-summary", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content: htmlContent }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        toast({
+          title: "Error",
+          description: "Failed to summarize investment",
+        })
+        throw new Error("Failed to summarize investment")
+      }
+
+      if (data.summary.length === 0) {
+        toast({
+          title: "Error",
+          description: "Failed to summarize investment",
+        })
+        throw new Error("Failed to summarize investment")
+      }
+
+      return data.summary
+    } catch (error) {
+      console.error("Error in summarizing investment:", error)
+      return null
     }
   }
 
@@ -935,11 +1141,11 @@ export default function FormComponent({ userData }: { userData: any }) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                          <SelectItem value="valuation-cap">
-                            Valuation Cap
-                          </SelectItem>
-                          <SelectItem value="discount">Discount</SelectItem>
-                          <SelectItem value="mfn">MFN</SelectItem>
+                        <SelectItem value="valuation-cap">
+                          Valuation Cap
+                        </SelectItem>
+                        <SelectItem value="discount">Discount</SelectItem>
+                        <SelectItem value="mfn">MFN</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormDescription>

@@ -48,6 +48,7 @@ export async function POST(req: Request, res: NextResponse) {
                 headers: {
                   "Accept": "application/json",
                 },
+                stream: true,
               }
             )
 

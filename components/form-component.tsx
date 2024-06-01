@@ -491,12 +491,23 @@ export default function FormComponent({ userData }: { userData: any }) {
         setInvestmentId(investmentIdResult)
       }
 
-      // Generate a new summary after updating investment details
-      const newSummary = await summarizeInvestment(values)
-      await supabase
+      // Check if the document URL exists before generating a summary
+      const { data: investmentDetails, error: fetchError } = await supabase
         .from("investments")
-        .update({ summary: newSummary })
+        .select("url")
         .eq("id", investmentIdResult)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      if (investmentDetails?.url) {
+        // Generate a new summary after updating investment details
+        const newSummary = await summarizeInvestment(values)
+        await supabase
+          .from("investments")
+          .update({ summary: newSummary })
+          .eq("id", investmentIdResult)
+      }
 
       return investmentIdResult
     } catch (error) {

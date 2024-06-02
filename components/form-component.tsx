@@ -200,11 +200,7 @@ export default function FormComponent({ userData }: { userData: any }) {
         companyStreet: data.company?.street || "",
         companyCityStateZip: data.company?.city_state_zip || "",
       })
-      if (
-        step === 1 &&
-        data.fund &&
-        data.fund.investor_id === userData.id
-      ) {
+      if (step === 1 && data.fund && data.fund.investor_id === userData.id) {
         setSelectedEntity(data.fund.id)
         setShowFundSelector(true)
       } else if (
@@ -259,9 +255,7 @@ export default function FormComponent({ userData }: { userData: any }) {
       })
     } else {
       toast({
-        title: "Your SAFE agreement has been updated",
-        description:
-          "You can view, edit, or download it by visiting your Investments.",
+        description: "Investment updated",
       })
     }
 
@@ -781,19 +775,20 @@ export default function FormComponent({ userData }: { userData: any }) {
     }
   }
 
-  async function saveStepOne() {
+  async function processStepOne() {
     const values = form.getValues()
     const investorId = await processInvestorDetails(values)
     const fundId = await processFundDetails(values, investorId)
     if (investorId || fundId) {
       await processInvestment(values, investorId, fundId, null, null)
     }
+  }
 
+  async function saveStepOne() {
+    await processStepOne()
     if (isEditMode) {
       toast({
-        title: "Your SAFE agreement has been updated",
-        description:
-          "You can view, edit, or download it by visiting your Investments.",
+        description: "Investment updated",
       })
       router.push("/investments")
       router.refresh()
@@ -801,25 +796,25 @@ export default function FormComponent({ userData }: { userData: any }) {
   }
 
   async function advanceStepOne() {
-    await saveStepOne()
+    await processStepOne()
     if (!isFormLocked) {
       setStep(2) // Move to the next step only after processing is complete
     }
   }
 
-  async function saveStepTwo() {
+  async function processStepTwo() {
     const values = form.getValues()
     const founderId = await processFounderDetails(values)
     const companyId = await processCompanyDetails(values, founderId)
     if (founderId || companyId) {
       await processInvestment(values, null, null, founderId, companyId)
     }
-
+  }
+  async function saveStepTwo() {
+    await processStepTwo()
     if (isEditMode) {
       toast({
-        title: "Your SAFE agreement has been updated",
-        description:
-          "You can view, edit, or download it by visiting your Investments.",
+        description: "Investment updated",
       })
       router.push("/investments")
       router.refresh()
@@ -827,7 +822,7 @@ export default function FormComponent({ userData }: { userData: any }) {
   }
 
   async function advanceStepTwo() {
-    await saveStepTwo()
+    await processStepTwo()
     if (!isFormLocked) {
       setStep(3) // Move to the next step only after processing is complete
       // If being shared
@@ -1174,28 +1169,28 @@ export default function FormComponent({ userData }: { userData: any }) {
                   </Button>
                 )}
                 {!isFormLocked && (
-                  <Button
-                    type="button"
-                    className="w-full"
-                    variant={
-                      isEditMode || isFormLocked ? "secondary" : "default"
-                    }
-                    onClick={advanceStepTwo}
-                  >
-                    Next
-                  </Button>
+                  <div className="flex w-full gap-2">
+                    <Button
+                      variant="secondary"
+                      className="w-1/2"
+                      onClick={() => {
+                        setStep(1)
+                      }}
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      type="button"
+                      className="w-1/2"
+                      variant={
+                        isEditMode || isFormLocked ? "secondary" : "default"
+                      }
+                      onClick={advanceStepTwo}
+                    >
+                      Next
+                    </Button>
+                  </div>
                 )}
-                {!isFormLocked ? (
-                  <Button
-                    variant="secondary"
-                    className="w-full"
-                    onClick={() => {
-                      setStep(1)
-                    }}
-                  >
-                    Back
-                  </Button>
-                ) : null}
               </div>
             </>
           )}

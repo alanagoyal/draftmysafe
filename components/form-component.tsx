@@ -99,6 +99,7 @@ export default function FormComponent({ userData }: { userData: any }) {
   const [showFundSelector, setShowFundSelector] = useState(true)
   const [showCompanySelector, setShowCompanySelector] = useState(true)
   const isFormLocked = searchParams.get("sharing") === "true"
+  const isEditMode = searchParams.get("edit") === "true"
 
   const form = useForm<FormComponentValues>({
     resolver: zodResolver(FormComponentSchema),
@@ -199,11 +200,7 @@ export default function FormComponent({ userData }: { userData: any }) {
         companyStreet: data.company?.street || "",
         companyCityStateZip: data.company?.city_state_zip || "",
       })
-      if (
-        step === 1 &&
-        data.fund &&
-        data.fund.investor_id === userData.id
-      ) {
+      if (step === 1 && data.fund && data.fund.investor_id === userData.id) {
         setSelectedEntity(data.fund.id)
         setShowFundSelector(true)
       } else if (
@@ -249,12 +246,18 @@ export default function FormComponent({ userData }: { userData: any }) {
   async function onSubmit(values: FormComponentValues) {
     // Process the investment
     const investmentId = await processInvestment(values)
-    setShowConfetti(true)
-    toast({
-      title: "Your SAFE agreement has been created",
-      description:
-        "You can view, edit, or download it by visiting your Investments.",
-    })
+    if (!isEditMode) {
+      setShowConfetti(true)
+      toast({
+        title: "Your SAFE agreement has been created",
+        description:
+          "You can view, edit, or download it by visiting your Investments.",
+      })
+    } else {
+      toast({
+        description: "Investment updated",
+      })
+    }
 
     // Generate document URL and summary and update db
     const documentUrl = await createUrl(values)
@@ -502,12 +505,23 @@ export default function FormComponent({ userData }: { userData: any }) {
         setInvestmentId(investmentIdResult)
       }
 
-      // Generate a new summary after updating investment details
-      const newSummary = await summarizeInvestment(values)
-      await supabase
+      // Check if the document URL exists before generating a summary
+      const { data: investmentDetails, error: fetchError } = await supabase
         .from("investments")
-        .update({ summary: newSummary })
+        .select("url")
         .eq("id", investmentIdResult)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      if (investmentDetails?.url) {
+        // Generate a new summary after updating investment details
+        const newSummary = await summarizeInvestment(values)
+        await supabase
+          .from("investments")
+          .update({ summary: newSummary })
+          .eq("id", investmentIdResult)
+      }
 
       return investmentIdResult
     } catch (error) {
@@ -761,28 +775,56 @@ export default function FormComponent({ userData }: { userData: any }) {
     }
   }
 
-  async function advanceStepOne() {
+  async function processStepOne() {
     const values = form.getValues()
     const investorId = await processInvestorDetails(values)
     const fundId = await processFundDetails(values, investorId)
     if (investorId || fundId) {
       await processInvestment(values, investorId, fundId, null, null)
     }
+  }
+
+  async function saveStepOne() {
+    await processStepOne()
+    if (isEditMode) {
+      toast({
+        description: "Investment updated",
+      })
+      router.push("/investments")
+      router.refresh()
+    }
+  }
+
+  async function advanceStepOne() {
+    await processStepOne()
     if (!isFormLocked) {
       setStep(2) // Move to the next step only after processing is complete
     }
   }
 
-  async function advanceStepTwo() {
+  async function processStepTwo() {
     const values = form.getValues()
     const founderId = await processFounderDetails(values)
     const companyId = await processCompanyDetails(values, founderId)
     if (founderId || companyId) {
       await processInvestment(values, null, null, founderId, companyId)
     }
+  }
+  async function saveStepTwo() {
+    await processStepTwo()
+    if (isEditMode) {
+      toast({
+        description: "Investment updated",
+      })
+      router.push("/investments")
+      router.refresh()
+    }
+  }
+
+  async function advanceStepTwo() {
+    await processStepTwo()
     if (!isFormLocked) {
       setStep(3) // Move to the next step only after processing is complete
-
       // If being shared
     } else {
       setShowConfetti(true)
@@ -946,13 +988,29 @@ export default function FormComponent({ userData }: { userData: any }) {
                   </FormItem>
                 )}
               />
-              <Button
-                type="button"
-                className="mt-4 w-full"
-                onClick={advanceStepOne}
-              >
-                {isFormLocked ? "Save" : "Next"}
-              </Button>
+              <div className="flex flex-col gap-2">
+                {(isEditMode || isFormLocked) && (
+                  <Button
+                    type="button"
+                    className="w-full"
+                    onClick={saveStepOne}
+                  >
+                    Save
+                  </Button>
+                )}
+                {!isFormLocked && (
+                  <Button
+                    type="button"
+                    className="w-full"
+                    onClick={advanceStepOne}
+                    variant={
+                      isEditMode || isFormLocked ? "secondary" : "default"
+                    }
+                  >
+                    Next
+                  </Button>
+                )}
+              </div>
             </>
           )}
           {step === 2 && (
@@ -1101,24 +1159,38 @@ export default function FormComponent({ userData }: { userData: any }) {
                 )}
               />
               <div className="flex flex-col gap-2">
-                <Button
-                  type="button"
-                  className="w-full"
-                  onClick={advanceStepTwo}
-                >
-                  {isFormLocked ? "Save" : "Next"}
-                </Button>
-                {!isFormLocked ? (
+                {(isEditMode || isFormLocked) && (
                   <Button
-                    variant="secondary"
+                    type="button"
                     className="w-full"
-                    onClick={() => {
-                      setStep(1)
-                    }}
+                    onClick={saveStepTwo}
                   >
-                    Back
+                    Save
                   </Button>
-                ) : null}
+                )}
+                {!isFormLocked && (
+                  <div className="flex w-full gap-2">
+                    <Button
+                      variant="secondary"
+                      className="w-1/2"
+                      onClick={() => {
+                        setStep(1)
+                      }}
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      type="button"
+                      className="w-1/2"
+                      variant={
+                        isEditMode || isFormLocked ? "secondary" : "default"
+                      }
+                      onClick={advanceStepTwo}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -1273,7 +1345,7 @@ export default function FormComponent({ userData }: { userData: any }) {
               />
               <div className="flex flex-col gap-2">
                 <Button type="submit" className="w-full">
-                  Submit
+                  {isEditMode || isFormLocked ? "Save" : "Submit"}
                 </Button>
                 <Button
                   variant="secondary"

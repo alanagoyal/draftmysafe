@@ -58,7 +58,7 @@ export default function Investments({ investments }: { investments: any }) {
   )
 
   const editInvestment = (id: string) => {
-    router.push(`/new?id=${id}`)
+    router.push(`/new?id=${id}&edit=true`)
   }
 
   async function deleteInvestment(id: string) {

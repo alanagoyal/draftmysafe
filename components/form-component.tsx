@@ -96,6 +96,8 @@ export default function FormComponent({ userData }: { userData: any }) {
   const [selectedEntity, setSelectedEntity] = useState<string | undefined>(
     undefined
   )
+  const [showFundSelector, setShowFundSelector] = useState(true)
+  const [showCompanySelector, setShowCompanySelector] = useState(true)
   const isFormLocked = searchParams.get("sharing") === "true"
   const isEditMode = searchParams.get("edit") === "true"
 
@@ -161,9 +163,9 @@ export default function FormComponent({ userData }: { userData: any }) {
         discount,
         date,
         founder:users!founder_id (name, title, email),
-        company:companies (id, name, street, city_state_zip, state_of_incorporation),
+        company:companies (id, name, street, city_state_zip, state_of_incorporation, founder_id),
         investor:users!investor_id (name, title, email),
-        fund:funds (id, name, byline, street, city_state_zip)
+        fund:funds (id, name, byline, street, city_state_zip, investor_id)
       `
       )
       .eq("id", investmentId)
@@ -198,10 +200,28 @@ export default function FormComponent({ userData }: { userData: any }) {
         companyStreet: data.company?.street || "",
         companyCityStateZip: data.company?.city_state_zip || "",
       })
-      if (step === 1 && data.fund && data.fund.id) {
+      if (
+        step === 1 &&
+        data.fund &&
+        data.fund.investor_id === userData.id
+      ) {
         setSelectedEntity(data.fund.id)
-      } else if (step === 2 && data.company && data.company.id) {
+        setShowFundSelector(true)
+      } else if (
+        step === 2 &&
+        data.company &&
+        data.company.founder_id === userData.id
+      ) {
         setSelectedEntity(data.company.id)
+        setShowCompanySelector(true)
+      } else {
+        setSelectedEntity(undefined)
+        if (step === 1) {
+          setShowFundSelector(false)
+        }
+        if (step === 2) {
+          setShowCompanySelector(false)
+        }
       }
     }
   }
@@ -714,10 +734,9 @@ export default function FormComponent({ userData }: { userData: any }) {
 
   async function handleSelectChange(value: string) {
     setSelectedEntity(value)
-
     const selectedEntityDetails = entities.find((entity) => entity.id === value)
 
-    if (selectedEntityDetails.type === "fund") {
+    if (showFundSelector && selectedEntityDetails.type === "fund") {
       form.reset({
         ...form.getValues(),
         fundName: selectedEntityDetails.name,
@@ -737,7 +756,10 @@ export default function FormComponent({ userData }: { userData: any }) {
         investorTitle: investorData[0].title,
         investorEmail: investorData[0].email,
       })
-    } else if (selectedEntityDetails.type === "company") {
+    } else if (
+      showCompanySelector &&
+      selectedEntityDetails.type === "company"
+    ) {
       form.reset({
         ...form.getValues(),
         companyName: selectedEntityDetails.name,
@@ -840,21 +862,22 @@ export default function FormComponent({ userData }: { userData: any }) {
               <div className="pt-4 flex justify-between items-center h-10">
                 <Label className="text-md font-bold">Investor Details</Label>
               </div>
-              {entities.some((entity) => entity.type === "fund") && (
-                <FormItem>
-                  <FormLabel>Select Entity</FormLabel>
-                  <EntitySelector
-                    entities={entities}
-                    selectedEntity={selectedEntity}
-                    onSelectChange={handleSelectChange}
-                    entityType="fund"
-                  />
-                  <FormDescription>
-                    Choose an existing fund to be used in your signature block
-                    or add one below
-                  </FormDescription>
-                </FormItem>
-              )}
+              {showFundSelector &&
+                entities.some((entity) => entity.type === "fund") && (
+                  <FormItem>
+                    <FormLabel>Select Entity</FormLabel>
+                    <EntitySelector
+                      entities={entities}
+                      selectedEntity={selectedEntity}
+                      onSelectChange={handleSelectChange}
+                      entityType="fund"
+                    />
+                    <FormDescription>
+                      Choose an existing fund to be used in your signature block
+                      or add one below
+                    </FormDescription>
+                  </FormItem>
+                )}
               <FormField
                 control={form.control}
                 name="fundName"
@@ -1009,21 +1032,22 @@ export default function FormComponent({ userData }: { userData: any }) {
                   />
                 )}
               </div>
-              {entities.some((entity) => entity.type === "company") && (
-                <FormItem>
-                  <FormLabel>Select Entity</FormLabel>
-                  <EntitySelector
-                    entities={entities}
-                    selectedEntity={selectedEntity}
-                    onSelectChange={handleSelectChange}
-                    entityType="company"
-                  />
-                  <FormDescription>
-                    Choose an existing company to be used in your signature
-                    block or add one below
-                  </FormDescription>
-                </FormItem>
-              )}
+              {showCompanySelector &&
+                entities.some((entity) => entity.type === "company") && (
+                  <FormItem>
+                    <FormLabel>Select Entity</FormLabel>
+                    <EntitySelector
+                      entities={entities}
+                      selectedEntity={selectedEntity}
+                      onSelectChange={handleSelectChange}
+                      entityType="company"
+                    />
+                    <FormDescription>
+                      Choose an existing company to be used in your signature
+                      block or add one below
+                    </FormDescription>
+                  </FormItem>
+                )}
               <FormField
                 control={form.control}
                 name="companyName"
@@ -1165,7 +1189,9 @@ export default function FormComponent({ userData }: { userData: any }) {
                   <Button
                     variant="secondary"
                     className="w-full"
-                    onClick={() => setStep(1)}
+                    onClick={() => {
+                      setStep(1)
+                    }}
                   >
                     Back
                   </Button>

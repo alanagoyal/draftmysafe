@@ -509,23 +509,17 @@ export default function FormComponent({ userData }: { userData: any }) {
         setInvestmentId(investmentIdResult)
       }
 
-      // Check if the document URL exists before generating a summary
-      const { data: investmentDetails, error: fetchError } = await supabase
+      // Always generate a new document URL and summary
+      const documentUrl = await createUrl(values);
+      const investmentSummary = await summarizeInvestment(values);
+
+      // Update the investment with the new URL and summary
+      const { error: updateError } = await supabase
         .from("investments")
-        .select("url")
-        .eq("id", investmentIdResult)
-        .single()
+        .update({ url: documentUrl, summary: investmentSummary })
+        .eq("id", investmentIdResult);
 
-      if (fetchError) throw fetchError
-
-      if (investmentDetails?.url) {
-        // Generate a new summary after updating investment details
-        const newSummary = await summarizeInvestment(values)
-        await supabase
-          .from("investments")
-          .update({ summary: newSummary })
-          .eq("id", investmentIdResult)
-      }
+      if (updateError) throw updateError
 
       return investmentIdResult
     } catch (error) {
@@ -537,33 +531,9 @@ export default function FormComponent({ userData }: { userData: any }) {
   async function createUrl(
     values: FormComponentValues
   ): Promise<string | null> {
-    const formattedDate = format(values.date, "yyyy-MM-dd-HH-mm-ss")
-    const filepath = `${values.companyName}-SAFE-${formattedDate}.docx`
+    const filepath = `${investmentId}.docx`
 
     try {
-      // Check if the file exists in the storage
-      const { data: fileList, error: listError } = await supabase.storage
-        .from("documents")
-        .list("", {
-          limit: 1,
-          offset: 0,
-          sortBy: { column: "name", order: "asc" },
-          search: filepath,
-        })
-
-      // If the file exists, attempt to create a signed URL
-      if (fileList && fileList.length > 0) {
-        const { data: signedUrlData, error: signedUrlError } =
-          await supabase.storage
-            .from("documents")
-            .createSignedUrl(filepath, 3600)
-        if (signedUrlError) {
-          console.error("Failed to create signed URL:", signedUrlError)
-          return null
-        }
-        return signedUrlData?.signedUrl || null
-      }
-
       // If the file does not exist, generate and upload it
       const doc = await generateDocument(values)
       const file = doc.getZip().generate({ type: "nodebuffer" })
@@ -823,14 +793,7 @@ export default function FormComponent({ userData }: { userData: any }) {
       router.push("/investments")
       router.refresh()
     }
-  }
-
-  async function advanceStepTwo() {
-    await processStepTwo()
-    if (!isFormLocked) {
-      setStep(3) // Move to the next step only after processing is complete
-      // If being shared
-    } else {
+    if (isFormLocked) {
       setShowConfetti(true)
       setTimeout(() => {
         setShowConfetti(false)
@@ -840,6 +803,14 @@ export default function FormComponent({ userData }: { userData: any }) {
         description:
           "Your information has been saved. You'll receive an email with the next steps once all parties have provided their information.",
       })
+    }
+  }
+
+  async function advanceStepTwo() {
+    await processStepTwo()
+    if (!isFormLocked) {
+      setStep(3) // Move to the next step only after processing is complete
+      // If being shared
     }
   }
 

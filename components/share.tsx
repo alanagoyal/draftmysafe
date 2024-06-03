@@ -18,7 +18,13 @@ import { Input } from "./ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { toast } from "./ui/use-toast"
 
-export function Share({ investmentId, onEmailSent }: { investmentId: string, onEmailSent: () => void }) {
+export function Share({
+  investmentId,
+  onEmailSent,
+}: {
+  investmentId: string
+  onEmailSent: () => void
+}) {
   const [email, setEmail] = useState("")
   const [name, setName] = useState("")
   const [isOpen, setIsOpen] = useState(false)
@@ -67,6 +73,43 @@ export function Share({ investmentId, onEmailSent }: { investmentId: string, onE
       .single()
 
     if (investmentError) throw investmentError
+
+    // check if founder name and email exist in a fund
+    const { data: founderData, error: founderError } = await supabase
+      .from("users")
+      .select(
+        `
+        id,
+        name,
+        email
+      `
+      )
+      .eq("name", name)
+      .eq("email", email)
+      .single()
+
+    if (founderError) throw founderError
+
+    if (founderData) {
+      // add founder_id to investment
+      await supabase
+        .from("investments")
+        .update({ founder_id: founderData.id })
+        .eq("id", investmentId)
+    } else {
+      // create founder
+      const { data: founderData, error: founderError } = await supabase
+        .from("users")
+        .insert({ name, email })
+        .select()
+        .single()
+
+      // add founder_id to investment
+      await supabase
+        .from("investments")
+        .update({ founder_id: founderData.id })
+        .eq("id", investmentId)
+    }
 
     const body = {
       name,

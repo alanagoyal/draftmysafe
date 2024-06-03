@@ -75,8 +75,7 @@ export default function Investments({ investments }: { investments: any }) {
     const investmentData = investments.find(
       (investment: any) => investment.id === id
     )
-    const formattedDate = format(investmentData.date, "yyyy-MM-dd-HH-mm-ss")
-    const filepath = `${investmentData.company.name}-SAFE-${formattedDate}.docx`
+    const filepath = `${investmentData.id}.docx`
 
     try {
       // Download the document from Supabase storage

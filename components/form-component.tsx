@@ -249,7 +249,6 @@ export default function FormComponent({ userData }: { userData: any }) {
 
   async function onSubmit(values: FormComponentValues) {
     // Process the investment
-    const investmentId = await processInvestment(values)
     if (!isEditMode) {
       setShowConfetti(true)
       toast({
@@ -262,6 +261,7 @@ export default function FormComponent({ userData }: { userData: any }) {
         description: "Investment updated",
       })
     }
+    const investmentId = await processInvestment(values)
 
     // Generate document URL and summary and update db
     const documentUrl = await createUrl(values)
@@ -759,7 +759,6 @@ export default function FormComponent({ userData }: { userData: any }) {
   }
 
   async function saveStepOne() {
-    await processStepOne()
     if (isEditMode) {
       toast({
         description: "Investment updated",
@@ -767,13 +766,14 @@ export default function FormComponent({ userData }: { userData: any }) {
       router.push("/investments")
       router.refresh()
     }
+    await processStepOne()
   }
 
   async function advanceStepOne() {
-    await processStepOne()
     if (!isFormLocked) {
-      setStep(2) // Move to the next step only after processing is complete
+      setStep(2)
     }
+    await processStepOne()
   }
 
   async function processStepTwo() {
@@ -785,7 +785,6 @@ export default function FormComponent({ userData }: { userData: any }) {
     }
   }
   async function saveStepTwo() {
-    await processStepTwo()
     if (isEditMode) {
       toast({
         description: "Investment updated",
@@ -804,14 +803,14 @@ export default function FormComponent({ userData }: { userData: any }) {
           "Your information has been saved. You'll receive an email with the next steps once all parties have provided their information.",
       })
     }
+    await processStepTwo()
   }
 
   async function advanceStepTwo() {
-    await processStepTwo()
     if (!isFormLocked) {
-      setStep(3) // Move to the next step only after processing is complete
-      // If being shared
+      setStep(3) 
     }
+    await processStepTwo()
   }
 
   return (

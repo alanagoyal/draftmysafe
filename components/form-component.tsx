@@ -1017,13 +1017,9 @@ export default function FormComponent({ userData }: { userData: any }) {
             <>
               <div className="pt-4 flex justify-between items-center h-10">
                 <Label className="text-md font-bold">Company Details</Label>
-                {!isFormLocked && (
+                {!isFormLocked && investmentId && (
                   <Share
-                    idString={
-                      typeof window !== "undefined"
-                        ? `${window.location.origin}/new?id=${investmentId}&step=${step}&sharing=true`
-                        : ""
-                    }
+                    investmentId={investmentId}
                   />
                 )}
               </div>

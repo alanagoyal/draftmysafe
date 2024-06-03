@@ -98,7 +98,7 @@ export default function Investments({ investments }: { investments: any }) {
         content: nodeBuffer,
       }
 
-      const response = await fetch("/send-email", {
+      const response = await fetch("/send-investment-email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

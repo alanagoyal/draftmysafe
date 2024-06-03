@@ -1,10 +1,30 @@
+"use client"
+
+import { useState } from "react"
+
 import { Icons } from "./icons"
 import { Button } from "./ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card"
 import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog"
+import { FormItem, FormLabel } from "./ui/form"
 import { Input } from "./ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { toast } from "./ui/use-toast"
+import { Toast } from "./ui/toast"
 
-export function Share({ idString }: { idString: string }) {
+export function Share({ investmentId }: { investmentId: string }) {
+  const [email, setEmail] = useState("")
+  const [name, setName] = useState("")
+  const idString = typeof window !== "undefined"
+  ? `${window.location.origin}/new?id=${investmentId}&step=1&sharing=true`
+  : ""
+
   const handleCopy = () => {
     navigator.clipboard
       .writeText(idString)
@@ -22,6 +42,29 @@ export function Share({ idString }: { idString: string }) {
       })
   }
 
+  async function sendEmail() {
+    console.log(name, email)
+    console.log(investmentId)
+    const body = { name, email, url: idString }
+    try {
+      const response = await fetch(
+        "/send-form-email",
+        {
+          method: "POST",
+          body: JSON.stringify(body),
+        }
+      )
+      console.log(response)
+    } catch (error) {
+      console.error(error)
+    } finally {
+      toast({
+        title: "Email sent",
+        description: `The email has been sent to ${email}`,
+      })
+    }
+  }
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -32,19 +75,81 @@ export function Share({ idString }: { idString: string }) {
       </DialogTrigger>
       <DialogContent>
         <div className="flex flex-col space-y-2 text-center sm:text-left">
-          <h3 className="text-lg font-semibold">Share Link</h3>
-          <p className="text-sm text-muted-foreground">
-            Share this link to request the company details from the founder
-          </p>
+          <h1 className="text-xl md:text-2xl font-semibold tracking-tight">
+            Request Founder Information
+          </h1>
         </div>
-        <div className="flex items-center space-x-2 pt-2">
-          <Input id="link" defaultValue={idString} readOnly className="h-9" />
-
-          <Button type="submit" size="sm" onClick={handleCopy} className="px-3">
-            <span className="sr-only">Copy</span>
-            <Icons.copy className="h-4 w-4" />
-          </Button>
-        </div>
+        <Tabs defaultValue="email">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="email">Email</TabsTrigger>
+            <TabsTrigger value="link">Share Link</TabsTrigger>
+          </TabsList>
+          <TabsContent value="email">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold tracking-tight">
+                  Email
+                </CardTitle>
+                <CardDescription>
+                  Enter the name and email of the founder to send them this form
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col space-y-2">
+                <FormItem>
+                  <FormLabel>Founder Name</FormLabel>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    type="text"
+                  />
+                </FormItem>
+                <FormItem>
+                  <FormLabel>Founder Email</FormLabel>
+                  <Input
+                    id="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    type="email"
+                  />
+                </FormItem>
+                <Button className="w-full" onClick={sendEmail}>
+                  Send Email
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="link">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold tracking-tight">
+                  Share Link
+                </CardTitle>
+                <CardDescription>
+                  Share this link to request the company details from the
+                  founder
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex items-center space-x-2 pt-2">
+                <Input
+                  id="link"
+                  defaultValue={idString}
+                  readOnly
+                  className="h-9"
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  onClick={handleCopy}
+                  className="px-3"
+                >
+                  <span className="sr-only">Copy</span>
+                  <Icons.copy className="h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   )

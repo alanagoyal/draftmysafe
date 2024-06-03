@@ -101,6 +101,10 @@ export default function FormComponent({ userData }: { userData: any }) {
   const isFormLocked = searchParams.get("sharing") === "true"
   const isEditMode = searchParams.get("edit") === "true"
 
+  const handleStepChange = (newStep: number) => {
+    setStep(newStep)
+  }
+
   const form = useForm<FormComponentValues>({
     resolver: zodResolver(FormComponentSchema),
     defaultValues: {
@@ -1020,6 +1024,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                 {!isFormLocked && investmentId && (
                   <Share
                     investmentId={investmentId}
+                    onEmailSent={() => handleStepChange(3)}
                   />
                 )}
               </div>

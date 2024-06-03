@@ -6,14 +6,14 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(req: Request) {
   const body = await req.json()
-  const { name, email, url } = body
+  const { name, email, url, investor, fund } = body
 
   try {
     const { data, error } = await resend.emails.send({
       from: "Draftmysafe <hi@basecase.vc>",
       to: email,
-      subject: "New Draftmysafe investment",
-      react: EmailTemplate({ name, url }),
+      subject: `${fund.name} wants to make an investment`,
+      react: EmailTemplate({ name, url, investor, fund }),
     })
 
     if (error) {

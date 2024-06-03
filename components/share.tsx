@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { createClient } from "@/utils/supabase/client"
 
 import { Icons } from "./icons"
 import { Button } from "./ui/button"
@@ -16,14 +17,16 @@ import { FormItem, FormLabel } from "./ui/form"
 import { Input } from "./ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { toast } from "./ui/use-toast"
-import { Toast } from "./ui/toast"
 
-export function Share({ investmentId }: { investmentId: string }) {
+export function Share({ investmentId, onEmailSent }: { investmentId: string, onEmailSent: () => void }) {
   const [email, setEmail] = useState("")
   const [name, setName] = useState("")
-  const idString = typeof window !== "undefined"
-  ? `${window.location.origin}/new?id=${investmentId}&step=1&sharing=true`
-  : ""
+  const [isOpen, setIsOpen] = useState(false)
+  const idString =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/new?id=${investmentId}&step=2&sharing=true`
+      : ""
+  const supabase = createClient()
 
   const handleCopy = () => {
     navigator.clipboard
@@ -43,30 +46,54 @@ export function Share({ investmentId }: { investmentId: string }) {
   }
 
   async function sendEmail() {
-    console.log(name, email)
-    console.log(investmentId)
-    const body = { name, email, url: idString }
-    try {
-      const response = await fetch(
-        "/send-form-email",
-        {
-          method: "POST",
-          body: JSON.stringify(body),
-        }
+    const { data: investmentData, error: investmentError } = await supabase
+      .from("investments")
+      .select(
+        `
+        investor_id (
+          name,
+          title,
+          email
+        ),
+        fund_id (
+          name,
+          byline,
+          street,
+          city_state_zip
+        )
+      `
       )
-      console.log(response)
-    } catch (error) {
-      console.error(error)
-    } finally {
+      .eq("id", investmentId)
+      .single()
+
+    if (investmentError) throw investmentError
+
+    const body = {
+      name,
+      email,
+      url: idString,
+      investor: investmentData?.investor_id,
+      fund: investmentData?.fund_id,
+    }
+
+    try {
+      const response = await fetch("/send-form-email", {
+        method: "POST",
+        body: JSON.stringify(body),
+      })
       toast({
         title: "Email sent",
         description: `The email has been sent to ${email}`,
       })
+      setIsOpen(false)
+      onEmailSent()
+    } catch (error) {
+      console.error(error)
     }
   }
 
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="ghost">
           <span className="text-sm">Share</span>

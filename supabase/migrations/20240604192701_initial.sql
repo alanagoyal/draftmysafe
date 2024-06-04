@@ -36,7 +36,9 @@ create table "public"."investments" (
     "valuation_cap" text,
     "discount" text,
     "date" timestamp with time zone,
-    "created_by" uuid
+    "created_by" uuid,
+    "summary" text,
+    "url" text
 );
 
 
@@ -62,6 +64,8 @@ CREATE UNIQUE INDEX funds_pkey ON public.funds USING btree (id);
 CREATE UNIQUE INDEX investments_pkey ON public.investments USING btree (id);
 
 CREATE UNIQUE INDEX users_auth_id_key ON public.users USING btree (auth_id);
+
+CREATE UNIQUE INDEX users_email_key ON public.users USING btree (email);
 
 CREATE UNIQUE INDEX users_pkey ON public.users USING btree (id);
 
@@ -107,6 +111,8 @@ alter table "public"."users" validate constraint "users_auth_id_fkey";
 
 alter table "public"."users" add constraint "users_auth_id_key" UNIQUE using index "users_auth_id_key";
 
+alter table "public"."users" add constraint "users_email_key" UNIQUE using index "users_email_key";
+
 set check_function_bodies = off;
 
 CREATE OR REPLACE FUNCTION public."checkIfUser"(given_mail text)
@@ -139,7 +145,8 @@ BEGIN
   END IF;
   RETURN new;
 END;
-$function$;
+$function$
+;
 
 grant delete on table "public"."companies" to "anon";
 

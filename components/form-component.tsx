@@ -794,6 +794,8 @@ export default function FormComponent({ userData }: { userData: any }) {
         description:
           "Your information has been saved. You'll receive an email with the next steps once all parties have provided their information.",
       })
+      router.push("/investments")
+      router.refresh()
     }
     await processStepTwo()
   }

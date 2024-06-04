@@ -100,6 +100,7 @@ export default function FormComponent({ userData }: { userData: any }) {
   const [showCompanySelector, setShowCompanySelector] = useState(true)
   const isFormLocked = searchParams.get("sharing") === "true"
   const isEditMode = searchParams.get("edit") === "true"
+  const [isOwner, setIsOwner] = useState(true)
 
   const handleStepChange = (newStep: number) => {
     setStep(newStep)
@@ -166,6 +167,7 @@ export default function FormComponent({ userData }: { userData: any }) {
         valuation_cap,
         discount,
         date,
+        created_by,
         founder:users!founder_id (name, title, email),
         company:companies (id, name, street, city_state_zip, state_of_incorporation, founder_id),
         investor:users!investor_id (name, title, email),
@@ -223,6 +225,10 @@ export default function FormComponent({ userData }: { userData: any }) {
           setShowCompanySelector(false)
         }
       }
+      // If the user is editing an investment that is not theirs, lock the form
+      if (isEditMode && userData.auth_id !== data.created_by) {
+        setIsOwner(false)
+      }
     }
   }
 
@@ -249,35 +255,25 @@ export default function FormComponent({ userData }: { userData: any }) {
 
   async function onSubmit(values: FormComponentValues) {
     // Process the investment
-    if (!isEditMode) {
+    if (isEditMode) {
+      toast({
+        description: "Investment updated",
+      })
+      router.push("/investments")
+      router.refresh()
+      await processInvestment(values)
+    } else {
       setShowConfetti(true)
       toast({
         title: "Your SAFE agreement has been created",
         description:
           "You can view, edit, or download it by visiting your Investments.",
       })
-    } else {
-      toast({
-        description: "Investment updated",
-      })
+      await processInvestment(values)
+      setShowConfetti(false)
+      router.push("/investments")
+      router.refresh()
     }
-    const investmentId = await processInvestment(values)
-
-    // Check if the necessary fields are set before generating the document and URL
-    if (values.purchaseAmount && values.type && values.date) {
-      const doc = await generateDocument(values)
-      const documentUrl = await createUrl(values, doc)
-      const investmentSummary = await summarizeInvestment(values, doc)
-      const { error: investmentUpdateError } = await supabase
-        .from("investments")
-        .update({ url: documentUrl, summary: investmentSummary })
-        .eq("id", investmentId)
-      if (investmentUpdateError) throw investmentUpdateError
-    }
-
-    setShowConfetti(false)
-    router.push("/investments")
-    router.refresh()
   }
 
   async function processInvestorDetails(values: FormComponentValues) {
@@ -507,7 +503,12 @@ export default function FormComponent({ userData }: { userData: any }) {
         const { data: investmentUpdateData, error: investmentUpdateError } =
           await supabase
             .from("investments")
-            .upsert({ ...investmentData, url: documentUrl, summary: investmentSummary, id: investmentId })
+            .upsert({
+              ...investmentData,
+              url: documentUrl,
+              summary: investmentSummary,
+              id: investmentId,
+            })
             .select("id")
         if (investmentUpdateError) throw investmentUpdateError
         investmentIdResult = investmentUpdateData[0].id
@@ -762,9 +763,7 @@ export default function FormComponent({ userData }: { userData: any }) {
   }
 
   async function advanceStepOne() {
-    if (!isFormLocked) {
-      setStep(2)
-    }
+    setStep(2)
     await processStepOne()
   }
 
@@ -801,9 +800,7 @@ export default function FormComponent({ userData }: { userData: any }) {
   }
 
   async function advanceStepTwo() {
-    if (!isFormLocked) {
-      setStep(3)
-    }
+    setStep(3)
     await processStepTwo()
   }
 
@@ -834,6 +831,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                       selectedEntity={selectedEntity}
                       onSelectChange={handleSelectChange}
                       entityType="fund"
+                      disabled={!isOwner}
                     />
                     <FormDescription>
                       Choose an existing fund to be used in your signature block
@@ -848,7 +846,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                   <FormItem>
                     <FormLabel>Entity Name</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} disabled={!isOwner} />
                     </FormControl>
                     <FormDescription>
                       {formDescriptions.fundName}
@@ -864,7 +862,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                   <FormItem>
                     <FormLabel>Byline (Optional)</FormLabel>
                     <FormControl>
-                      <Textarea {...field} />
+                      <Textarea {...field} disabled={!isOwner} />
                     </FormControl>
                     <FormDescription>
                       {formDescriptions.fundByline}
@@ -880,7 +878,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                   <FormItem>
                     <FormLabel>Street Address</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} disabled={!isOwner} />
                     </FormControl>
                     <FormDescription>
                       {formDescriptions.fundStreet}
@@ -896,7 +894,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                   <FormItem>
                     <FormLabel>City, State, ZIP Code</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} disabled={!isOwner} />
                     </FormControl>
                     <FormDescription>
                       {formDescriptions.fundCityStateZip}
@@ -915,7 +913,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                   <FormItem>
                     <FormLabel>Investor Name</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} disabled={!isOwner} />
                     </FormControl>
                     <FormDescription>
                       {formDescriptions.investorName}
@@ -931,7 +929,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                   <FormItem>
                     <FormLabel>Investor Title</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} disabled={!isOwner} />
                     </FormControl>
                     <FormDescription>
                       {formDescriptions.investorTitle}
@@ -947,7 +945,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                   <FormItem>
                     <FormLabel>Investor Email</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} disabled={!isOwner} />
                     </FormControl>
                     <FormDescription>
                       {formDescriptions.investorEmail}
@@ -966,18 +964,14 @@ export default function FormComponent({ userData }: { userData: any }) {
                     Save
                   </Button>
                 )}
-                {!isFormLocked && (
-                  <Button
-                    type="button"
-                    className="w-full"
-                    onClick={advanceStepOne}
-                    variant={
-                      isEditMode || isFormLocked ? "secondary" : "default"
-                    }
-                  >
-                    Next
-                  </Button>
-                )}
+                <Button
+                  type="button"
+                  className="w-full"
+                  onClick={advanceStepOne}
+                  variant={isEditMode || isFormLocked ? "secondary" : "default"}
+                >
+                  Next
+                </Button>
               </div>
             </>
           )}
@@ -1001,6 +995,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                       selectedEntity={selectedEntity}
                       onSelectChange={handleSelectChange}
                       entityType="company"
+                      disabled={false}
                     />
                     <FormDescription>
                       Choose an existing company to be used in your signature
@@ -1133,29 +1128,27 @@ export default function FormComponent({ userData }: { userData: any }) {
                     Save
                   </Button>
                 )}
-                {!isFormLocked && (
-                  <div className="flex w-full gap-2">
-                    <Button
-                      variant="secondary"
-                      className="w-1/2"
-                      onClick={() => {
-                        setStep(1)
-                      }}
-                    >
-                      Back
-                    </Button>
-                    <Button
-                      type="button"
-                      className="w-1/2"
-                      variant={
-                        isEditMode || isFormLocked ? "secondary" : "default"
-                      }
-                      onClick={advanceStepTwo}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                )}
+                <div className="flex w-full gap-2">
+                  <Button
+                    variant="secondary"
+                    className="w-1/2"
+                    onClick={() => {
+                      setStep(1)
+                    }}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="button"
+                    className="w-1/2"
+                    variant={
+                      isEditMode || isFormLocked ? "secondary" : "default"
+                    }
+                    onClick={advanceStepTwo}
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
             </>
           )}
@@ -1173,6 +1166,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                     <FormControl>
                       <Input
                         {...field}
+                        disabled={!isOwner}
                         value={Number(
                           field.value.replace(/,/g, "")
                         ).toLocaleString()}
@@ -1200,6 +1194,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
+                      disabled={!isOwner}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -1231,6 +1226,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                       <FormControl>
                         <Input
                           {...field}
+                          disabled={!isOwner}
                           value={Number(
                             field.value?.replace(/,/g, "")
                           ).toLocaleString()}
@@ -1258,7 +1254,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                     <FormItem>
                       <FormLabel>Discount</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} disabled={!isOwner} />
                       </FormControl>
                       <FormDescription>
                         {formDescriptions.discount}
@@ -1279,6 +1275,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                         <FormControl>
                           <Button
                             variant={"outline"}
+                            disabled={!isOwner}
                             className={cn(
                               "w-full pl-3 text-left font-normal",
                               !field.value && "text-muted-foreground"

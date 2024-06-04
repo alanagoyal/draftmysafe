@@ -226,7 +226,7 @@ export default function FormComponent({ userData }: { userData: any }) {
         }
       }
       // If the user is editing an investment that is not theirs, lock the form
-      if (isEditMode && userData.auth_id !== data.created_by) {
+      if (userData.auth_id !== data.created_by) {
         setIsOwner(false)
       }
     }
@@ -260,8 +260,8 @@ export default function FormComponent({ userData }: { userData: any }) {
         description: "Investment updated",
       })
       router.push("/investments")
-      router.refresh()
       await processInvestment(values)
+      router.refresh()
     } else {
       setShowConfetti(true)
       toast({

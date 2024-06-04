@@ -468,12 +468,47 @@ to authenticated
 using (true);
 
 
-create policy "Authenticated users can update themselves"
+create policy "Authenticated users can update themselves or founders"
 on "public"."users"
 as permissive
 for update
 to public
-using ((( SELECT auth.uid() AS uid) = auth_id));
+using (((( SELECT auth.uid() AS uid) = auth_id) OR (EXISTS ( SELECT 1
+   FROM investments
+  WHERE ((investments.founder_id = users.id) AND (investments.created_by = auth.uid()))))));
+
+
+
+create policy "Authenticated users can do all flreew_0"
+on "storage"."objects"
+as permissive
+for select
+to public
+using ((bucket_id = 'documents'::text));
+
+
+create policy "Authenticated users can do all flreew_1"
+on "storage"."objects"
+as permissive
+for insert
+to public
+with check ((bucket_id = 'documents'::text));
+
+
+create policy "Authenticated users can do all flreew_2"
+on "storage"."objects"
+as permissive
+for update
+to public
+using ((bucket_id = 'documents'::text));
+
+
+create policy "Authenticated users can do all flreew_3"
+on "storage"."objects"
+as permissive
+for delete
+to public
+using ((bucket_id = 'documents'::text));
 
 
 

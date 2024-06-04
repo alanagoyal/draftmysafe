@@ -263,15 +263,17 @@ export default function FormComponent({ userData }: { userData: any }) {
     }
     const investmentId = await processInvestment(values)
 
-    // Generate document URL and summary and update db
-    const documentUrl = await createUrl(values)
-    const investmentSummary = await summarizeInvestment(values)
-    const { error: investmentUpdateError } = await supabase
-      .from("investments")
-      .update({ url: documentUrl, summary: investmentSummary })
-      .eq("id", investmentId)
+    // Check if the necessary fields are set before generating the document and URL
+    if (values.purchaseAmount && values.type && values.date) {
+      const documentUrl = await createUrl(values)
+      const investmentSummary = await summarizeInvestment(values)
+      const { error: investmentUpdateError } = await supabase
+        .from("investments")
+        .update({ url: documentUrl, summary: investmentSummary })
+        .eq("id", investmentId)
 
-    if (investmentUpdateError) throw investmentUpdateError
+      if (investmentUpdateError) throw investmentUpdateError
+    }
 
     setShowConfetti(false)
     router.push("/investments")
@@ -508,18 +510,6 @@ export default function FormComponent({ userData }: { userData: any }) {
         investmentIdResult = investmentUpdateData[0].id
         setInvestmentId(investmentIdResult)
       }
-
-      // Always generate a new document URL and summary
-      const documentUrl = await createUrl(values);
-      const investmentSummary = await summarizeInvestment(values);
-
-      // Update the investment with the new URL and summary
-      const { error: updateError } = await supabase
-        .from("investments")
-        .update({ url: documentUrl, summary: investmentSummary })
-        .eq("id", investmentIdResult);
-
-      if (updateError) throw updateError
 
       return investmentIdResult
     } catch (error) {
@@ -808,7 +798,7 @@ export default function FormComponent({ userData }: { userData: any }) {
 
   async function advanceStepTwo() {
     if (!isFormLocked) {
-      setStep(3) 
+      setStep(3)
     }
     await processStepTwo()
   }

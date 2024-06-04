@@ -74,33 +74,20 @@ export function Share({
 
     if (investmentError) throw investmentError
 
-    // Check if founder exists in the database
+    // Upsert founder information
     const { data: founderData, error: founderError } = await supabase
       .from("users")
-      .select()
-      .eq("email", email)
+      .upsert({ name, email }, { onConflict: "email" })
+      .select("id")
       .single()
 
-    if (founderData) {
-      // Add founder_id to investment
-      await supabase
-        .from("investments")
-        .update({ founder_id: founderData.id })
-        .eq("id", investmentId)
-    } else {
-      // Create founder
-      const { data: founderData, error: founderError } = await supabase
-        .from("users")
-        .insert({ name, email })
-        .select()
-        .single()
+    if (founderError) throw founderError
 
-      // Add new founder_id to investment
-      await supabase
-        .from("investments")
-        .update({ founder_id: founderData.id })
-        .eq("id", investmentId)
-    }
+    // Update investment with founder_id
+    const updateResponse = await supabase
+      .from("investments")
+      .update({ founder_id: founderData.id })
+      .eq("id", investmentId)
 
     const body = {
       name,

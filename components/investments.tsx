@@ -2,11 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
-import { format } from "date-fns"
-import Docxtemplater from "docxtemplater"
 import { Plus } from "lucide-react"
-import PizZip from "pizzip"
-
 import { Icons } from "./icons"
 import { Button } from "./ui/button"
 import {
@@ -75,8 +71,7 @@ export default function Investments({ investments }: { investments: any }) {
     const investmentData = investments.find(
       (investment: any) => investment.id === id
     )
-    const formattedDate = format(investmentData.date, "yyyy-MM-dd-HH-mm-ss")
-    const filepath = `${investmentData.company.name}-SAFE-${formattedDate}.docx`
+    const filepath = `${investmentData.id}.docx`
 
     try {
       // Download the document from Supabase storage
@@ -98,7 +93,7 @@ export default function Investments({ investments }: { investments: any }) {
         content: nodeBuffer,
       }
 
-      const response = await fetch("/send-email", {
+      const response = await fetch("/send-investment-email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

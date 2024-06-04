@@ -101,6 +101,10 @@ export default function FormComponent({ userData }: { userData: any }) {
   const isFormLocked = searchParams.get("sharing") === "true"
   const isEditMode = searchParams.get("edit") === "true"
 
+  const handleStepChange = (newStep: number) => {
+    setStep(newStep)
+  }
+
   const form = useForm<FormComponentValues>({
     resolver: zodResolver(FormComponentSchema),
     defaultValues: {
@@ -132,7 +136,7 @@ export default function FormComponent({ userData }: { userData: any }) {
       if (isFormLocked) {
         form.reset({
           ...form.getValues(),
-          founderEmail: userData.email, // Assuming userData.email holds the authenticated user's email
+          founderEmail: userData.email,
         })
       }
     }
@@ -245,7 +249,6 @@ export default function FormComponent({ userData }: { userData: any }) {
 
   async function onSubmit(values: FormComponentValues) {
     // Process the investment
-    const investmentId = await processInvestment(values)
     if (!isEditMode) {
       setShowConfetti(true)
       toast({
@@ -258,16 +261,19 @@ export default function FormComponent({ userData }: { userData: any }) {
         description: "Investment updated",
       })
     }
+    const investmentId = await processInvestment(values)
 
-    // Generate document URL and summary and update db
-    const documentUrl = await createUrl(values)
-    const investmentSummary = await summarizeInvestment(values)
-    const { error: investmentUpdateError } = await supabase
-      .from("investments")
-      .update({ url: documentUrl, summary: investmentSummary })
-      .eq("id", investmentId)
-
-    if (investmentUpdateError) throw investmentUpdateError
+    // Check if the necessary fields are set before generating the document and URL
+    if (values.purchaseAmount && values.type && values.date) {
+      const doc = await generateDocument(values)
+      const documentUrl = await createUrl(values, doc)
+      const investmentSummary = await summarizeInvestment(values, doc)
+      const { error: investmentUpdateError } = await supabase
+        .from("investments")
+        .update({ url: documentUrl, summary: investmentSummary })
+        .eq("id", investmentId)
+      if (investmentUpdateError) throw investmentUpdateError
+    }
 
     setShowConfetti(false)
     router.push("/investments")
@@ -495,32 +501,17 @@ export default function FormComponent({ userData }: { userData: any }) {
         investmentIdResult = investmentInsertData[0].id
         setInvestmentId(investmentIdResult)
       } else {
+        const doc = await generateDocument(values)
+        const documentUrl = await createUrl(values, doc)
+        const investmentSummary = await summarizeInvestment(values, doc)
         const { data: investmentUpdateData, error: investmentUpdateError } =
           await supabase
             .from("investments")
-            .upsert({ ...investmentData, id: investmentId })
+            .upsert({ ...investmentData, url: documentUrl, summary: investmentSummary, id: investmentId })
             .select("id")
         if (investmentUpdateError) throw investmentUpdateError
         investmentIdResult = investmentUpdateData[0].id
         setInvestmentId(investmentIdResult)
-      }
-
-      // Check if the document URL exists before generating a summary
-      const { data: investmentDetails, error: fetchError } = await supabase
-        .from("investments")
-        .select("url")
-        .eq("id", investmentIdResult)
-        .single()
-
-      if (fetchError) throw fetchError
-
-      if (investmentDetails?.url) {
-        // Generate a new summary after updating investment details
-        const newSummary = await summarizeInvestment(values)
-        await supabase
-          .from("investments")
-          .update({ summary: newSummary })
-          .eq("id", investmentIdResult)
       }
 
       return investmentIdResult
@@ -531,37 +522,13 @@ export default function FormComponent({ userData }: { userData: any }) {
   }
 
   async function createUrl(
-    values: FormComponentValues
+    values: FormComponentValues,
+    doc: Docxtemplater
   ): Promise<string | null> {
-    const formattedDate = format(values.date, "yyyy-MM-dd-HH-mm-ss")
-    const filepath = `${values.companyName}-SAFE-${formattedDate}.docx`
+    const filepath = `${investmentId}.docx`
 
     try {
-      // Check if the file exists in the storage
-      const { data: fileList, error: listError } = await supabase.storage
-        .from("documents")
-        .list("", {
-          limit: 1,
-          offset: 0,
-          sortBy: { column: "name", order: "asc" },
-          search: filepath,
-        })
-
-      // If the file exists, attempt to create a signed URL
-      if (fileList && fileList.length > 0) {
-        const { data: signedUrlData, error: signedUrlError } =
-          await supabase.storage
-            .from("documents")
-            .createSignedUrl(filepath, 3600)
-        if (signedUrlError) {
-          console.error("Failed to create signed URL:", signedUrlError)
-          return null
-        }
-        return signedUrlData?.signedUrl || null
-      }
-
       // If the file does not exist, generate and upload it
-      const doc = await generateDocument(values)
       const file = doc.getZip().generate({ type: "nodebuffer" })
       const { error: uploadError } = await supabase.storage
         .from("documents")
@@ -597,7 +564,7 @@ export default function FormComponent({ userData }: { userData: any }) {
 
   async function generateDocument(values: FormComponentValues) {
     const formattedDate = formatSubmissionDate(values.date)
-    const templateFileName = selectTemplate(values.type)
+    const templateFileName = selectTemplate(values.type || "mfn")
     const doc = await loadAndPrepareTemplate(
       templateFileName,
       values,
@@ -641,7 +608,7 @@ export default function FormComponent({ userData }: { userData: any }) {
       case "mfn":
         return "SAFE-MFN.docx"
       default:
-        return ""
+        return "SAFE-MFN.docx"
     }
   }
 
@@ -682,11 +649,10 @@ export default function FormComponent({ userData }: { userData: any }) {
   }
 
   async function summarizeInvestment(
-    values: FormComponentValues
+    values: FormComponentValues,
+    doc: Docxtemplater
   ): Promise<string | null> {
     try {
-      // Convert DOCX to HTML using Mammoth
-      const doc = await generateDocument(values)
       const blob = doc.getZip().generate({ type: "blob" })
       const arrayBuffer = await blob.arrayBuffer()
       const { value: htmlContent } = await mammoth.convertToHtml({
@@ -785,7 +751,6 @@ export default function FormComponent({ userData }: { userData: any }) {
   }
 
   async function saveStepOne() {
-    await processStepOne()
     if (isEditMode) {
       toast({
         description: "Investment updated",
@@ -793,13 +758,14 @@ export default function FormComponent({ userData }: { userData: any }) {
       router.push("/investments")
       router.refresh()
     }
+    await processStepOne()
   }
 
   async function advanceStepOne() {
-    await processStepOne()
     if (!isFormLocked) {
-      setStep(2) // Move to the next step only after processing is complete
+      setStep(2)
     }
+    await processStepOne()
   }
 
   async function processStepTwo() {
@@ -811,7 +777,6 @@ export default function FormComponent({ userData }: { userData: any }) {
     }
   }
   async function saveStepTwo() {
-    await processStepTwo()
     if (isEditMode) {
       toast({
         description: "Investment updated",
@@ -819,14 +784,7 @@ export default function FormComponent({ userData }: { userData: any }) {
       router.push("/investments")
       router.refresh()
     }
-  }
-
-  async function advanceStepTwo() {
-    await processStepTwo()
-    if (!isFormLocked) {
-      setStep(3) // Move to the next step only after processing is complete
-      // If being shared
-    } else {
+    if (isFormLocked) {
       setShowConfetti(true)
       setTimeout(() => {
         setShowConfetti(false)
@@ -837,6 +795,14 @@ export default function FormComponent({ userData }: { userData: any }) {
           "Your information has been saved. You'll receive an email with the next steps once all parties have provided their information.",
       })
     }
+    await processStepTwo()
+  }
+
+  async function advanceStepTwo() {
+    if (!isFormLocked) {
+      setStep(3)
+    }
+    await processStepTwo()
   }
 
   return (
@@ -1017,13 +983,10 @@ export default function FormComponent({ userData }: { userData: any }) {
             <>
               <div className="pt-4 flex justify-between items-center h-10">
                 <Label className="text-md font-bold">Company Details</Label>
-                {!isFormLocked && (
+                {!isFormLocked && investmentId && (
                   <Share
-                    idString={
-                      typeof window !== "undefined"
-                        ? `${window.location.origin}/new?id=${investmentId}&step=${step}&sharing=true`
-                        : ""
-                    }
+                    investmentId={investmentId}
+                    onEmailSent={() => handleStepChange(3)}
                   />
                 )}
               </div>

@@ -74,37 +74,28 @@ export function Share({
 
     if (investmentError) throw investmentError
 
-    // check if founder name and email exist in a fund
+    // Check if founder exists in the database
     const { data: founderData, error: founderError } = await supabase
       .from("users")
-      .select(
-        `
-        id,
-        name,
-        email
-      `
-      )
-      .eq("name", name)
+      .select()
       .eq("email", email)
       .single()
 
-    if (founderError) throw founderError
-
     if (founderData) {
-      // add founder_id to investment
+      // Add founder_id to investment
       await supabase
         .from("investments")
         .update({ founder_id: founderData.id })
         .eq("id", investmentId)
     } else {
-      // create founder
+      // Create founder
       const { data: founderData, error: founderError } = await supabase
         .from("users")
         .insert({ name, email })
         .select()
         .single()
 
-      // add founder_id to investment
+      // Add new founder_id to investment
       await supabase
         .from("investments")
         .update({ founder_id: founderData.id })

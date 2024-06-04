@@ -136,7 +136,7 @@ export default function FormComponent({ userData }: { userData: any }) {
       if (isFormLocked) {
         form.reset({
           ...form.getValues(),
-          founderEmail: userData.email, // Assuming userData.email holds the authenticated user's email
+          founderEmail: userData.email,
         })
       }
     }
@@ -265,13 +265,13 @@ export default function FormComponent({ userData }: { userData: any }) {
 
     // Check if the necessary fields are set before generating the document and URL
     if (values.purchaseAmount && values.type && values.date) {
-      const documentUrl = await createUrl(values)
-      const investmentSummary = await summarizeInvestment(values)
+      const doc = await generateDocument(values)
+      const documentUrl = await createUrl(values, doc)
+      const investmentSummary = await summarizeInvestment(values, doc)
       const { error: investmentUpdateError } = await supabase
         .from("investments")
         .update({ url: documentUrl, summary: investmentSummary })
         .eq("id", investmentId)
-
       if (investmentUpdateError) throw investmentUpdateError
     }
 
@@ -501,10 +501,13 @@ export default function FormComponent({ userData }: { userData: any }) {
         investmentIdResult = investmentInsertData[0].id
         setInvestmentId(investmentIdResult)
       } else {
+        const doc = await generateDocument(values)
+        const documentUrl = await createUrl(values, doc)
+        const investmentSummary = await summarizeInvestment(values, doc)
         const { data: investmentUpdateData, error: investmentUpdateError } =
           await supabase
             .from("investments")
-            .upsert({ ...investmentData, id: investmentId })
+            .upsert({ ...investmentData, url: documentUrl, summary: investmentSummary, id: investmentId })
             .select("id")
         if (investmentUpdateError) throw investmentUpdateError
         investmentIdResult = investmentUpdateData[0].id
@@ -519,13 +522,13 @@ export default function FormComponent({ userData }: { userData: any }) {
   }
 
   async function createUrl(
-    values: FormComponentValues
+    values: FormComponentValues,
+    doc: Docxtemplater
   ): Promise<string | null> {
     const filepath = `${investmentId}.docx`
 
     try {
       // If the file does not exist, generate and upload it
-      const doc = await generateDocument(values)
       const file = doc.getZip().generate({ type: "nodebuffer" })
       const { error: uploadError } = await supabase.storage
         .from("documents")
@@ -561,7 +564,7 @@ export default function FormComponent({ userData }: { userData: any }) {
 
   async function generateDocument(values: FormComponentValues) {
     const formattedDate = formatSubmissionDate(values.date)
-    const templateFileName = selectTemplate(values.type)
+    const templateFileName = selectTemplate(values.type || "mfn")
     const doc = await loadAndPrepareTemplate(
       templateFileName,
       values,
@@ -605,7 +608,7 @@ export default function FormComponent({ userData }: { userData: any }) {
       case "mfn":
         return "SAFE-MFN.docx"
       default:
-        return ""
+        return "SAFE-MFN.docx"
     }
   }
 
@@ -646,11 +649,10 @@ export default function FormComponent({ userData }: { userData: any }) {
   }
 
   async function summarizeInvestment(
-    values: FormComponentValues
+    values: FormComponentValues,
+    doc: Docxtemplater
   ): Promise<string | null> {
     try {
-      // Convert DOCX to HTML using Mammoth
-      const doc = await generateDocument(values)
       const blob = doc.getZip().generate({ type: "blob" })
       const arrayBuffer = await blob.arrayBuffer()
       const { value: htmlContent } = await mammoth.convertToHtml({

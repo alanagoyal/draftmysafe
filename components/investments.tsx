@@ -162,6 +162,8 @@ export default function Investments({ investments }: { investments: any }) {
               </TableCell>
               <TableCell>
                 {formatInvestmentType(investment.investment_type)}
+                {investment.investment_type === "valuation-cap" && ` ($${investment.valuation_cap})`}
+                {investment.investment_type === "discount" && ` (${investment.discount}%)`}
               </TableCell>
               <TableCell>
                 {investment.purchase_amount ? (

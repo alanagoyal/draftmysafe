@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
 import { Plus } from "lucide-react"
+
 import { Icons } from "./icons"
 import { Button } from "./ui/button"
 import {
@@ -31,6 +32,7 @@ export default function Investments({ investments }: { investments: any }) {
 
   // Mapping investment types to user-friendly strings
   type InvestmentTypeKey = "valuation-cap" | "discount" | "mfn"
+
   const formatInvestmentType = (
     type: InvestmentTypeKey | string
   ): JSX.Element | string => {
@@ -45,6 +47,21 @@ export default function Investments({ investments }: { investments: any }) {
     return investmentTypes[type as InvestmentTypeKey] || type
   }
 
+  const canSendEmail = (investment: any) => {
+    return (
+      investment.founder &&
+      investment.founder.email &&
+      investment.company &&
+      investment.company.name &&
+      investment.fund &&
+      investment.fund.name &&
+      investment.investment_type &&
+      investment.purchase_amount &&
+      investment.date &&
+      investment.url &&
+      investment.summary
+    )
+  }
   // Reusable Tooltip for missing information
   const MissingInfoTooltip = ({ message }: { message: string }) => (
     <span className="text-red-500">
@@ -162,8 +179,10 @@ export default function Investments({ investments }: { investments: any }) {
               </TableCell>
               <TableCell>
                 {formatInvestmentType(investment.investment_type)}
-                {investment.investment_type === "valuation-cap" && ` ($${investment.valuation_cap})`}
-                {investment.investment_type === "discount" && ` (${investment.discount}%)`}
+                {investment.investment_type === "valuation-cap" &&
+                  ` ($${investment.valuation_cap})`}
+                {investment.investment_type === "discount" &&
+                  ` (${investment.discount}%)`}
               </TableCell>
               <TableCell>
                 {investment.purchase_amount ? (
@@ -187,11 +206,13 @@ export default function Investments({ investments }: { investments: any }) {
                           Download
                         </DropdownMenuItem>
                       )}
-                      <DropdownMenuItem
-                        onClick={() => sendEmail(investment.id)}
-                      >
-                        Send
-                      </DropdownMenuItem>
+                      {canSendEmail(investment) && (
+                        <DropdownMenuItem
+                          onClick={() => sendEmail(investment.id)}
+                        >
+                          Send
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem
                         onClick={() => editInvestment(investment.id)}
                       >

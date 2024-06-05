@@ -269,8 +269,11 @@ export default function FormComponent({ userData }: { userData: any }) {
         description:
           "You can view, edit, or download it by visiting your Investments.",
       })
-      await processInvestment(values)
-      setShowConfetti(false)
+      try {
+        await processInvestment(values)
+      } finally {
+        setShowConfetti(false)
+      }
       router.push("/investments")
       router.refresh()
     }
@@ -775,6 +778,7 @@ export default function FormComponent({ userData }: { userData: any }) {
       await processInvestment(values, null, null, founderId, companyId)
     }
   }
+  
   async function saveStepTwo() {
     if (isEditMode) {
       toast({
@@ -784,17 +788,20 @@ export default function FormComponent({ userData }: { userData: any }) {
     }
     if (isFormLocked) {
       setShowConfetti(true)
-      setTimeout(() => {
+      try {
+        await processStepTwo()
+      } finally {
         setShowConfetti(false)
-      }, 10000)
+      }
       toast({
         title: "Congratulations!",
         description:
           "Your information has been saved. You'll receive an email with the next steps once all parties have provided their information.",
       })
       router.push("/investments")
+    } else {
+      await processStepTwo()
     }
-    await processStepTwo()
     router.refresh()
   }
 

@@ -757,9 +757,9 @@ export default function FormComponent({ userData }: { userData: any }) {
         description: "Investment updated",
       })
       router.push("/investments")
-      router.refresh()
     }
     await processStepOne()
+    router.refresh()
   }
 
   async function advanceStepOne() {
@@ -781,7 +781,6 @@ export default function FormComponent({ userData }: { userData: any }) {
         description: "Investment updated",
       })
       router.push("/investments")
-      router.refresh()
     }
     if (isFormLocked) {
       setShowConfetti(true)
@@ -794,9 +793,9 @@ export default function FormComponent({ userData }: { userData: any }) {
           "Your information has been saved. You'll receive an email with the next steps once all parties have provided their information.",
       })
       router.push("/investments")
-      router.refresh()
     }
     await processStepTwo()
+    router.refresh()
   }
 
   async function advanceStepTwo() {

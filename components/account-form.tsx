@@ -531,6 +531,7 @@ export default function AccountForm({
                 selectedEntity={selectedEntity}
                 onSelectChange={handleSelectChange}
                 entityType="both"
+                disabled={false}
               />
             </div>
             {renderAdditionalFields()}

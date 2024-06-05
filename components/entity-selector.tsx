@@ -13,6 +13,7 @@ type EntitySelectorProps = {
   selectedEntity: string | undefined
   onSelectChange: (value: string) => void
   entityType: "fund" | "company" | "both"
+  disabled: boolean
 }
 
 export function EntitySelector({
@@ -20,6 +21,7 @@ export function EntitySelector({
   selectedEntity,
   onSelectChange,
   entityType,
+  disabled,
 }: EntitySelectorProps) {
   const filteredEntities = entities.filter(
     (item) => entityType === "both" || item.type === entityType
@@ -31,6 +33,7 @@ export function EntitySelector({
         key={`select-${entities.length}`}
         value={selectedEntity}
         onValueChange={onSelectChange}
+        disabled={disabled}
       >
         <SelectTrigger className="w-full">
           <SelectValue

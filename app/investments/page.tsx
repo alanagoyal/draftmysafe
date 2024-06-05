@@ -34,12 +34,13 @@ export default async function InvestmentsPage() {
         valuation_cap,
         discount,
         date,
-        founder:users!founder_id (name, title, email),
-        company:companies (name, street, city_state_zip, state_of_incorporation),
-        investor:users!investor_id (name, title, email),
-        fund:funds (name, byline, street, city_state_zip),
+        founder:users!founder_id (id, name, title, email),
+        company:companies (id, name, street, city_state_zip, state_of_incorporation),
+        investor:users!investor_id (id, name, title, email),
+        fund:funds (id, name, byline, street, city_state_zip),
         url,
-        summary
+        summary,
+        created_by
       `
     )
     .or(`investor_id.eq.${userData.id},founder_id.eq.${userData.id},created_by.eq.${userData.auth_id}`)
@@ -50,7 +51,7 @@ export default async function InvestmentsPage() {
 
   return investmentData && investmentData.length > 0 ? (
     <div className="flex w-full justify-center min-h-screen">
-      <Investments investments={investmentData} />
+      <Investments investments={investmentData} userData={userData}/>
     </div>
   ) : (
     <div className="w-full px-4 flex justify-center items-center flex-col min-h-screen">

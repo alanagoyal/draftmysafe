@@ -26,7 +26,7 @@ const downloadInvestmentFile = (url: string) => {
   window.open(url, "_blank")
 }
 
-export default function Investments({ investments }: { investments: any }) {
+export default function Investments({ investments, userData }: { investments: any, userData: any }) {
   const router = useRouter()
   const supabase = createClient()
 
@@ -47,8 +47,17 @@ export default function Investments({ investments }: { investments: any }) {
     return investmentTypes[type as InvestmentTypeKey] || type
   }
 
+  const isOwner = (investment: any) => {
+    return investment.created_by === userData.auth_id
+  }
+
+  const isFounder = (investment: any) => {
+    return investment.founder.id === userData.id
+  }
+
   const canSendEmail = (investment: any) => {
     return (
+      isOwner(investment) &&
       investment.founder &&
       investment.founder.email &&
       investment.company &&
@@ -70,12 +79,16 @@ export default function Investments({ investments }: { investments: any }) {
     </span>
   )
 
-  const editInvestment = (id: string) => {
-    router.push(`/new?id=${id}&edit=true`)
+  const editInvestment = (investment: any) => {
+    if (isOwner(investment)) {
+      router.push(`/new?id=${investment.id}&edit=true`)
+    } else if (isFounder(investment)) {
+      router.push(`/new?id=${investment.id}&edit=true&step=2`)
+    }
   }
 
-  async function deleteInvestment(id: string) {
-    const { error } = await supabase.from("investments").delete().eq("id", id)
+  async function deleteInvestment(investment: any) {
+    const { error } = await supabase.from("investments").delete().eq("id", investment.id)
     if (error) throw error
     toast({
       title: "Investment deleted",
@@ -84,11 +97,8 @@ export default function Investments({ investments }: { investments: any }) {
     router.refresh()
   }
 
-  async function sendEmail(id: string) {
-    const investmentData = investments.find(
-      (investment: any) => investment.id === id
-    )
-    const filepath = `${investmentData.id}.docx`
+  async function sendEmail(investment: any) {
+    const filepath = `${investment.id}.docx`
 
     try {
       // Download the document from Supabase storage
@@ -106,7 +116,7 @@ export default function Investments({ investments }: { investments: any }) {
 
       // Prepare the email body
       const body = {
-        investmentData: investmentData,
+        investmentData: investment,
         content: nodeBuffer,
       }
 
@@ -122,7 +132,7 @@ export default function Investments({ investments }: { investments: any }) {
     } finally {
       toast({
         title: "Email sent",
-        description: `The email has been sent to ${investmentData.founder.email}`,
+        description: `The email has been sent to ${investment.founder.email}`,
       })
     }
   }
@@ -199,7 +209,7 @@ export default function Investments({ investments }: { investments: any }) {
                       <Icons.menu className="h-4 w-4 ml-2" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
-                      {investment.url && (
+                      {isOwner(investment) && investment.url && (
                         <DropdownMenuItem
                           onClick={() => downloadInvestmentFile(investment.url)}
                         >
@@ -208,18 +218,18 @@ export default function Investments({ investments }: { investments: any }) {
                       )}
                       {canSendEmail(investment) && (
                         <DropdownMenuItem
-                          onClick={() => sendEmail(investment.id)}
+                          onClick={() => sendEmail(investment)}
                         >
                           Send
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem
-                        onClick={() => editInvestment(investment.id)}
+                        onClick={() => editInvestment(investment)}
                       >
                         Edit
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => deleteInvestment(investment.id)}
+                        onClick={() => deleteInvestment(investment)}
                       >
                         Delete
                       </DropdownMenuItem>

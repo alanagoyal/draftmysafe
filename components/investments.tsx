@@ -26,7 +26,13 @@ const downloadInvestmentFile = (url: string) => {
   window.open(url, "_blank")
 }
 
-export default function Investments({ investments, userData }: { investments: any, userData: any }) {
+export default function Investments({
+  investments,
+  userData,
+}: {
+  investments: any
+  userData: any
+}) {
   const router = useRouter()
   const supabase = createClient()
 
@@ -88,7 +94,10 @@ export default function Investments({ investments, userData }: { investments: an
   }
 
   async function deleteInvestment(investment: any) {
-    const { error } = await supabase.from("investments").delete().eq("id", investment.id)
+    const { error } = await supabase
+      .from("investments")
+      .delete()
+      .eq("id", investment.id)
     if (error) throw error
     toast({
       title: "Investment deleted",
@@ -140,15 +149,10 @@ export default function Investments({ investments, userData }: { investments: an
   return (
     <div className="flex flex-col items-center min-h-screen py-2 w-4/5">
       <div className="flex justify-between items-center w-full">
-        <h1 className="text-2xl ml-28 font-bold text-center flex-grow">
+        <h1 className="text-2xl font-bold">
           Investments
         </h1>
-        <Button
-          variant="ghost"
-          onClick={() => router.push("/new")}
-          className="w-28"
-        >
-          <Plus className="mr-2 h-4 w-4" />
+        <Button onClick={() => router.push("/new")}>
           <span>Generate</span>
         </Button>
       </div>
@@ -217,9 +221,7 @@ export default function Investments({ investments, userData }: { investments: an
                         </DropdownMenuItem>
                       )}
                       {canSendEmail(investment) && (
-                        <DropdownMenuItem
-                          onClick={() => sendEmail(investment)}
-                        >
+                        <DropdownMenuItem onClick={() => sendEmail(investment)}>
                           Send
                         </DropdownMenuItem>
                       )}

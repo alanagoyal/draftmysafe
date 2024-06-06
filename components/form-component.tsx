@@ -811,13 +811,10 @@ export default function FormComponent({ userData }: { userData: any }) {
   }
 
   return (
-    <div className="flex flex-col items-center min-h-screen py-2 w-2/3">
+    <div className="flex flex-col items-left min-h-screen py-2 w-4/5">
       <AuthRefresh />
       {showConfetti && <Confetti />}
-      <h1 className="text-4xl font-bold mb-4">Get Started</h1>
-      <h3 className="text-sm text-gray-500 mb-4">
-        Your next unicorn investment is just a few clicks away
-      </h3>
+      <h1 className="text-2xl font-bold">Get Started</h1>
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}

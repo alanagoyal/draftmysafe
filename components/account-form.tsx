@@ -464,11 +464,11 @@ export default function AccountForm({
   }
 
   return (
-    <div className="flex flex-col items-center min-h-screen py-2 w-2/3">
+    <div className="flex flex-col items-start min-h-screen py-2 w-4/5">
       <AuthRefresh />
-      <h1 className="text-2xl font-bold mb-4">Account</h1>
+      <h1 className="text-2xl font-bold">Account</h1>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2 w-full">
           <div className="pt-4">
             <Label className="text-md font-bold">Personal Information</Label>
           </div>
@@ -520,8 +520,8 @@ export default function AccountForm({
               </FormItem>
             )}
           />
-          <div className="space-y-4">
-            <div className="space-y-2">
+          <div className="space-y-4 w-full">
+            <div className="space-y-2 w-full">
               <div className="pt-4 pb-2">
                 <Label className="text-md font-bold">Entity Information</Label>
               </div>

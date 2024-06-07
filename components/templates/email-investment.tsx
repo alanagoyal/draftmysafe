@@ -1,11 +1,10 @@
-import * as React from "react"
+import * as React from "react";
+import parse from "html-react-parser";
 
 interface EmailTemplateProps {
-  emailContent: string
+  emailContent: string;
 }
 
 export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({
   emailContent,
-}) => (
-  <div dangerouslySetInnerHTML={{ __html: emailContent }} />
-)
+}) => <div>{parse(emailContent)}</div>;

@@ -129,7 +129,7 @@ export default function Investments({
       <div>
         <p>Hi ${investment.founder.name.split(" ")[0]},</p><br>
         <p>
-          ${investment.fund.name} has shared a SAFE agreement with you.
+          Summary: ${investment.fund.name} has shared a SAFE agreement with you.
           Please find the document attached to this email and find a brief
           summary of the document and its terms below.
         </p><br>

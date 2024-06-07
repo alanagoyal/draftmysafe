@@ -17,6 +17,7 @@ import { cn, formDescriptions } from "@/lib/utils"
 
 import AuthRefresh from "./auth-refresh"
 import { EntitySelector } from "./entity-selector"
+import { Icons } from "./icons"
 import { Share } from "./share"
 import { Button } from "./ui/button"
 import { Calendar } from "./ui/calendar"
@@ -101,6 +102,7 @@ export default function FormComponent({ userData }: { userData: any }) {
   const isFormLocked = searchParams.get("sharing") === "true"
   const isEditMode = searchParams.get("edit") === "true"
   const [isOwner, setIsOwner] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleStepChange = (newStep: number) => {
     setStep(newStep)
@@ -477,6 +479,7 @@ export default function FormComponent({ userData }: { userData: any }) {
     founderId?: string | null,
     companyId?: string | null
   ): Promise<string | null> {
+    setIsLoading(true)
     try {
       const investmentData: InvestmentData = {
         ...(founderId && { founder_id: founderId }),
@@ -522,6 +525,8 @@ export default function FormComponent({ userData }: { userData: any }) {
     } catch (error) {
       console.error("Error processing investment details:", error)
       return null
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -778,7 +783,7 @@ export default function FormComponent({ userData }: { userData: any }) {
       await processInvestment(values, null, null, founderId, companyId)
     }
   }
-  
+
   async function saveStepTwo() {
     if (isEditMode) {
       toast({
@@ -964,7 +969,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                     className="w-full"
                     onClick={saveStepOne}
                   >
-                    Save
+                    {isLoading ? <Icons.spinner /> : "Save"}
                   </Button>
                 )}
                 <Button
@@ -973,7 +978,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                   onClick={advanceStepOne}
                   variant={isEditMode || isFormLocked ? "secondary" : "default"}
                 >
-                  Next
+                  {isLoading ? <Icons.spinner /> : "Next"}
                 </Button>
               </div>
             </>
@@ -1128,7 +1133,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                     className="w-full"
                     onClick={saveStepTwo}
                   >
-                    Save
+                    {isLoading ? <Icons.spinner /> : "Save"}
                   </Button>
                 )}
                 <div className="flex w-full gap-2">
@@ -1139,7 +1144,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                       setStep(1)
                     }}
                   >
-                    Back
+                    Back{" "}
                   </Button>
                   <Button
                     type="button"
@@ -1149,7 +1154,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                     }
                     onClick={advanceStepTwo}
                   >
-                    Next
+                    {isLoading ? <Icons.spinner /> : "Next"}
                   </Button>
                 </div>
               </div>

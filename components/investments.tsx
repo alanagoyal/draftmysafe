@@ -127,13 +127,13 @@ export default function Investments({
   const emailContent = (investment: any) => {
     return `
       <div>
-        <p>Hi ${investment.founder.name.split(" ")[0]},</p>
+        <p>Hi ${investment.founder.name.split(" ")[0]},</p><br>
         <p>
           ${investment.fund.name} has shared a SAFE agreement with you.
           Please find the document attached to this email and find a brief
           summary of the document and its terms below.
-        </p>
-        <p>${investment.summary}</p>
+        </p><br>
+        <p>${investment.summary}</p><br>
         <p>
           Disclaimer: This summary is for informational purposes only and does
           not constitute legal advice. For any legal matters or specific
@@ -163,10 +163,13 @@ export default function Investments({
       const buffer = await data.arrayBuffer()
       const nodeBuffer = Buffer.from(buffer)
 
+      // Remove <br> tags from the email content before sending
+      const emailContentToSend = editableEmailContent.replace(/<br\s*\/?>/gi, '');
+
       const body = {
         investmentData: investment,
         attachment: nodeBuffer,
-        emailContent: editableEmailContent,
+        emailContent: emailContentToSend,
       }
 
       const response = await fetch("/send-investment-email", {

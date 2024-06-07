@@ -4,11 +4,8 @@ import { useState } from "react"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
-import { Plus } from "lucide-react"
-
 import { Icons } from "./icons"
 import { Button } from "./ui/button"
-import { Card, CardContent, CardDescription, CardTitle } from "./ui/card"
 import {
   Dialog,
   DialogContent,

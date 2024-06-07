@@ -1,11 +1,22 @@
 "use client"
 
+import { useState } from "react"
+import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
 import { Plus } from "lucide-react"
 
 import { Icons } from "./icons"
 import { Button } from "./ui/button"
+import { Card, CardContent, CardDescription, CardTitle } from "./ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +32,10 @@ import {
   TableRow,
 } from "./ui/table"
 import { toast } from "./ui/use-toast"
+import "react-quill/dist/quill.snow.css"
+
+// Dynamically import ReactQuill for client-side rendering
+const ReactQuill = dynamic(() => import("react-quill"), { ssr: false })
 
 const downloadInvestmentFile = (url: string) => {
   window.open(url, "_blank")
@@ -35,22 +50,25 @@ export default function Investments({
 }) {
   const router = useRouter()
   const supabase = createClient()
-
-  // Mapping investment types to user-friendly strings
-  type InvestmentTypeKey = "valuation-cap" | "discount" | "mfn"
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [selectedInvestment, setSelectedInvestment] = useState(null)
+  const [editableEmailContent, setEditableEmailContent] = useState("")
 
   const formatInvestmentType = (
-    type: InvestmentTypeKey | string
+    type: "valuation-cap" | "discount" | "mfn" | string
   ): JSX.Element | string => {
     if (!type) {
       return <MissingInfoTooltip message="Investment type not set" />
     }
-    const investmentTypes: Record<InvestmentTypeKey, string> = {
+    const investmentTypes: Record<
+      "valuation-cap" | "discount" | "mfn",
+      string
+    > = {
       "valuation-cap": "Valuation Cap",
       discount: "Discount",
       mfn: "MFN",
     }
-    return investmentTypes[type as InvestmentTypeKey] || type
+    return investmentTypes[type as "valuation-cap" | "discount" | "mfn"] || type
   }
 
   const isOwner = (investment: any) => {
@@ -77,7 +95,7 @@ export default function Investments({
       investment.summary
     )
   }
-  // Reusable Tooltip for missing information
+
   const MissingInfoTooltip = ({ message }: { message: string }) => (
     <span className="text-red-500">
       <Icons.info className="inline-block mr-2" />
@@ -106,11 +124,34 @@ export default function Investments({
     router.refresh()
   }
 
+  const emailContent = (investment: any) => {
+    return `
+      <div>
+        <p>Hi ${investment.founder.name.split(" ")[0]},</p>
+        <p>
+          ${investment.fund.name} has shared a SAFE agreement with you.
+          Please find the document attached to this email and find a brief
+          summary of the document and its terms below.
+        </p>
+        <p>${investment.summary}</p>
+        <p>
+          Disclaimer: This summary is for informational purposes only and does
+          not constitute legal advice. For any legal matters or specific
+          questions, you should consult with a qualified attorney.
+        </p>
+      </div>
+    `
+  }
+
+  const setSelectedInvestmentAndEmailContent = (investment: any) => {
+    setSelectedInvestment(investment)
+    setEditableEmailContent(emailContent(investment))
+  }
+
   async function sendEmail(investment: any) {
     const filepath = `${investment.id}.docx`
 
     try {
-      // Download the document from Supabase storage
       const { data, error } = await supabase.storage
         .from("documents")
         .download(filepath)
@@ -119,14 +160,13 @@ export default function Investments({
         throw error
       }
 
-      // Convert Blob to Node buffer
       const buffer = await data.arrayBuffer()
       const nodeBuffer = Buffer.from(buffer)
 
-      // Prepare the email body
       const body = {
         investmentData: investment,
-        content: nodeBuffer,
+        attachment: nodeBuffer,
+        emailContent: editableEmailContent,
       }
 
       const response = await fetch("/send-investment-email", {
@@ -136,22 +176,31 @@ export default function Investments({
         },
         body: JSON.stringify(body),
       })
-    } catch (error) {
-      console.error(error)
-    } finally {
+
+      if (!response.ok) {
+        throw new Error("Failed to send email")
+      }
+
       toast({
         title: "Email sent",
         description: `The email has been sent to ${investment.founder.email}`,
       })
+    } catch (error) {
+      console.error(error)
+      toast({
+        title: "Error",
+        description: "Failed to send email. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setDialogOpen(false)
     }
   }
 
   return (
     <div className="flex flex-col items-center min-h-screen py-2 w-4/5">
       <div className="flex justify-between items-center w-full">
-        <h1 className="text-2xl font-bold">
-          Investments
-        </h1>
+        <h1 className="text-2xl font-bold">Investments</h1>
         <Button onClick={() => router.push("/new")}>
           <span>Generate</span>
         </Button>
@@ -221,7 +270,12 @@ export default function Investments({
                         </DropdownMenuItem>
                       )}
                       {canSendEmail(investment) && (
-                        <DropdownMenuItem onClick={() => sendEmail(investment)}>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedInvestmentAndEmailContent(investment)
+                            setDialogOpen(true)
+                          }}
+                        >
                           Send
                         </DropdownMenuItem>
                       )}
@@ -243,6 +297,37 @@ export default function Investments({
           ))}
         </TableBody>
       </Table>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogTrigger className="hidden" />
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Email</DialogTitle>
+            <DialogDescription>
+              Send an email to your founder with the investment details
+            </DialogDescription>
+          </DialogHeader>
+          {selectedInvestment && (
+            <div className="flex flex-col items-center space-y-2">
+              <div>
+                <ReactQuill
+                  theme="snow"
+                  value={editableEmailContent}
+                  onChange={setEditableEmailContent}
+                  placeholder={emailContent(selectedInvestment)}
+                />
+              </div>
+              <div className="w-full">
+                <Button
+                  className="w-full"
+                  onClick={() => sendEmail(selectedInvestment)}
+                >
+                  Send
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

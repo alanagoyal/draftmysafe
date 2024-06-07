@@ -12,6 +12,7 @@ export async function POST(req: Request) {
     const { data, error } = await resend.emails.send({
       from: "Draftmysafe <hi@basecase.vc>",
       to: email,
+      bcc: investor.email,
       subject: `${fund.name} wants to make an investment`,
       react: EmailTemplate({ name, url, investor, fund }),
     })

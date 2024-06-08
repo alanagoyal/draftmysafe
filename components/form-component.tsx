@@ -102,7 +102,8 @@ export default function FormComponent({ userData }: { userData: any }) {
   const isFormLocked = searchParams.get("sharing") === "true"
   const isEditMode = searchParams.get("edit") === "true"
   const [isOwner, setIsOwner] = useState(true)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingSave, setIsLoadingSave] = useState(false)
+  const [isLoadingNext, setIsLoadingNext] = useState(false)
 
   const handleStepChange = (newStep: number) => {
     setStep(newStep)
@@ -479,7 +480,6 @@ export default function FormComponent({ userData }: { userData: any }) {
     founderId?: string | null,
     companyId?: string | null
   ): Promise<string | null> {
-    setIsLoading(true)
     try {
       const investmentData: InvestmentData = {
         ...(founderId && { founder_id: founderId }),
@@ -525,8 +525,6 @@ export default function FormComponent({ userData }: { userData: any }) {
     } catch (error) {
       console.error("Error processing investment details:", error)
       return null
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -750,12 +748,19 @@ export default function FormComponent({ userData }: { userData: any }) {
     }
   }
 
-  async function processStepOne() {
+  async function processStepOne(type: "save" | "next") {
+    setIsLoadingNext(type === "next")
+    setIsLoadingSave(type === "save")
     const values = form.getValues()
     const investorId = await processInvestorDetails(values)
     const fundId = await processFundDetails(values, investorId)
     if (investorId || fundId) {
       await processInvestment(values, investorId, fundId, null, null)
+    }
+    setIsLoadingNext(false)
+    setIsLoadingSave(false)
+    if (type === "next") {
+      setStep(2)
     }
   }
 
@@ -766,21 +771,27 @@ export default function FormComponent({ userData }: { userData: any }) {
       })
       router.push("/investments")
     }
-    await processStepOne()
+    await processStepOne("save")
     router.refresh()
   }
 
   async function advanceStepOne() {
-    await processStepOne()
-    setStep(2)
+    await processStepOne("next")
   }
 
-  async function processStepTwo() {
+  async function processStepTwo(type: "save" | "next") {
+    setIsLoadingNext(type === "next")
+    setIsLoadingSave(type === "save")
     const values = form.getValues()
     const founderId = await processFounderDetails(values)
     const companyId = await processCompanyDetails(values, founderId)
     if (founderId || companyId) {
       await processInvestment(values, null, null, founderId, companyId)
+    }
+    setIsLoadingNext(false)
+    setIsLoadingSave(false)
+    if (type === "next") {
+      setStep(3)
     }
   }
 
@@ -794,7 +805,7 @@ export default function FormComponent({ userData }: { userData: any }) {
     if (isFormLocked) {
       setShowConfetti(true)
       try {
-        await processStepTwo()
+        await processStepTwo("save")
       } finally {
         setShowConfetti(false)
       }
@@ -805,14 +816,13 @@ export default function FormComponent({ userData }: { userData: any }) {
       })
       router.push("/investments")
     } else {
-      await processStepTwo()
+      await processStepTwo("save")
     }
     router.refresh()
   }
 
   async function advanceStepTwo() {
-    await processStepTwo()
-    setStep(3)
+    await processStepTwo("next")
   }
 
   return (
@@ -969,7 +979,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                     className="w-full"
                     onClick={saveStepOne}
                   >
-                    {isLoading ? <Icons.spinner /> : "Save"}
+                    {isLoadingSave ? <Icons.spinner /> : "Save"}
                   </Button>
                 )}
                 <Button
@@ -978,7 +988,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                   onClick={advanceStepOne}
                   variant={isEditMode || isFormLocked ? "secondary" : "default"}
                 >
-                  {isLoading ? <Icons.spinner /> : "Next"}
+                  {isLoadingNext ? <Icons.spinner /> : "Next"}
                 </Button>
               </div>
             </>
@@ -1133,7 +1143,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                     className="w-full"
                     onClick={saveStepTwo}
                   >
-                    {isLoading ? <Icons.spinner /> : "Save"}
+                    {isLoadingSave ? <Icons.spinner /> : "Save"}
                   </Button>
                 )}
                 <div className="flex w-full gap-2">
@@ -1154,7 +1164,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                     }
                     onClick={advanceStepTwo}
                   >
-                    {isLoading ? <Icons.spinner /> : "Next"}
+                    {isLoadingNext ? <Icons.spinner /> : "Next"}
                   </Button>
                 </div>
               </div>

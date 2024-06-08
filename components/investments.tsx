@@ -130,7 +130,7 @@ export default function Investments({
           Please find the document attached to this email and find a brief
           summary of the document and its terms below.
         </p><br>
-        <p>Summary:${investment.summary}</p><br>
+        <p>Summary: ${investment.summary}</p><br>
         <p>
           Disclaimer: This summary is for informational purposes only and does
           not constitute legal advice. For any legal matters or specific
@@ -160,7 +160,6 @@ export default function Investments({
       const buffer = await data.arrayBuffer()
       const nodeBuffer = Buffer.from(buffer)
 
-      // Remove <br> tags from the email content before sending
       const emailContentToSend = editableEmailContent.replace(/<br\s*\/?>/gi, '');
 
       const body = {

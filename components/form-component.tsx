@@ -771,8 +771,8 @@ export default function FormComponent({ userData }: { userData: any }) {
   }
 
   async function advanceStepOne() {
-    setStep(2)
     await processStepOne()
+    setStep(2)
   }
 
   async function processStepTwo() {
@@ -811,8 +811,8 @@ export default function FormComponent({ userData }: { userData: any }) {
   }
 
   async function advanceStepTwo() {
-    setStep(3)
     await processStepTwo()
+    setStep(3)
   }
 
   return (

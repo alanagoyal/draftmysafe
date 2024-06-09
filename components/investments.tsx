@@ -50,6 +50,7 @@ export default function Investments({
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedInvestment, setSelectedInvestment] = useState(null)
   const [editableEmailContent, setEditableEmailContent] = useState("")
+  const [isSendingEmail, setIsSendingEmail] = useState(false) 
 
   const formatInvestmentType = (
     type: "valuation-cap" | "discount" | "mfn" | string
@@ -146,6 +147,7 @@ export default function Investments({
   }
 
   async function sendEmail(investment: any) {
+    setIsSendingEmail(true)
     const filepath = `${investment.id}.docx`
 
     try {
@@ -192,6 +194,7 @@ export default function Investments({
         variant: "destructive",
       })
     } finally {
+      setIsSendingEmail(false)
       setDialogOpen(false)
     }
   }
@@ -320,7 +323,7 @@ export default function Investments({
                   className="w-full"
                   onClick={() => sendEmail(selectedInvestment)}
                 >
-                  Send
+                  {isSendingEmail ? <Icons.spinner/> : "Send"}
                 </Button>
               </div>
             </div>

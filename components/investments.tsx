@@ -52,6 +52,19 @@ export default function Investments({
   const [editableEmailContent, setEditableEmailContent] = useState("")
   const [isSendingEmail, setIsSendingEmail] = useState(false) 
 
+  const formatCurrency = (amountStr: string): string => {
+    const amount = parseFloat(amountStr.replace(/,/g, ''));
+    if (amount >= 1_000_000) {
+      const millions = amount / 1_000_000;
+      return `$${millions % 1 === 0 ? millions.toFixed(0) : millions.toFixed(1)}M`;
+    } else if (amount >= 1000) {
+      const thousands = amount / 1000;
+      return `$${thousands % 1 === 0 ? thousands.toFixed(0) : thousands.toFixed(1)}k`;
+    } else {
+      return `$${amount}`;
+    }
+  }
+
   const formatInvestmentType = (
     type: "valuation-cap" | "discount" | "mfn" | string
   ): JSX.Element | string => {
@@ -245,13 +258,13 @@ export default function Investments({
               <TableCell>
                 {formatInvestmentType(investment.investment_type)}
                 {investment.investment_type === "valuation-cap" &&
-                  ` ($${investment.valuation_cap})`}
+                  ` (${formatCurrency(investment.valuation_cap)})`}
                 {investment.investment_type === "discount" &&
                   ` (${investment.discount}%)`}
               </TableCell>
               <TableCell>
                 {investment.purchase_amount ? (
-                  `$${investment.purchase_amount}`
+                  `${formatCurrency(investment.purchase_amount)}`
                 ) : (
                   <MissingInfoTooltip message="Purchase amount not set" />
                 )}

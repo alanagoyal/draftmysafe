@@ -4,6 +4,7 @@ import { useState } from "react"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
+
 import { Icons } from "./icons"
 import { Button } from "./ui/button"
 import {
@@ -30,11 +31,17 @@ import {
 } from "./ui/table"
 import { toast } from "./ui/use-toast"
 import "react-quill/dist/quill.snow.css"
+import Docxtemplater from "docxtemplater"
+import PizZip from "pizzip"
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false })
 
 const downloadInvestmentFile = (url: string) => {
   window.open(url, "_blank")
+  toast({
+    title: "Downloaded",
+    description: "The file has been downloaded",
+  })
 }
 
 export default function Investments({
@@ -49,18 +56,22 @@ export default function Investments({
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedInvestment, setSelectedInvestment] = useState(null)
   const [editableEmailContent, setEditableEmailContent] = useState("")
-  const [isSendingEmail, setIsSendingEmail] = useState(false) 
+  const [isSendingEmail, setIsSendingEmail] = useState(false)
 
   const formatCurrency = (amountStr: string): string => {
-    const amount = parseFloat(amountStr.replace(/,/g, ''));
+    const amount = parseFloat(amountStr.replace(/,/g, ""))
     if (amount >= 1_000_000) {
-      const millions = amount / 1_000_000;
-      return `$${millions % 1 === 0 ? millions.toFixed(0) : millions.toFixed(1)}M`;
+      const millions = amount / 1_000_000
+      return `$${
+        millions % 1 === 0 ? millions.toFixed(0) : millions.toFixed(1)
+      }M`
     } else if (amount >= 1000) {
-      const thousands = amount / 1000;
-      return `$${thousands % 1 === 0 ? thousands.toFixed(0) : thousands.toFixed(1)}k`;
+      const thousands = amount / 1000
+      return `$${
+        thousands % 1 === 0 ? thousands.toFixed(0) : thousands.toFixed(1)
+      }k`
     } else {
-      return `$${amount}`;
+      return `$${amount}`
     }
   }
 
@@ -174,7 +185,10 @@ export default function Investments({
       const buffer = await data.arrayBuffer()
       const nodeBuffer = Buffer.from(buffer)
 
-      const emailContentToSend = editableEmailContent.replace(/<br\s*\/?>/gi, '');
+      const emailContentToSend = editableEmailContent.replace(
+        /<br\s*\/?>/gi,
+        ""
+      )
 
       const body = {
         investmentData: investment,
@@ -208,6 +222,125 @@ export default function Investments({
     } finally {
       setIsSendingEmail(false)
       setDialogOpen(false)
+    }
+  }
+
+  async function generateSideLetter(investment: any) {
+    const formattedDate = formatSubmissionDate(new Date(investment.date))
+    const doc = await loadAndPrepareTemplate(investment, formattedDate)
+    const buffer = doc.getZip().generate({ type: "nodebuffer" })
+    const filepath = `${investment.id}-side-letter.docx`
+
+    try {
+      // only upload if the side_letter doesnt appear in supabase yet 
+      if (investment.side_letter) {
+        window.open(investment.side_letter, "_blank")
+        return
+      }
+
+      const { error } = await supabase.storage
+        .from("documents")
+        .upload(filepath, buffer, {
+          upsert: true,
+          contentType:
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        })
+
+      if (error) {
+        console.error("Upload error:", error)
+        throw error
+      }
+
+      const { data: newSignedUrlData, error: newSignedUrlError } =
+        await supabase.storage.from("documents").createSignedUrl(filepath, 3600)
+      if (newSignedUrlError) {
+        console.error("Error creating signed URL:", newSignedUrlError)
+        throw newSignedUrlError
+      }
+
+      const { data: uploadData, error: uploadError } = await supabase
+        .from("investments")
+        .update({
+          side_letter: newSignedUrlData.signedUrl,
+        })
+        .eq("id", investment.id)
+
+      if (uploadError) {
+        console.error("Error uploading side letter:", uploadError)
+        throw uploadError
+      }
+
+      window.open(newSignedUrlData.signedUrl, "_blank")
+
+      toast({
+        title: "Downloaded",
+        description: "The side letter has been downloaded",
+      })
+    } catch (error) {
+      console.error("Error uploading side letter:", error)
+      toast({
+        title: "Error",
+        description: "Failed to upload side letter. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  async function loadAndPrepareTemplate(
+    investment: any,
+    formattedDate: string
+  ): Promise<Docxtemplater> {
+    const response = await fetch(`/Side-Letter.docx`)
+    const arrayBuffer = await response.arrayBuffer()
+    const zip = new PizZip(arrayBuffer)
+    const doc = new Docxtemplater().loadZip(zip)
+    doc.setData({
+      company_name: investment.company.name || "{company_name}",
+      investing_entity_name: investment.fund.name || "{investing_entity_name}",
+      byline: investment.fund.byline || "{byline}",
+      state_of_incorporation:
+        investment.company.state_of_incorporation || "{state_of_incorporation}",
+      date: formattedDate || "{date}",
+      investor_name: investment.investor.name || "{investor_name}",
+      investor_title: investment.investor.title || "{investor_title}",
+      investor_email: investment.investor.email || "{investor_email}",
+      investor_address_1: investment.fund.street || "{investor_address_1}",
+      investor_address_2:
+        investment.fund.city_state_zip || "{investor_address_2}",
+      founder_name: investment.founder.name || "{founder_name}",
+      founder_title: investment.founder.title || "{founder_title}",
+      founder_email: investment.founder.email || "{founder_email}",
+      company_address_1: investment.company.street || "{company_address_1}",
+      company_address_2:
+        investment.company.city_state_zip || "{company_address_2}",
+    })
+    doc.render()
+    return doc
+  }
+
+  function formatSubmissionDate(date: Date): string {
+    const monthName = new Intl.DateTimeFormat("en-US", {
+      month: "long",
+    }).format(date)
+    const day = date.getDate()
+    const year = date.getFullYear()
+    const suffix = getNumberSuffix(day)
+    return `${monthName} ${day}${suffix}, ${year}`
+  }
+
+  function getNumberSuffix(day: number): string {
+    if (day >= 11 && day <= 13) {
+      return "th"
+    }
+    switch (day % 10) {
+      case 1:
+        return "st"
+      case 2:
+        return "nd"
+      case 3:
+        return "rd"
+      default:
+        return "th"
     }
   }
 
@@ -276,6 +409,13 @@ export default function Investments({
                       <Icons.menu className="h-4 w-4 ml-2" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
+                      {isOwner(investment) && (
+                        <DropdownMenuItem
+                          onClick={() => generateSideLetter(investment)}
+                        >
+                          Generate Side Letter
+                        </DropdownMenuItem>
+                      )}
                       {isOwner(investment) && investment.url && (
                         <DropdownMenuItem
                           onClick={() => downloadInvestmentFile(investment.url)}
@@ -335,7 +475,7 @@ export default function Investments({
                   className="w-full"
                   onClick={() => sendEmail(selectedInvestment)}
                 >
-                  {isSendingEmail ? <Icons.spinner/> : "Send"}
+                  {isSendingEmail ? <Icons.spinner /> : "Send"}
                 </Button>
               </div>
             </div>

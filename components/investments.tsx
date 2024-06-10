@@ -31,7 +31,6 @@ import {
 import { toast } from "./ui/use-toast"
 import "react-quill/dist/quill.snow.css"
 
-// Dynamically import ReactQuill for client-side rendering
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false })
 
 const downloadInvestmentFile = (url: string) => {

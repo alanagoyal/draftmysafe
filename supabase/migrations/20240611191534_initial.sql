@@ -38,7 +38,8 @@ create table "public"."investments" (
     "date" timestamp with time zone,
     "created_by" uuid,
     "summary" text,
-    "url" text
+    "safe_url" text,
+    "side_letter_url" text
 );
 
 
@@ -479,39 +480,6 @@ using (((( SELECT auth.uid() AS uid) = auth_id) OR (EXISTS ( SELECT 1
 
 
 
-create policy "Authenticated users can do all flreew_0"
-on "storage"."objects"
-as permissive
-for select
-to public
-using ((bucket_id = 'documents'::text));
-
-
-create policy "Authenticated users can do all flreew_1"
-on "storage"."objects"
-as permissive
-for insert
-to public
-with check ((bucket_id = 'documents'::text));
-
-
-create policy "Authenticated users can do all flreew_2"
-on "storage"."objects"
-as permissive
-for update
-to public
-using ((bucket_id = 'documents'::text));
-
-
-create policy "Authenticated users can do all flreew_3"
-on "storage"."objects"
-as permissive
-for delete
-to public
-using ((bucket_id = 'documents'::text));
-
-
-
 create type "auth"."one_time_token_type" as enum ('confirmation_token', 'reauthentication_token', 'recovery_token', 'email_change_token_new', 'email_change_token_current', 'phone_change_token');
 
 create table "auth"."one_time_tokens" (
@@ -572,5 +540,38 @@ grant truncate on table "auth"."one_time_tokens" to "postgres";
 grant update on table "auth"."one_time_tokens" to "postgres";
 
 CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+
+
+create policy "Authenticated users can do all flreew_0"
+on "storage"."objects"
+as permissive
+for select
+to public
+using ((bucket_id = 'documents'::text));
+
+
+create policy "Authenticated users can do all flreew_1"
+on "storage"."objects"
+as permissive
+for insert
+to public
+with check ((bucket_id = 'documents'::text));
+
+
+create policy "Authenticated users can do all flreew_2"
+on "storage"."objects"
+as permissive
+for update
+to public
+using ((bucket_id = 'documents'::text));
+
+
+create policy "Authenticated users can do all flreew_3"
+on "storage"."objects"
+as permissive
+for delete
+to public
+using ((bucket_id = 'documents'::text));
+
 
 

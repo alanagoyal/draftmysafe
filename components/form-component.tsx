@@ -80,7 +80,7 @@ type InvestmentData = {
   discount?: string
   date: Date
   created_by?: string
-  url?: string | null
+  safe_url?: string | null
   summary?: string | null
 }
 
@@ -511,7 +511,7 @@ export default function FormComponent({ userData }: { userData: any }) {
             .from("investments")
             .upsert({
               ...investmentData,
-              url: documentUrl,
+              safe_url: documentUrl,
               summary: investmentSummary,
               id: investmentId,
             })

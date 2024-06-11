@@ -112,7 +112,7 @@ export default function Investments({
       investment.investment_type &&
       investment.purchase_amount &&
       investment.date &&
-      investment.url &&
+      investment.safe_url &&
       investment.summary
     )
   }
@@ -233,8 +233,8 @@ export default function Investments({
 
     try {
       // only upload if the side_letter doesnt appear in supabase yet 
-      if (investment.side_letter) {
-        window.open(investment.side_letter, "_blank")
+      if (investment.side_letter_url) {
+        window.open(investment.side_letter_url, "_blank")
         return
       }
 
@@ -261,7 +261,7 @@ export default function Investments({
       const { data: uploadData, error: uploadError } = await supabase
         .from("investments")
         .update({
-          side_letter: newSignedUrlData.signedUrl,
+          side_letter_url: newSignedUrlData.signedUrl,
         })
         .eq("id", investment.id)
 
@@ -416,9 +416,11 @@ export default function Investments({
                           Generate Side Letter
                         </DropdownMenuItem>
                       )}
-                      {isOwner(investment) && investment.url && (
+                      {isOwner(investment) && investment.safe_url && (
                         <DropdownMenuItem
-                          onClick={() => downloadInvestmentFile(investment.url)}
+                          onClick={() =>
+                            downloadInvestmentFile(investment.safe_url)
+                          }
                         >
                           Download
                         </DropdownMenuItem>

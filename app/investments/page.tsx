@@ -38,7 +38,8 @@ export default async function InvestmentsPage() {
         company:companies (id, name, street, city_state_zip, state_of_incorporation),
         investor:users!investor_id (id, name, title, email),
         fund:funds (id, name, byline, street, city_state_zip),
-        url,
+        side_letter_url,
+        safe_url,
         summary,
         created_by
       `

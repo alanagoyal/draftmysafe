@@ -28,6 +28,7 @@ export function Share({
   const [email, setEmail] = useState("")
   const [name, setName] = useState("")
   const [isOpen, setIsOpen] = useState(false)
+  const [isSending, setIsSending] = useState(false)
   const idString =
     typeof window !== "undefined"
       ? `${window.location.origin}/new?id=${investmentId}&step=2&sharing=true`
@@ -52,6 +53,7 @@ export function Share({
   }
 
   async function sendEmail() {
+    setIsSending(true)
     const { data: investmentData, error: investmentError } = await supabase
       .from("investments")
       .select(
@@ -110,6 +112,8 @@ export function Share({
       onEmailSent()
     } catch (error) {
       console.error(error)
+    } finally {
+      setIsSending(false)
     }
   }
 
@@ -161,8 +165,12 @@ export function Share({
                     type="email"
                   />
                 </FormItem>
-                <Button className="w-full" onClick={sendEmail}>
-                  Send Email
+                <Button
+                  className="w-full"
+                  onClick={sendEmail}
+                  disabled={isSending}
+                >
+                  {isSending ? <Icons.spinner /> : "Send Email"}
                 </Button>
               </CardContent>
             </Card>

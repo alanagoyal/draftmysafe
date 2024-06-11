@@ -100,7 +100,7 @@ export default function Investments({
     return investment.founder.id === userData.id
   }
 
-  const canSendEmail = (investment: any) => {
+  const investmentIsComplete = (investment: any) => {
     return (
       isOwner(investment) &&
       investment.founder &&
@@ -232,7 +232,7 @@ export default function Investments({
     const filepath = `${investment.id}-side-letter.docx`
 
     try {
-      // only upload if the side_letter doesnt appear in supabase yet 
+      // only upload if the side_letter doesnt appear in supabase yet
       if (investment.side_letter_url) {
         window.open(investment.side_letter_url, "_blank")
         return
@@ -409,23 +409,23 @@ export default function Investments({
                       <Icons.menu className="h-4 w-4 ml-2" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
-                      {isOwner(investment) && (
+                      {investmentIsComplete(investment) && (
                         <DropdownMenuItem
                           onClick={() => generateSideLetter(investment)}
                         >
                           Generate Side Letter
                         </DropdownMenuItem>
                       )}
-                      {isOwner(investment) && investment.safe_url && (
+                      {investment.safe_url && (
                         <DropdownMenuItem
-                          onClick={() =>
-                            downloadInvestmentFile(investment.safe_url)
-                          }
-                        >
-                          Download
-                        </DropdownMenuItem>
-                      )}
-                      {canSendEmail(investment) && (
+                            onClick={() =>
+                              downloadInvestmentFile(investment.safe_url)
+                            }
+                          >
+                            Download
+                          </DropdownMenuItem>
+                        )}
+                      {investmentIsComplete(investment) && (
                         <DropdownMenuItem
                           onClick={() => {
                             setSelectedInvestmentAndEmailContent(investment)

@@ -36,7 +36,7 @@ import PizZip from "pizzip"
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false })
 
-const downloadInvestmentFile = (url: string) => {
+const downloadDocument = (url: string) => {
   window.open(url, "_blank")
   toast({
     title: "Downloaded",
@@ -227,7 +227,7 @@ export default function Investments({
 
   async function generateSideLetter(investment: any) {
     const formattedDate = formatSubmissionDate(new Date(investment.date))
-    const doc = await loadAndPrepareTemplate(investment, formattedDate)
+    const doc = await loadAndPrepareSideLetterTemplate(investment, formattedDate)
     const buffer = doc.getZip().generate({ type: "nodebuffer" })
     const filepath = `${investment.id}-side-letter.docx`
 
@@ -286,7 +286,7 @@ export default function Investments({
     }
   }
 
-  async function loadAndPrepareTemplate(
+  async function loadAndPrepareSideLetterTemplate(
     investment: any,
     formattedDate: string
   ): Promise<Docxtemplater> {
@@ -409,20 +409,20 @@ export default function Investments({
                       <Icons.menu className="h-4 w-4 ml-2" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
-                      {investmentIsComplete(investment) && (
+                      {investment.side_letter.side_letter_url && (
                         <DropdownMenuItem
-                          onClick={() => generateSideLetter(investment)}
+                          onClick={() => downloadDocument(investment.side_letter.side_letter_url)}
                         >
-                          Generate Side Letter
+                          Download Side Letter
                         </DropdownMenuItem>
                       )}
                       {investment.safe_url && (
                         <DropdownMenuItem
                             onClick={() =>
-                              downloadInvestmentFile(investment.safe_url)
+                              downloadDocument(investment.safe_url)
                             }
                           >
-                            Download
+                            Download SAFE Agreement
                           </DropdownMenuItem>
                         )}
                       {investmentIsComplete(investment) && (

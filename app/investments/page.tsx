@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { createClient } from "@/utils/supabase/server"
+
 import { Button } from "@/components/ui/button"
 import Investments from "@/components/investments"
 
@@ -38,13 +39,15 @@ export default async function InvestmentsPage() {
         company:companies (id, name, street, city_state_zip, state_of_incorporation),
         investor:users!investor_id (id, name, title, email),
         fund:funds (id, name, byline, street, city_state_zip),
-        side_letter_url,
+        side_letter:side_letters (id, side_letter_url, info_rights, pro_rata_rights, major_investor_rights, termination, miscellaneous),
         safe_url,
         summary,
         created_by
       `
     )
-    .or(`investor_id.eq.${userData.id},founder_id.eq.${userData.id},created_by.eq.${userData.auth_id}`)
+    .or(
+      `investor_id.eq.${userData.id},founder_id.eq.${userData.id},created_by.eq.${userData.auth_id}`
+    )
 
   if (investmentError) {
     console.error(investmentError)
@@ -52,7 +55,7 @@ export default async function InvestmentsPage() {
 
   return investmentData && investmentData.length > 0 ? (
     <div className="flex w-full justify-center min-h-screen">
-      <Investments investments={investmentData} userData={userData}/>
+      <Investments investments={investmentData} userData={userData} />
     </div>
   ) : (
     <div className="w-full px-4 flex justify-center items-center flex-col min-h-screen">

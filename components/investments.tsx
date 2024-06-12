@@ -4,6 +4,7 @@ import { useState } from "react"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
+
 import { Icons } from "./icons"
 import { Button } from "./ui/button"
 import {
@@ -33,8 +34,12 @@ import "react-quill/dist/quill.snow.css"
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false })
 
-const downloadInvestmentFile = (url: string) => {
+const downloadDocument = (url: string) => {
   window.open(url, "_blank")
+  toast({
+    title: "Downloaded",
+    description: "The file has been downloaded",
+  })
 }
 
 export default function Investments({
@@ -49,18 +54,22 @@ export default function Investments({
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedInvestment, setSelectedInvestment] = useState(null)
   const [editableEmailContent, setEditableEmailContent] = useState("")
-  const [isSendingEmail, setIsSendingEmail] = useState(false) 
+  const [isSendingEmail, setIsSendingEmail] = useState(false)
 
   const formatCurrency = (amountStr: string): string => {
-    const amount = parseFloat(amountStr.replace(/,/g, ''));
+    const amount = parseFloat(amountStr.replace(/,/g, ""))
     if (amount >= 1_000_000) {
-      const millions = amount / 1_000_000;
-      return `$${millions % 1 === 0 ? millions.toFixed(0) : millions.toFixed(1)}M`;
+      const millions = amount / 1_000_000
+      return `$${
+        millions % 1 === 0 ? millions.toFixed(0) : millions.toFixed(1)
+      }M`
     } else if (amount >= 1000) {
-      const thousands = amount / 1000;
-      return `$${thousands % 1 === 0 ? thousands.toFixed(0) : thousands.toFixed(1)}k`;
+      const thousands = amount / 1000
+      return `$${
+        thousands % 1 === 0 ? thousands.toFixed(0) : thousands.toFixed(1)
+      }k`
     } else {
-      return `$${amount}`;
+      return `$${amount}`
     }
   }
 
@@ -89,7 +98,7 @@ export default function Investments({
     return investment.founder.id === userData.id
   }
 
-  const canSendEmail = (investment: any) => {
+  const investmentIsComplete = (investment: any) => {
     return (
       isOwner(investment) &&
       investment.founder &&
@@ -101,7 +110,7 @@ export default function Investments({
       investment.investment_type &&
       investment.purchase_amount &&
       investment.date &&
-      investment.url &&
+      investment.safe_url &&
       investment.summary
     )
   }
@@ -160,25 +169,43 @@ export default function Investments({
 
   async function sendEmail(investment: any) {
     setIsSendingEmail(true)
-    const filepath = `${investment.id}.docx`
+    const safeFilepath = `${investment.id}.docx`
+    const sideLetterFilepath = `${investment.id}-side-letter.docx`
+
+    let safeDocNodeBuffer = null
+    let sideLetterDocNodeBuffer = null
 
     try {
-      const { data, error } = await supabase.storage
-        .from("documents")
-        .download(filepath)
+      if (investment.safe_url) {
+        const { data: safeDoc, error: safeDocError } = await supabase.storage
+          .from("documents")
+          .download(safeFilepath)
 
-      if (error) {
-        throw error
+        if (!safeDocError && safeDoc) {
+          const safeDocBuffer = await safeDoc.arrayBuffer()
+          safeDocNodeBuffer = Buffer.from(safeDocBuffer)
+        }
       }
 
-      const buffer = await data.arrayBuffer()
-      const nodeBuffer = Buffer.from(buffer)
+      if (investment.side_letter && investment.side_letter.side_letter_url) {
+        const { data: sideLetterDoc, error: sideLetterDocError } =
+          await supabase.storage.from("documents").download(sideLetterFilepath)
 
-      const emailContentToSend = editableEmailContent.replace(/<br\s*\/?>/gi, '');
+        if (!sideLetterDocError && sideLetterDoc) {
+          const sideLetterDocBuffer = await sideLetterDoc.arrayBuffer()
+          sideLetterDocNodeBuffer = Buffer.from(sideLetterDocBuffer)
+        }
+      }
+
+      const emailContentToSend = editableEmailContent.replace(
+        /<br\s*\/?>/gi,
+        ""
+      )
 
       const body = {
         investmentData: investment,
-        attachment: nodeBuffer,
+        safeAttachment: safeDocNodeBuffer,
+        sideLetterAttachment: sideLetterDocNodeBuffer,
         emailContent: emailContentToSend,
       }
 
@@ -276,14 +303,26 @@ export default function Investments({
                       <Icons.menu className="h-4 w-4 ml-2" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
-                      {isOwner(investment) && investment.url && (
+                      {investment.side_letter &&
+                        investment.side_letter.side_letter_url && (
+                          <DropdownMenuItem
+                            onClick={() =>
+                              downloadDocument(
+                                investment.side_letter.side_letter_url
+                              )
+                            }
+                          >
+                            Download Side Letter
+                          </DropdownMenuItem>
+                        )}
+                      {investment.safe_url && (
                         <DropdownMenuItem
-                          onClick={() => downloadInvestmentFile(investment.url)}
+                          onClick={() => downloadDocument(investment.safe_url)}
                         >
-                          Download
+                          Download SAFE Agreement
                         </DropdownMenuItem>
                       )}
-                      {canSendEmail(investment) && (
+                      {investmentIsComplete(investment) && (
                         <DropdownMenuItem
                           onClick={() => {
                             setSelectedInvestmentAndEmailContent(investment)
@@ -335,7 +374,7 @@ export default function Investments({
                   className="w-full"
                   onClick={() => sendEmail(selectedInvestment)}
                 >
-                  {isSendingEmail ? <Icons.spinner/> : "Send"}
+                  {isSendingEmail ? <Icons.spinner /> : "Send"}
                 </Button>
               </div>
             </div>

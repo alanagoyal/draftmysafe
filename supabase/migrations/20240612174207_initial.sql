@@ -38,11 +38,27 @@ create table "public"."investments" (
     "date" timestamp with time zone,
     "created_by" uuid,
     "summary" text,
-    "url" text
+    "safe_url" text,
+    "side_letter_url" text,
+    "side_letter_id" uuid
 );
 
 
 alter table "public"."investments" enable row level security;
+
+create table "public"."side_letters" (
+    "id" uuid not null default gen_random_uuid(),
+    "created_at" timestamp with time zone not null default now(),
+    "side_letter_url" text,
+    "info_rights" boolean,
+    "pro_rata_rights" boolean,
+    "major_investor_rights" boolean,
+    "termination" boolean,
+    "miscellaneous" boolean
+);
+
+
+alter table "public"."side_letters" enable row level security;
 
 create table "public"."users" (
     "created_at" timestamp with time zone not null default now(),
@@ -63,6 +79,8 @@ CREATE UNIQUE INDEX funds_pkey ON public.funds USING btree (id);
 
 CREATE UNIQUE INDEX investments_pkey ON public.investments USING btree (id);
 
+CREATE UNIQUE INDEX side_letters_pkey ON public.side_letters USING btree (id);
+
 CREATE UNIQUE INDEX users_auth_id_key ON public.users USING btree (auth_id);
 
 CREATE UNIQUE INDEX users_email_key ON public.users USING btree (email);
@@ -74,6 +92,8 @@ alter table "public"."companies" add constraint "companies_pkey" PRIMARY KEY usi
 alter table "public"."funds" add constraint "funds_pkey" PRIMARY KEY using index "funds_pkey";
 
 alter table "public"."investments" add constraint "investments_pkey" PRIMARY KEY using index "investments_pkey";
+
+alter table "public"."side_letters" add constraint "side_letters_pkey" PRIMARY KEY using index "side_letters_pkey";
 
 alter table "public"."users" add constraint "users_pkey" PRIMARY KEY using index "users_pkey";
 
@@ -96,6 +116,10 @@ alter table "public"."investments" validate constraint "investments_founder_id_f
 alter table "public"."investments" add constraint "investments_investor_id_fkey" FOREIGN KEY (investor_id) REFERENCES users(id) not valid;
 
 alter table "public"."investments" validate constraint "investments_investor_id_fkey";
+
+alter table "public"."investments" add constraint "investments_side_letter_id_fkey" FOREIGN KEY (side_letter_id) REFERENCES side_letters(id) not valid;
+
+alter table "public"."investments" validate constraint "investments_side_letter_id_fkey";
 
 alter table "public"."investments" add constraint "public_investments_company_id_fkey" FOREIGN KEY (company_id) REFERENCES companies(id) not valid;
 
@@ -274,6 +298,48 @@ grant truncate on table "public"."investments" to "service_role";
 
 grant update on table "public"."investments" to "service_role";
 
+grant delete on table "public"."side_letters" to "anon";
+
+grant insert on table "public"."side_letters" to "anon";
+
+grant references on table "public"."side_letters" to "anon";
+
+grant select on table "public"."side_letters" to "anon";
+
+grant trigger on table "public"."side_letters" to "anon";
+
+grant truncate on table "public"."side_letters" to "anon";
+
+grant update on table "public"."side_letters" to "anon";
+
+grant delete on table "public"."side_letters" to "authenticated";
+
+grant insert on table "public"."side_letters" to "authenticated";
+
+grant references on table "public"."side_letters" to "authenticated";
+
+grant select on table "public"."side_letters" to "authenticated";
+
+grant trigger on table "public"."side_letters" to "authenticated";
+
+grant truncate on table "public"."side_letters" to "authenticated";
+
+grant update on table "public"."side_letters" to "authenticated";
+
+grant delete on table "public"."side_letters" to "service_role";
+
+grant insert on table "public"."side_letters" to "service_role";
+
+grant references on table "public"."side_letters" to "service_role";
+
+grant select on table "public"."side_letters" to "service_role";
+
+grant trigger on table "public"."side_letters" to "service_role";
+
+grant truncate on table "public"."side_letters" to "service_role";
+
+grant update on table "public"."side_letters" to "service_role";
+
 grant delete on table "public"."users" to "anon";
 
 grant insert on table "public"."users" to "anon";
@@ -444,6 +510,14 @@ using (((auth.uid() = ( SELECT users.auth_id
           WHERE (companies.id = investments.company_id)))))));
 
 
+create policy "Authenticated can do all"
+on "public"."side_letters"
+as permissive
+for all
+to authenticated
+using (true);
+
+
 create policy "Authenticated users can delete themselves"
 on "public"."users"
 as permissive
@@ -468,47 +542,12 @@ to authenticated
 using (true);
 
 
-create policy "Authenticated users can update themselves or founders"
+create policy "Authenticated users can update"
 on "public"."users"
 as permissive
 for update
-to public
-using (((( SELECT auth.uid() AS uid) = auth_id) OR (EXISTS ( SELECT 1
-   FROM investments
-  WHERE ((investments.founder_id = users.id) AND (investments.created_by = auth.uid()))))));
-
-
-
-create policy "Authenticated users can do all flreew_0"
-on "storage"."objects"
-as permissive
-for select
-to public
-using ((bucket_id = 'documents'::text));
-
-
-create policy "Authenticated users can do all flreew_1"
-on "storage"."objects"
-as permissive
-for insert
-to public
-with check ((bucket_id = 'documents'::text));
-
-
-create policy "Authenticated users can do all flreew_2"
-on "storage"."objects"
-as permissive
-for update
-to public
-using ((bucket_id = 'documents'::text));
-
-
-create policy "Authenticated users can do all flreew_3"
-on "storage"."objects"
-as permissive
-for delete
-to public
-using ((bucket_id = 'documents'::text));
+to authenticated
+using (true);
 
 
 
@@ -572,5 +611,38 @@ grant truncate on table "auth"."one_time_tokens" to "postgres";
 grant update on table "auth"."one_time_tokens" to "postgres";
 
 CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+
+
+create policy "Authenticated users can do all flreew_0"
+on "storage"."objects"
+as permissive
+for select
+to public
+using ((bucket_id = 'documents'::text));
+
+
+create policy "Authenticated users can do all flreew_1"
+on "storage"."objects"
+as permissive
+for insert
+to public
+with check ((bucket_id = 'documents'::text));
+
+
+create policy "Authenticated users can do all flreew_2"
+on "storage"."objects"
+as permissive
+for update
+to public
+using ((bucket_id = 'documents'::text));
+
+
+create policy "Authenticated users can do all flreew_3"
+on "storage"."objects"
+as permissive
+for delete
+to public
+using ((bucket_id = 'documents'::text));
+
 
 

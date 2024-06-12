@@ -40,6 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select"
+import { Switch } from "./ui/switch"
 import { Textarea } from "./ui/textarea"
 import { toast } from "./ui/use-toast"
 
@@ -65,6 +66,11 @@ const FormComponentSchema = z.object({
   founderEmail: z.string().optional(),
   companyStreet: z.string().optional(),
   companyCityStateZip: z.string().optional(),
+  infoRights: z.boolean().optional(),
+  proRataRights: z.boolean().optional(),
+  majorInvestorRights: z.boolean().optional(),
+  termination: z.boolean().optional(),
+  miscellaneous: z.boolean().optional(),
 })
 
 type FormComponentValues = z.infer<typeof FormComponentSchema>
@@ -80,8 +86,13 @@ type InvestmentData = {
   discount?: string
   date: Date
   created_by?: string
-  url?: string | null
+  safe_url?: string | null
   summary?: string | null
+  info_rights?: boolean
+  pro_rata_rights?: boolean
+  major_investor_rights?: string
+  termination?: string
+  miscellaneous?: string
 }
 
 export default function FormComponent({ userData }: { userData: any }) {
@@ -92,6 +103,7 @@ export default function FormComponent({ userData }: { userData: any }) {
   const [investmentId, setInvestmentId] = useState<string | null>(
     searchParams.get("id") || null
   )
+  const [sideLetterId, setSideLetterId] = useState<string | null>(null)
   const [showConfetti, setShowConfetti] = useState(false)
   const [entities, setEntities] = useState<any[]>([])
   const [selectedEntity, setSelectedEntity] = useState<string | undefined>(
@@ -131,6 +143,11 @@ export default function FormComponent({ userData }: { userData: any }) {
       founderEmail: "",
       companyStreet: "",
       companyCityStateZip: "",
+      infoRights: false,
+      proRataRights: false,
+      majorInvestorRights: false,
+      termination: false,
+      miscellaneous: false,
     },
   })
 
@@ -165,17 +182,18 @@ export default function FormComponent({ userData }: { userData: any }) {
       .from("investments")
       .select(
         `
-        purchase_amount,
-        investment_type,
-        valuation_cap,
-        discount,
-        date,
-        created_by,
-        founder:users!founder_id (name, title, email),
-        company:companies (id, name, street, city_state_zip, state_of_incorporation, founder_id),
-        investor:users!investor_id (name, title, email),
-        fund:funds (id, name, byline, street, city_state_zip, investor_id)
-      `
+      purchase_amount,
+      investment_type,
+      valuation_cap,
+      discount,
+      date,
+      created_by,
+      founder:users!founder_id (name, title, email),
+      company:companies (id, name, street, city_state_zip, state_of_incorporation, founder_id),
+      investor:users!investor_id (name, title, email),
+      fund:funds (id, name, byline, street, city_state_zip, investor_id),
+      side_letter:side_letters (id, side_letter_url, info_rights, pro_rata_rights, major_investor_rights, termination, miscellaneous)
+    `
       )
       .eq("id", investmentId)
       .single()
@@ -208,6 +226,11 @@ export default function FormComponent({ userData }: { userData: any }) {
         founderEmail: data.founder?.email || "",
         companyStreet: data.company?.street || "",
         companyCityStateZip: data.company?.city_state_zip || "",
+        infoRights: data.side_letter?.info_rights || false,
+        proRataRights: data.side_letter?.pro_rata_rights || false,
+        majorInvestorRights: data.side_letter?.major_investor_rights || false,
+        termination: data.side_letter?.termination || false,
+        miscellaneous: data.side_letter?.misc || false,
       })
       if (step === 1 && data.fund && data.fund.investor_id === userData.id) {
         setSelectedEntity(data.fund.id)
@@ -473,6 +496,41 @@ export default function FormComponent({ userData }: { userData: any }) {
     }
   }
 
+  async function processSideLetter(values: FormComponentValues) {
+    // Only process if the side letter is not empty
+    if (
+      values.infoRights === false &&
+      values.proRataRights === false &&
+      values.majorInvestorRights === false &&
+      values.termination === false &&
+      values.miscellaneous === false
+    )
+      return null
+    try {
+      const sideLetterDoc = await generateSideLetter(values)
+      const sideLetterUrl = await createSideLetterUrl(sideLetterDoc)
+      const sideLetter = {
+        ...(sideLetterId && { id: sideLetterId }), // Include the existing side letter ID if provided
+        info_rights: values.infoRights,
+        pro_rata_rights: values.proRataRights,
+        major_investor_rights: values.majorInvestorRights,
+        termination: values.termination,
+        miscellaneous: values.miscellaneous,
+        side_letter_url: sideLetterUrl,
+      }
+      // Upsert the side_letters table with this data using the id of the investment
+      const { data: sideLetterData, error: sideLetterError } = await supabase
+        .from("side_letters")
+        .upsert({ ...sideLetter })
+        .select("id")
+      if (sideLetterError) throw sideLetterError
+      setSideLetterId(sideLetterData[0].id)
+      return sideLetterData[0].id
+    } catch (error) {
+      console.error("Error processing side letter:", error)
+    }
+  }
+
   async function processInvestment(
     values: FormComponentValues,
     investorId?: string | null,
@@ -503,15 +561,17 @@ export default function FormComponent({ userData }: { userData: any }) {
         investmentIdResult = investmentInsertData[0].id
         setInvestmentId(investmentIdResult)
       } else {
-        const doc = await generateDocument(values)
-        const documentUrl = await createUrl(values, doc)
-        const investmentSummary = await summarizeInvestment(values, doc)
+        const safeDoc = await generateSafe(values)
+        const safeUrl = await createSafeUrl(safeDoc)
+        const investmentSummary = await summarizeInvestment(safeDoc)
+        const sideLetterId = await processSideLetter(values)
         const { data: investmentUpdateData, error: investmentUpdateError } =
           await supabase
             .from("investments")
             .upsert({
               ...investmentData,
-              url: documentUrl,
+              safe_url: safeUrl,
+              side_letter_id: sideLetterId,
               summary: investmentSummary,
               id: investmentId,
             })
@@ -528,10 +588,7 @@ export default function FormComponent({ userData }: { userData: any }) {
     }
   }
 
-  async function createUrl(
-    values: FormComponentValues,
-    doc: Docxtemplater
-  ): Promise<string | null> {
+  async function createSafeUrl(doc: Docxtemplater): Promise<string | null> {
     const filepath = `${investmentId}.docx`
 
     try {
@@ -569,7 +626,45 @@ export default function FormComponent({ userData }: { userData: any }) {
     }
   }
 
-  async function generateDocument(values: FormComponentValues) {
+  async function createSideLetterUrl(
+    doc: Docxtemplater
+  ): Promise<string | null> {
+    const filepath = `${investmentId}-side-letter.docx`
+
+    try {
+      const file = doc.getZip().generate({ type: "nodebuffer" })
+      const { error: uploadError } = await supabase.storage
+        .from("documents")
+        .upload(filepath, file, {
+          upsert: true,
+          contentType:
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          cacheControl: "3600",
+        })
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError)
+        return null
+      }
+
+      const { data: newSignedUrlData, error: newSignedUrlError } =
+        await supabase.storage.from("documents").createSignedUrl(filepath, 3600)
+      if (newSignedUrlError) {
+        console.error(
+          "Failed to create signed URL after upload:",
+          newSignedUrlError
+        )
+        return null
+      }
+
+      return newSignedUrlData?.signedUrl || null
+    } catch (error) {
+      console.error("Error in createSideLetterUrl function:", error)
+      return null
+    }
+  }
+
+  async function generateSafe(values: FormComponentValues) {
     const formattedDate = formatSubmissionDate(values.date)
     const templateFileName = selectTemplate(values.type || "mfn")
     const doc = await loadAndPrepareTemplate(
@@ -577,6 +672,12 @@ export default function FormComponent({ userData }: { userData: any }) {
       values,
       formattedDate
     )
+    return doc
+  }
+
+  async function generateSideLetter(values: FormComponentValues) {
+    const formattedDate = formatSubmissionDate(values.date)
+    const doc = await loadAndPrepareSideLetterTemplate(values, formattedDate)
     return doc
   }
 
@@ -631,7 +732,7 @@ export default function FormComponent({ userData }: { userData: any }) {
     doc.setData({
       company_name: values.companyName || "{company_name}",
       investing_entity_name: values.fundName || "{investing_entity_name}",
-      byline: values.fundByline || "{byline}",
+      byline: values.fundByline || "",
       purchase_amount: values.purchaseAmount || "{purchase_amount}",
       valuation_cap: values.valuationCap || "{valuation_cap}",
       discount: values.discount
@@ -655,8 +756,47 @@ export default function FormComponent({ userData }: { userData: any }) {
     return doc
   }
 
-  async function summarizeInvestment(
+  async function loadAndPrepareSideLetterTemplate(
     values: FormComponentValues,
+    formattedDate: string
+  ): Promise<Docxtemplater> {
+    const response = await fetch(`/Side-Letter.docx`)
+    const arrayBuffer = await response.arrayBuffer()
+    const zip = new PizZip(arrayBuffer)
+    const doc = new Docxtemplater(zip, { linebreaks: true })
+    doc.setData({
+      company_name: values.companyName || "{company_name}",
+      investing_entity_name: values.fundName || "{investing_entity_name}",
+      byline: values.fundByline || "",
+      purchase_amount: values.purchaseAmount || "{purchase_amount}",
+      valuation_cap: values.valuationCap || "{valuation_cap}",
+      discount: values.discount
+        ? (100 - Number(values.discount)).toString()
+        : "{discount}",
+      state_of_incorporation:
+        values.stateOfIncorporation || "{state_of_incorporation}",
+      date: formattedDate || "{date}",
+      investor_name: values.investorName || "{investor_name}",
+      investor_title: values.investorTitle || "{investor_title}",
+      investor_email: values.investorEmail || "{investor_email}",
+      investor_address_1: values.fundStreet || "{investor_address_1}",
+      investor_address_2: values.fundCityStateZip || "{investor_address_2}",
+      founder_name: values.founderName || "{founder_name}",
+      founder_title: values.founderTitle || "{founder_title}",
+      founder_email: values.founderEmail || "{founder_email}",
+      company_address_1: values.companyStreet || "{company_address_1}",
+      company_address_2: values.companyCityStateZip || "{company_address_2}",
+      info_rights: values.infoRights || false,
+      pro_rata_rights: values.proRataRights || false,
+      major_investor_rights: values.majorInvestorRights || false,
+      termination: values.termination || false,
+      miscellaneous: values.miscellaneous || false,
+    })
+    doc.render()
+    return doc
+  }
+
+  async function summarizeInvestment(
     doc: Docxtemplater
   ): Promise<string | null> {
     try {
@@ -804,16 +944,16 @@ export default function FormComponent({ userData }: { userData: any }) {
     }
     if (isFormLocked) {
       setShowConfetti(true)
-      try {
-        await processStepTwo("save")
-      } finally {
-        setShowConfetti(false)
-      }
       toast({
         title: "Congratulations!",
         description:
           "Your information has been saved. You'll receive an email with the next steps once all parties have provided their information.",
       })
+      try {
+        await processStepTwo("save")
+      } finally {
+        setShowConfetti(false)
+      }
       router.push("/investments")
     } else {
       await processStepTwo("save")
@@ -1323,6 +1463,125 @@ export default function FormComponent({ userData }: { userData: any }) {
                   </FormItem>
                 )}
               />
+              {isOwner && (
+                <>
+                  <div className="pt-4 flex justify-between items-center h-10">
+                    <Label className="text-md font-bold">
+                      Side Letter (Optional)
+                    </Label>
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="infoRights"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">
+                            Information Rights
+                          </FormLabel>
+                          <FormDescription>
+                            {formDescriptions.infoRights}
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="proRataRights"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">
+                            Pro Rata Rights
+                          </FormLabel>
+                          <FormDescription>
+                            {formDescriptions.proRataRights}
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="majorInvestorRights"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">
+                            Major Investor Rights
+                          </FormLabel>
+                          <FormDescription>
+                            {formDescriptions.majorInvestorRights}
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="termination"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">
+                            Termination Rights
+                          </FormLabel>
+                          <FormDescription>
+                            {formDescriptions.termination}
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="miscellaneous"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">
+                            Miscellaneous
+                          </FormLabel>
+                          <FormDescription>
+                            {formDescriptions.miscellaneous}
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
               <div className="flex flex-col gap-2">
                 <Button type="submit" className="w-full">
                   {isEditMode || isFormLocked ? "Save" : "Submit"}

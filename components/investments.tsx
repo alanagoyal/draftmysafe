@@ -169,19 +169,30 @@ export default function Investments({
 
   async function sendEmail(investment: any) {
     setIsSendingEmail(true)
-    const filepath = `${investment.id}.docx`
+    const safeFilepath = `${investment.id}.docx`
+    const sideLetterFilepath = `${investment.id}-side-letter.docx`
+
+    let safeDocNodeBuffer = null;
+    let sideLetterDocNodeBuffer = null;
 
     try {
-      const { data, error } = await supabase.storage
+      const { data: safeDoc, error: safeDocError } = await supabase.storage
         .from("documents")
-        .download(filepath)
+        .download(safeFilepath)
 
-      if (error) {
-        throw error
+      if (!safeDocError && safeDoc) {
+        const safeDocBuffer = await safeDoc.arrayBuffer()
+        safeDocNodeBuffer = Buffer.from(safeDocBuffer)
       }
 
-      const buffer = await data.arrayBuffer()
-      const nodeBuffer = Buffer.from(buffer)
+      const { data: sideLetterDoc, error: sideLetterDocError } = await supabase.storage
+        .from("documents")
+        .download(sideLetterFilepath)
+
+      if (!sideLetterDocError && sideLetterDoc) {
+        const sideLetterDocBuffer = await sideLetterDoc.arrayBuffer()
+        sideLetterDocNodeBuffer = Buffer.from(sideLetterDocBuffer)
+      }
 
       const emailContentToSend = editableEmailContent.replace(
         /<br\s*\/?>/gi,
@@ -190,7 +201,8 @@ export default function Investments({
 
       const body = {
         investmentData: investment,
-        attachment: nodeBuffer,
+        safeAttachment: safeDocNodeBuffer,
+        sideLetterAttachment: sideLetterDocNodeBuffer,
         emailContent: emailContentToSend,
       }
 

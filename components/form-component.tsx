@@ -115,7 +115,6 @@ export default function FormComponent({ userData }: { userData: any }) {
   const isEditMode = searchParams.get("edit") === "true"
   const [isOwner, setIsOwner] = useState(true)
   const [isLoadingSave, setIsLoadingSave] = useState(false)
-  const [isLoadingNext, setIsLoadingNext] = useState(false)
 
   const handleStepChange = (newStep: number) => {
     setStep(newStep)
@@ -888,20 +887,15 @@ export default function FormComponent({ userData }: { userData: any }) {
     }
   }
 
-  async function processStepOne(type: "save" | "next") {
-    setIsLoadingNext(type === "next")
-    setIsLoadingSave(type === "save")
+  async function processStepOne() {
+    setIsLoadingSave(true)
     const values = form.getValues()
     const investorId = await processInvestorDetails(values)
     const fundId = await processFundDetails(values, investorId)
     if (investorId || fundId) {
       await processInvestment(values, investorId, fundId, null, null)
     }
-    setIsLoadingNext(false)
     setIsLoadingSave(false)
-    if (type === "next") {
-      setStep(2)
-    }
   }
 
   async function saveStepOne() {
@@ -911,28 +905,23 @@ export default function FormComponent({ userData }: { userData: any }) {
       })
       router.push("/investments")
     }
-    await processStepOne("save")
+    await processStepOne()
     router.refresh()
   }
 
   async function advanceStepOne() {
-    await processStepOne("next")
+    setStep(2)
   }
 
-  async function processStepTwo(type: "save" | "next") {
-    setIsLoadingNext(type === "next")
-    setIsLoadingSave(type === "save")
+  async function processStepTwo() {
+    setIsLoadingSave(true)
     const values = form.getValues()
     const founderId = await processFounderDetails(values)
     const companyId = await processCompanyDetails(values, founderId)
     if (founderId || companyId) {
       await processInvestment(values, null, null, founderId, companyId)
     }
-    setIsLoadingNext(false)
     setIsLoadingSave(false)
-    if (type === "next") {
-      setStep(3)
-    }
   }
 
   async function saveStepTwo() {
@@ -950,19 +939,19 @@ export default function FormComponent({ userData }: { userData: any }) {
           "Your information has been saved. You'll receive an email with the next steps once all parties have provided their information.",
       })
       try {
-        await processStepTwo("save")
+        await processStepTwo()
       } finally {
         setShowConfetti(false)
       }
       router.push("/investments")
     } else {
-      await processStepTwo("save")
+      await processStepTwo()
     }
     router.refresh()
   }
 
   async function advanceStepTwo() {
-    await processStepTwo("next")
+    setStep(3)
   }
 
   return (
@@ -1128,7 +1117,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                   onClick={advanceStepOne}
                   variant={isEditMode || isFormLocked ? "secondary" : "default"}
                 >
-                  {isLoadingNext ? <Icons.spinner /> : "Next"}
+                  Next
                 </Button>
               </div>
             </>
@@ -1304,7 +1293,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                     }
                     onClick={advanceStepTwo}
                   >
-                    {isLoadingNext ? <Icons.spinner /> : "Next"}
+                    Next
                   </Button>
                 </div>
               </div>

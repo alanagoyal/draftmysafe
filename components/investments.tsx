@@ -409,7 +409,7 @@ export default function Investments({
                       <Icons.menu className="h-4 w-4 ml-2" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
-                      {investment.side_letter.side_letter_url && (
+                      {investment.side_letter && investment.side_letter.side_letter_url && (
                         <DropdownMenuItem
                           onClick={() => downloadDocument(investment.side_letter.side_letter_url)}
                         >

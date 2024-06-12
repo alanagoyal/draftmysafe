@@ -763,7 +763,7 @@ export default function FormComponent({ userData }: { userData: any }) {
     const response = await fetch(`/Side-Letter.docx`)
     const arrayBuffer = await response.arrayBuffer()
     const zip = new PizZip(arrayBuffer)
-    const doc = new Docxtemplater().loadZip(zip)
+    const doc = new Docxtemplater(zip, { linebreaks: true })
     doc.setData({
       company_name: values.companyName || "{company_name}",
       investing_entity_name: values.fundName || "{investing_entity_name}",

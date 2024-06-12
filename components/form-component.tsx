@@ -230,7 +230,7 @@ export default function FormComponent({ userData }: { userData: any }) {
         proRataRights: data.side_letter?.pro_rata_rights || false,
         majorInvestorRights: data.side_letter?.major_investor_rights || false,
         termination: data.side_letter?.termination || false,
-        miscellaneous: data.side_letter?.misc || false,
+        miscellaneous: data.side_letter?.miscellaneous || false,
       })
       if (step === 1 && data.fund && data.fund.investor_id === userData.id) {
         setSelectedEntity(data.fund.id)

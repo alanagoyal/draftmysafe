@@ -172,26 +172,29 @@ export default function Investments({
     const safeFilepath = `${investment.id}.docx`
     const sideLetterFilepath = `${investment.id}-side-letter.docx`
 
-    let safeDocNodeBuffer = null;
-    let sideLetterDocNodeBuffer = null;
+    let safeDocNodeBuffer = null
+    let sideLetterDocNodeBuffer = null
 
     try {
-      const { data: safeDoc, error: safeDocError } = await supabase.storage
-        .from("documents")
-        .download(safeFilepath)
+      if (investment.safe_url) {
+        const { data: safeDoc, error: safeDocError } = await supabase.storage
+          .from("documents")
+          .download(safeFilepath)
 
-      if (!safeDocError && safeDoc) {
-        const safeDocBuffer = await safeDoc.arrayBuffer()
-        safeDocNodeBuffer = Buffer.from(safeDocBuffer)
+        if (!safeDocError && safeDoc) {
+          const safeDocBuffer = await safeDoc.arrayBuffer()
+          safeDocNodeBuffer = Buffer.from(safeDocBuffer)
+        }
       }
 
-      const { data: sideLetterDoc, error: sideLetterDocError } = await supabase.storage
-        .from("documents")
-        .download(sideLetterFilepath)
+      if (investment.side_letter && investment.side_letter.side_letter_url) {
+        const { data: sideLetterDoc, error: sideLetterDocError } =
+          await supabase.storage.from("documents").download(sideLetterFilepath)
 
-      if (!sideLetterDocError && sideLetterDoc) {
-        const sideLetterDocBuffer = await sideLetterDoc.arrayBuffer()
-        sideLetterDocNodeBuffer = Buffer.from(sideLetterDocBuffer)
+        if (!sideLetterDocError && sideLetterDoc) {
+          const sideLetterDocBuffer = await sideLetterDoc.arrayBuffer()
+          sideLetterDocNodeBuffer = Buffer.from(sideLetterDocBuffer)
+        }
       }
 
       const emailContentToSend = editableEmailContent.replace(
@@ -300,22 +303,25 @@ export default function Investments({
                       <Icons.menu className="h-4 w-4 ml-2" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
-                      {investment.side_letter && investment.side_letter.side_letter_url && (
-                        <DropdownMenuItem
-                          onClick={() => downloadDocument(investment.side_letter.side_letter_url)}
-                        >
-                          Download Side Letter
-                        </DropdownMenuItem>
-                      )}
-                      {investment.safe_url && (
-                        <DropdownMenuItem
+                      {investment.side_letter &&
+                        investment.side_letter.side_letter_url && (
+                          <DropdownMenuItem
                             onClick={() =>
-                              downloadDocument(investment.safe_url)
+                              downloadDocument(
+                                investment.side_letter.side_letter_url
+                              )
                             }
                           >
-                            Download SAFE Agreement
+                            Download Side Letter
                           </DropdownMenuItem>
                         )}
+                      {investment.safe_url && (
+                        <DropdownMenuItem
+                          onClick={() => downloadDocument(investment.safe_url)}
+                        >
+                          Download SAFE Agreement
+                        </DropdownMenuItem>
+                      )}
                       {investmentIsComplete(investment) && (
                         <DropdownMenuItem
                           onClick={() => {

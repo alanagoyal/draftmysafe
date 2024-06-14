@@ -37,7 +37,12 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "./ui/context-menu"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip"
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false })
 
@@ -280,8 +285,18 @@ export default function Investments({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild className="cursor-pointer">
-                      <div onClick={() => router.push(`/new?id=${investment.id}&edit=true&step=2`)}>
-                        {investment.company ? investment.company.name : <MissingInfoTooltip message="Company name missing" />}
+                      <div
+                        onClick={() =>
+                          router.push(
+                            `/new?id=${investment.id}&edit=true&step=2`
+                          )
+                        }
+                      >
+                        {investment.company ? (
+                          investment.company.name
+                        ) : (
+                          <MissingInfoTooltip message="Company name missing" />
+                        )}
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -294,8 +309,18 @@ export default function Investments({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild className="cursor-pointer">
-                      <div onClick={() => router.push(`/new?id=${investment.id}&edit=true&step=2`)}>
-                        {investment.founder ? `${investment.founder.name} (${investment.founder.email})` : <MissingInfoTooltip message="Founder information missing" />}
+                      <div
+                        onClick={() =>
+                          router.push(
+                            `/new?id=${investment.id}&edit=true&step=2`
+                          )
+                        }
+                      >
+                        {investment.founder ? (
+                          `${investment.founder.name} (${investment.founder.email})`
+                        ) : (
+                          <MissingInfoTooltip message="Founder information missing" />
+                        )}
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -308,8 +333,18 @@ export default function Investments({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild className="cursor-pointer">
-                      <div onClick={() => router.push(`/new?id=${investment.id}&edit=true&step=1`)}>
-                        {investment.fund ? investment.fund.name : <MissingInfoTooltip message="Fund name missing" />}
+                      <div
+                        onClick={() =>
+                          router.push(
+                            `/new?id=${investment.id}&edit=true&step=1`
+                          )
+                        }
+                      >
+                        {investment.fund ? (
+                          investment.fund.name
+                        ) : (
+                          <MissingInfoTooltip message="Fund name missing" />
+                        )}
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -322,10 +357,18 @@ export default function Investments({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild className="cursor-pointer">
-                      <div onClick={() => router.push(`/new?id=${investment.id}&edit=true&step=3`)}>
+                      <div
+                        onClick={() =>
+                          router.push(
+                            `/new?id=${investment.id}&edit=true&step=3`
+                          )
+                        }
+                      >
                         {formatInvestmentType(investment.investment_type)}
-                        {investment.investment_type === "valuation-cap" && ` (${formatCurrency(investment.valuation_cap)})`}
-                        {investment.investment_type === "discount" && ` (${investment.discount}%)`}
+                        {investment.investment_type === "valuation-cap" &&
+                          ` (${formatCurrency(investment.valuation_cap)})`}
+                        {investment.investment_type === "discount" &&
+                          ` (${investment.discount}%)`}
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -338,8 +381,18 @@ export default function Investments({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild className="cursor-pointer">
-                      <div onClick={() => router.push(`/new?id=${investment.id}&edit=true&step=3`)}>
-                        {investment.purchase_amount ? `${formatCurrency(investment.purchase_amount)}` : <MissingInfoTooltip message="Purchase amount not set" />}
+                      <div
+                        onClick={() =>
+                          router.push(
+                            `/new?id=${investment.id}&edit=true&step=3`
+                          )
+                        }
+                      >
+                        {investment.purchase_amount ? (
+                          `${formatCurrency(investment.purchase_amount)}`
+                        ) : (
+                          <MissingInfoTooltip message="Purchase amount not set" />
+                        )}
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -352,7 +405,13 @@ export default function Investments({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild className="cursor-pointer">
-                      <div onClick={() => router.push(`/new?id=${investment.id}&edit=true&step=3`)}>
+                      <div
+                        onClick={() =>
+                          router.push(
+                            `/new?id=${investment.id}&edit=true&step=3`
+                          )
+                        }
+                      >
                         <div className="flex justify-between items-center">
                           {new Date(investment.date).toLocaleDateString()}
                         </div>
@@ -363,6 +422,49 @@ export default function Investments({
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
+              </TableCell>
+              <TableCell>
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="flex items-center">
+                    <Icons.menu className="h-4 w-4 ml-2" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {investment.side_letter &&
+                      investment.side_letter.side_letter_url && (
+                        <DropdownMenuItem
+                          onClick={() =>
+                            downloadDocument(
+                              investment.side_letter.side_letter_url
+                            )
+                          }
+                        >
+                          Download Side Letter
+                        </DropdownMenuItem>
+                      )}
+                    {investment.safe_url && (
+                      <DropdownMenuItem
+                        onClick={() => downloadDocument(investment.safe_url)}
+                      >
+                        Download SAFE Agreement
+                      </DropdownMenuItem>
+                    )}
+                    {investmentIsComplete(investment) && (
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSelectedInvestmentAndEmailContent(investment)
+                          setDialogOpen(true)
+                        }}
+                      >
+                        Send
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem
+                      onClick={() => deleteInvestment(investment)}
+                    >
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </TableCell>
             </TableRow>
           ))}

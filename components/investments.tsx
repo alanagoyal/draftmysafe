@@ -31,6 +31,8 @@ import {
 } from "./ui/table"
 import { toast } from "./ui/use-toast"
 import "react-quill/dist/quill.snow.css"
+import axios from "axios"
+
 import {
   ContextMenu,
   ContextMenuContent,
@@ -111,6 +113,8 @@ export default function Investments({
   }
 
   const investmentIsComplete = (investment: any) => {
+    console.log("investment", investment)
+
     return (
       isOwner(investment) &&
       investment.founder &&
@@ -121,9 +125,9 @@ export default function Investments({
       investment.fund.name &&
       investment.investment_type &&
       investment.purchase_amount &&
-      investment.date &&
-      investment.safe_url &&
-      investment.summary
+      investment.date
+      // investment.safe_url &&
+      // investment.summary
     )
   }
 
@@ -257,6 +261,11 @@ export default function Investments({
       setIsSendingEmail(false)
       setDialogOpen(false)
     }
+  }
+
+  const handleSendUsingDocuSign = async () => {
+    const data = await axios.post("/ampersand")
+    console.log("reply", data.data)
   }
 
   return (
@@ -449,14 +458,23 @@ export default function Investments({
                       </DropdownMenuItem>
                     )}
                     {investmentIsComplete(investment) && (
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSelectedInvestmentAndEmailContent(investment)
-                          setDialogOpen(true)
-                        }}
-                      >
-                        Send
-                      </DropdownMenuItem>
+                      <>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedInvestmentAndEmailContent(investment)
+                            setDialogOpen(true)
+                          }}
+                        >
+                          Send
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            handleSendUsingDocuSign()
+                          }}
+                        >
+                          Send using DocuSign
+                        </DropdownMenuItem>
+                      </>
                     )}
                     <DropdownMenuItem
                       onClick={() => deleteInvestment(investment)}

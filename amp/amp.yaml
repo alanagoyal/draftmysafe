@@ -1,0 +1,8 @@
+specVersion: 1.0.0
+
+integrations:
+  - name: docuSignDeveloperIntegration
+    displayName: Connect to DocuSign Developer Instaces
+    provider: docusignDeveloper
+    proxy:
+      enabled: true

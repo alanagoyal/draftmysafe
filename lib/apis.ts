@@ -1,6 +1,11 @@
 import axios, { axiosInstance } from "@/config/axios"
 
-import { BASE_URL, E_SIGN_URL } from "./constants"
+const BASE_URL = process.env.AMP_BASE_URL
+const E_SIGN_URL = process.env.E_SIGN_URL
+
+if (!BASE_URL || !E_SIGN_URL) {
+  throw new Error("AMP_BASE_URL and E_SIGN_URL must be set in the environment")
+}
 
 export const createTemplate = async (accountId: string) => {
   const data = {

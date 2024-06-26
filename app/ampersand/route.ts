@@ -6,12 +6,17 @@ import {
   createTemplate,
   sendEnvelope,
 } from "@/lib/apis"
-import { ACCOUNT_ID } from "@/lib/constants"
 
 export async function POST(request: NextRequest) {
   const body = await request.json()
   const { investmentData, safeAttachment, sideLetterAttachment, emailContent } =
     body
+
+  const ACCOUNT_ID = process.env.DOCUSIGN_ACCOUNT_ID
+
+  if (!ACCOUNT_ID) {
+    return NextResponse.json({ message: "ACCOUNT_ID not found" })
+  }
 
   const Signers: any = []
   if (safeAttachment || sideLetterAttachment) {
@@ -57,20 +62,18 @@ export async function POST(request: NextRequest) {
   const safeAttachmentBASE64 = safeAttachmentbuffer.toString("base64")
 
   // Convert the ArrayBuffer of SafetAttachement to a base64 string
-  const sideLetterAttachmentArraybuffer = sideLetterAttachment.data
-  const sideLetterAttachmentbuffer = Buffer.from(
-    sideLetterAttachmentArraybuffer
-  )
-  const sideLetterAttachmentBASE64 =
-    sideLetterAttachmentbuffer.toString("base64")
+  let sideLetterAttachmentBASE64 = null
+  if (sideLetterAttachment) {
+    const sideLetterAttachmentArraybuffer = sideLetterAttachment?.data
+    const sideLetterAttachmentbuffer = Buffer.from(
+      sideLetterAttachmentArraybuffer
+    )
+    sideLetterAttachmentBASE64 = sideLetterAttachmentbuffer.toString("base64")
+  }
 
   try {
     const res = await createTemplate(ACCOUNT_ID)
     const templateId = res.templateId
-    // const convertFileToBase64 = await fileToBase64(
-    //   "SafeValuedocs.docx",
-    //   "/SAFE-Valuation-Cap.docx"
-    // )
     const addDocToTemplateRes = await addDocToTemplate(
       safeAttachmentBASE64,
       sideLetterAttachmentBASE64,

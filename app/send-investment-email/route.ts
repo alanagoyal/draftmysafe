@@ -11,6 +11,7 @@ export async function POST(req: Request) {
 
   try {
     const attachments = []
+
     if (safeAttachment) {
       attachments.push({
         filename: `${investmentData.company.name}-SAFE.docx`,

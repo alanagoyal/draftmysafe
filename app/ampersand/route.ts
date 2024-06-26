@@ -1,5 +1,4 @@
 import { NextResponse, type NextRequest } from "next/server"
-import { fileToBase64 } from "@/utils/fileService"
 
 import {
   addDocToTemplate,
@@ -7,13 +6,63 @@ import {
   createTemplate,
   sendEnvelope,
 } from "@/lib/apis"
-import { ACCOUNT_ID, BASE64 } from "@/lib/constants"
+import { ACCOUNT_ID } from "@/lib/constants"
 
 export async function POST(request: NextRequest) {
-  const Signer = {
-    email: "dipuchaurasiya91@gmail.com",
-    name: "Dipu Chaurasiya",
+  const body = await request.json()
+  const { investmentData, safeAttachment, sideLetterAttachment, emailContent } =
+    body
+
+  const Signers: any = []
+  if (safeAttachment || sideLetterAttachment) {
+    Signers.push({
+      email: investmentData.founder.email,
+      name: investmentData.founder.name,
+      roleName: "signer",
+      recipientId: 1,
+      tabs: {
+        signHereTabs: [
+          {
+            anchorString: "\\s1\\",
+            anchorXOffset: 70,
+            anchorYOffset: -5,
+            anchorUnits: "pixels",
+            anchorIgnoreIfNotPresent: true,
+          },
+        ],
+      },
+    })
+    Signers.push({
+      email: investmentData.investor.email,
+      name: investmentData.investor.name,
+      roleName: "signer",
+      recipientId: 2,
+      tabs: {
+        signHereTabs: [
+          {
+            anchorString: "\\s2\\",
+            anchorXOffset: 70,
+            anchorYOffset: -5,
+            anchorUnits: "pixels",
+            anchorIgnoreIfNotPresent: true,
+          },
+        ],
+      },
+    })
   }
+
+  // Convert the ArrayBuffer of SafetAttachement to a base64 string
+  const safeAttachmentArraybuffer = safeAttachment.data
+  const safeAttachmentbuffer = Buffer.from(safeAttachmentArraybuffer)
+  const safeAttachmentBASE64 = safeAttachmentbuffer.toString("base64")
+
+  // Convert the ArrayBuffer of SafetAttachement to a base64 string
+  const sideLetterAttachmentArraybuffer = sideLetterAttachment.data
+  const sideLetterAttachmentbuffer = Buffer.from(
+    sideLetterAttachmentArraybuffer
+  )
+  const sideLetterAttachmentBASE64 =
+    sideLetterAttachmentbuffer.toString("base64")
 
   try {
     const res = await createTemplate(ACCOUNT_ID)
@@ -23,17 +72,14 @@ export async function POST(request: NextRequest) {
     //   "/SAFE-Valuation-Cap.docx"
     // )
     const addDocToTemplateRes = await addDocToTemplate(
-      BASE64,
+      safeAttachmentBASE64,
+      sideLetterAttachmentBASE64,
       ACCOUNT_ID,
       templateId,
-      1
+      1,
+      2
     )
-    const envelopId = await createEnvelope(
-      ACCOUNT_ID,
-      templateId,
-      Signer.email,
-      Signer.name
-    )
+    const envelopId = await createEnvelope(ACCOUNT_ID, templateId, Signers)
     await sendEnvelope(ACCOUNT_ID, envelopId.envelopeId)
     return NextResponse.json({
       message: "POST request successful",

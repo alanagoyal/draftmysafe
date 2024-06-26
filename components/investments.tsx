@@ -69,6 +69,7 @@ export default function Investments({
   const [selectedInvestment, setSelectedInvestment] = useState(null)
   const [editableEmailContent, setEditableEmailContent] = useState("")
   const [isSendingEmail, setIsSendingEmail] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   const formatCurrency = (amountStr: string): string => {
     const amount = parseFloat(amountStr.replace(/,/g, ""))
@@ -264,8 +265,15 @@ export default function Investments({
   }
 
   const handleSendUsingDocuSign = async () => {
-    const data = await axios.post("/ampersand")
-    console.log("reply", data.data)
+    setLoading(true)
+    try {
+      const data = await axios.post("/ampersand")
+      console.log("reply", data.data)
+    } catch (error) {
+      console.error("Failed to send using DocuSign", error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -519,6 +527,14 @@ export default function Investments({
           )}
         </DialogContent>
       </Dialog>
+      {loading && (
+        <div className="fixed inset-0 w-full h-full bg-neutral-900 bg-opacity-60 grid place-items-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-14 w-14 animate-spin rounded-full border-4 border-gray-200 border-t-blue-700" />
+            <p className="text-center text-white">Sending using DocuSign...</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

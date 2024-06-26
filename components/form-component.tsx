@@ -284,9 +284,9 @@ export default function FormComponent({ userData }: { userData: any }) {
       toast({
         description: "Investment updated",
       })
-      router.push("/investments")
+      // router.push("/investments")
       await processInvestment(values)
-      router.refresh()
+      // router.refresh()
     } else {
       setShowConfetti(true)
       toast({
@@ -299,8 +299,8 @@ export default function FormComponent({ userData }: { userData: any }) {
       } finally {
         setShowConfetti(false)
       }
-      router.push("/investments")
-      router.refresh()
+      // router.push("/investments")
+      // router.refresh()
     }
   }
 
@@ -562,7 +562,8 @@ export default function FormComponent({ userData }: { userData: any }) {
       } else {
         const safeDoc = await generateSafe(values)
         const safeUrl = await createSafeUrl(safeDoc)
-        const investmentSummary = await summarizeInvestment(safeDoc)
+        console.log("safeUrl", safeUrl)
+        // const investmentSummary = await summarizeInvestment(safeDoc)
         const sideLetterId = await processSideLetter(values)
         const { data: investmentUpdateData, error: investmentUpdateError } =
           await supabase
@@ -571,7 +572,7 @@ export default function FormComponent({ userData }: { userData: any }) {
               ...investmentData,
               safe_url: safeUrl,
               side_letter_id: sideLetterId,
-              summary: investmentSummary,
+              // summary: investmentSummary,
               id: investmentId,
             })
             .select("id")
@@ -589,7 +590,6 @@ export default function FormComponent({ userData }: { userData: any }) {
 
   async function createSafeUrl(doc: Docxtemplater): Promise<string | null> {
     const filepath = `${investmentId}.docx`
-
     try {
       // If the file does not exist, generate and upload it
       const file = doc.getZip().generate({ type: "nodebuffer" })
@@ -892,6 +892,7 @@ export default function FormComponent({ userData }: { userData: any }) {
     const values = form.getValues()
     const investorId = await processInvestorDetails(values)
     const fundId = await processFundDetails(values, investorId)
+
     if (investorId || fundId) {
       await processInvestment(values, investorId, fundId, null, null)
     }
@@ -1108,7 +1109,7 @@ export default function FormComponent({ userData }: { userData: any }) {
                     className="w-full"
                     onClick={saveStepOne}
                   >
-                    {isLoadingSave ? <Icons.spinner /> : "Save"}
+                    {isLoadingSave ? <Icons.spinner /> : "Save step one"}
                   </Button>
                 )}
                 <Button

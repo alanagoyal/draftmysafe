@@ -8,29 +8,39 @@ if (!BASE_URL || !E_SIGN_URL) {
 }
 
 export const createTemplate = async (accountId: string) => {
-  const data = {
-    name: "Template Name",
-    description: "Template Description",
-    emailSubject: "Email Subject",
-    shared: false,
-    status: "created",
-    recipients: {
-      signers: [
-        {
-          recipientId: "1",
-          roleName: "signer",
-          routingOrder: "1",
-        },
-      ],
-    },
+  try {
+    const data = {
+      name: "Template Name",
+      description: "Template Description",
+      emailSubject: "Email Subject",
+      shared: false,
+      status: "created",
+      recipients: {
+        signers: [
+          {
+            recipientId: "1",
+            roleName: "signer",
+            routingOrder: "1",
+          },
+        ],
+      },
+    }
+    const response = await axiosInstance().post(
+      `${BASE_URL}/${E_SIGN_URL}/accounts/${accountId}/templates`,
+
+      data
+    )
+
+    return {
+      sucess: true,
+      data: response.data,
+    }
+  } catch (error: any) {
+    return {
+      sucess: false,
+      message: error?.response?.data?.message || "Error creating template",
+    }
   }
-  const response = await axiosInstance().post(
-    `${BASE_URL}/${E_SIGN_URL}/accounts/${accountId}/templates`,
-
-    data
-  )
-
-  return response.data
 }
 
 export const addDocToTemplate = async (
@@ -41,42 +51,57 @@ export const addDocToTemplate = async (
   FirstDocumentId: number,
   secondDocumentId: number
 ) => {
-  let documents1 = []
-  let documents2 = []
-  if (safeAttachmentBase64) {
-    documents1.push({
-      documentBase64: safeAttachmentBase64,
-      documentId: FirstDocumentId,
-      name: "SafeValuation.docx",
-      fileExtension: "docx",
-      order: 1,
-      pages: 1,
-    })
+  try {
+    let documents1 = []
+    let documents2 = []
+    if (safeAttachmentBase64) {
+      documents1.push({
+        documentBase64: safeAttachmentBase64,
+        documentId: FirstDocumentId,
+        name: "SafeValuation.docx",
+        fileExtension: "docx",
+        order: 1,
+        pages: 1,
+      })
+    }
+
+    if (sideLetterAttachmentBase64) {
+      documents2.push({
+        documentBase64: sideLetterAttachmentBase64,
+        documentId: secondDocumentId,
+        name: "SideLetter.docx",
+        fileExtension: "docx",
+        order: 2,
+        pages: 1,
+      })
+    }
+
+    const res = await axiosInstance().put(
+      `${BASE_URL}/${E_SIGN_URL}/accounts/${accountId}/templates/${templateId}/documents/${FirstDocumentId}`,
+      { documents: documents1 }
+    )
+    if (documents2.length === 0)
+      return {
+        sucess: true,
+        data: res.data,
+      }
+
+    await axiosInstance().put(
+      `${BASE_URL}/${E_SIGN_URL}/accounts/${accountId}/templates/${templateId}/documents/${secondDocumentId}`,
+      { documents: documents2 }
+    )
+
+    return {
+      sucess: true,
+      data: res.data,
+    }
+  } catch (error: any) {
+    return {
+      sucess: false,
+      message:
+        error?.response?.data?.message || "Error adding document to template",
+    }
   }
-
-  if (sideLetterAttachmentBase64) {
-    documents2.push({
-      documentBase64: sideLetterAttachmentBase64,
-      documentId: secondDocumentId,
-      name: "SideLetter.docx",
-      fileExtension: "docx",
-      order: 2,
-      pages: 1,
-    })
-  }
-
-  const res = await axiosInstance().put(
-    `${BASE_URL}/${E_SIGN_URL}/accounts/${accountId}/templates/${templateId}/documents/${FirstDocumentId}`,
-    { documents: documents1 }
-  )
-  if (documents2.length === 0) return res.data
-
-  await axiosInstance().put(
-    `${BASE_URL}/${E_SIGN_URL}/accounts/${accountId}/templates/${templateId}/documents/${secondDocumentId}`,
-    { documents: documents2 }
-  )
-
-  return res.data
 }
 
 export const createEnvelope = async (
@@ -84,29 +109,48 @@ export const createEnvelope = async (
   templateId: string,
   Signers: Signer[]
 ) => {
-  const data = {
-    templateId: templateId,
-    templateRoles: Signers,
-    status: "created",
-  }
+  try {
+    const data = {
+      templateId: templateId,
+      templateRoles: Signers,
+      status: "created",
+    }
 
-  const res = await axiosInstance().post(
-    `${BASE_URL}/${E_SIGN_URL}/accounts/${accountId}/envelopes`,
-    data
-  )
-  return res.data
+    const res = await axiosInstance().post(
+      `${BASE_URL}/${E_SIGN_URL}/accounts/${accountId}/envelopes`,
+      data
+    )
+    return {
+      sucess: true,
+      data: res.data,
+    }
+  } catch (error: any) {
+    return {
+      sucess: false,
+      message: error?.response?.data?.message || "Error creating envelope",
+    }
+  }
 }
 
 export const sendEnvelope = async (accountId: string, envelopeId: string) => {
-  const data = {
-    status: "sent",
+  try {
+    const data = {
+      status: "sent",
+    }
+    const res = await axiosInstance().put(
+      `${BASE_URL}/${E_SIGN_URL}/accounts/${accountId}/envelopes/${envelopeId}`,
+      data
+    )
+    return {
+      sucess: true,
+      data: res.data,
+    }
+  } catch (error: any) {
+    return {
+      sucess: false,
+      message: error?.response?.data?.message || "Error sending envelope",
+    }
   }
-
-  const res = await axiosInstance().put(
-    `${BASE_URL}/${E_SIGN_URL}/accounts/${accountId}/envelopes/${envelopeId}`,
-    data
-  )
-  return res.data
 }
 
 export const addTabsToTemplate = async (

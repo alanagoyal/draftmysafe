@@ -69,7 +69,6 @@ export default function Investments({
   const [selectedInvestment, setSelectedInvestment] = useState(null)
   const [editableEmailContent, setEditableEmailContent] = useState("")
   const [isSendingEmail, setIsSendingEmail] = useState(false)
-  const [loading, setLoading] = useState(false)
 
   const formatCurrency = (amountStr: string): string => {
     const amount = parseFloat(amountStr.replace(/,/g, ""))
@@ -114,21 +113,18 @@ export default function Investments({
   }
 
   const investmentIsComplete = (investment: any) => {
-    console.log("investment", investment)
-
     return (
       isOwner(investment) &&
-      investment.founder &&
-      investment.founder.email &&
-      investment.company &&
-      investment.company.name &&
-      investment.fund &&
-      investment.fund.name &&
-      investment.investment_type &&
-      investment.purchase_amount &&
-      investment.date
-      // investment.safe_url &&
-      // investment.summary
+        investment.founder &&
+        investment.founder.email &&
+        investment.company &&
+        investment.company.name &&
+        investment.fund &&
+        investment.fund.name &&
+        investment.investment_type &&
+        investment.purchase_amount &&
+        investment.date,
+      investment.safe_url && investment.summary
     )
   }
 
@@ -193,7 +189,7 @@ export default function Investments({
     setEditableEmailContent(emailContent(investment))
   }
 
-  async function sendEmail(investment: any) {
+  async function sendEmail(investment: any, isDocuSign = false) {
     setIsSendingEmail(true)
     const safeFilepath = `${investment.id}.docx`
     const sideLetterFilepath = `${investment.id}-side-letter.docx`
@@ -235,7 +231,9 @@ export default function Investments({
         emailContent: emailContentToSend,
       }
 
-      const response = await fetch("/send-investment-email", {
+      const apiPath = isDocuSign ? "/ampersand" : "/send-investment-email"
+
+      const response = await fetch(apiPath, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -261,18 +259,6 @@ export default function Investments({
     } finally {
       setIsSendingEmail(false)
       setDialogOpen(false)
-    }
-  }
-
-  const handleSendUsingDocuSign = async () => {
-    setLoading(true)
-    try {
-      const data = await axios.post("/ampersand")
-      console.log("reply", data.data)
-    } catch (error) {
-      console.error("Failed to send using DocuSign", error)
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -477,10 +463,10 @@ export default function Investments({
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => {
-                            handleSendUsingDocuSign()
+                            sendEmail(investment, true)
                           }}
                         >
-                          Send using DocuSign
+                          {isSendingEmail ? <Icons.spinner /> : "Send DocuSign"}
                         </DropdownMenuItem>
                       </>
                     )}
@@ -518,7 +504,7 @@ export default function Investments({
               <div className="w-full">
                 <Button
                   className="w-full"
-                  onClick={() => sendEmail(selectedInvestment)}
+                  onClick={() => sendEmail(selectedInvestment, false)}
                 >
                   {isSendingEmail ? <Icons.spinner /> : "Send"}
                 </Button>
@@ -527,14 +513,6 @@ export default function Investments({
           )}
         </DialogContent>
       </Dialog>
-      {loading && (
-        <div className="fixed inset-0 w-full h-full bg-neutral-900 bg-opacity-60 grid place-items-center">
-          <div className="flex flex-col items-center gap-3">
-            <div className="h-14 w-14 animate-spin rounded-full border-4 border-gray-200 border-t-blue-700" />
-            <p className="text-center text-white">Sending using DocuSign...</p>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

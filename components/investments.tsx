@@ -31,6 +31,8 @@ import {
 } from "./ui/table"
 import { toast } from "./ui/use-toast"
 import "react-quill/dist/quill.snow.css"
+import axios from "axios"
+
 import {
   ContextMenu,
   ContextMenuContent,
@@ -113,17 +115,16 @@ export default function Investments({
   const investmentIsComplete = (investment: any) => {
     return (
       isOwner(investment) &&
-      investment.founder &&
-      investment.founder.email &&
-      investment.company &&
-      investment.company.name &&
-      investment.fund &&
-      investment.fund.name &&
-      investment.investment_type &&
-      investment.purchase_amount &&
-      investment.date &&
-      investment.safe_url &&
-      investment.summary
+        investment.founder &&
+        investment.founder.email &&
+        investment.company &&
+        investment.company.name &&
+        investment.fund &&
+        investment.fund.name &&
+        investment.investment_type &&
+        investment.purchase_amount &&
+        investment.date,
+      investment.safe_url && investment.summary
     )
   }
 
@@ -188,7 +189,7 @@ export default function Investments({
     setEditableEmailContent(emailContent(investment))
   }
 
-  async function sendEmail(investment: any) {
+  async function sendEmail(investment: any, isDocuSign = false) {
     setIsSendingEmail(true)
     const safeFilepath = `${investment.id}.docx`
     const sideLetterFilepath = `${investment.id}-side-letter.docx`
@@ -230,7 +231,9 @@ export default function Investments({
         emailContent: emailContentToSend,
       }
 
-      const response = await fetch("/send-investment-email", {
+      const apiPath = isDocuSign ? "/ampersand" : "/send-investment-email"
+
+      const response = await fetch(apiPath, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -449,14 +452,23 @@ export default function Investments({
                       </DropdownMenuItem>
                     )}
                     {investmentIsComplete(investment) && (
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSelectedInvestmentAndEmailContent(investment)
-                          setDialogOpen(true)
-                        }}
-                      >
-                        Send
-                      </DropdownMenuItem>
+                      <>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedInvestmentAndEmailContent(investment)
+                            setDialogOpen(true)
+                          }}
+                        >
+                          Send
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            sendEmail(investment, true)
+                          }}
+                        >
+                          {isSendingEmail ? <Icons.spinner /> : "Send DocuSign"}
+                        </DropdownMenuItem>
+                      </>
                     )}
                     <DropdownMenuItem
                       onClick={() => deleteInvestment(investment)}
@@ -492,7 +504,7 @@ export default function Investments({
               <div className="w-full">
                 <Button
                   className="w-full"
-                  onClick={() => sendEmail(selectedInvestment)}
+                  onClick={() => sendEmail(selectedInvestment, false)}
                 >
                   {isSendingEmail ? <Icons.spinner /> : "Send"}
                 </Button>

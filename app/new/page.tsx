@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/utils/supabase/server"
+
 import FormComponent from "@/components/form-component"
 import MagicLink from "@/components/magic-link"
 
@@ -13,6 +14,8 @@ export default async function Safe({
   const {
     data: { user },
   } = await supabase.auth.getUser()
+
+  console.log("user", user)
 
   if (!user) {
     if (sharing) {
@@ -31,6 +34,7 @@ export default async function Safe({
     .select()
     .eq("auth_id", user?.id)
     .single()
+
   return (
     <div className="flex w-full justify-center min-h-screen">
       <FormComponent userData={userData} />

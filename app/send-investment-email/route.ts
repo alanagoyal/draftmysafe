@@ -6,21 +6,23 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(req: Request) {
   const body = await req.json()
-  const { investmentData, safeAttachment, sideLetterAttachment, emailContent } = body
+  const { investmentData, safeAttachment, sideLetterAttachment, emailContent } =
+    body
 
   try {
-    const attachments = [];
+    const attachments = []
+
     if (safeAttachment) {
       attachments.push({
         filename: `${investmentData.company.name}-SAFE.docx`,
         content: safeAttachment,
-      });
+      })
     }
     if (sideLetterAttachment) {
       attachments.push({
         filename: `${investmentData.company.name}-Side-Letter.docx`,
         content: sideLetterAttachment,
-      });
+      })
     }
 
     const { data, error } = await resend.emails.send({

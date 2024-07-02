@@ -60,9 +60,9 @@ export default function AccountForm({
   const form = useForm<AccountFormValues>({
     resolver: zodResolver(accountFormSchema),
     defaultValues: {
-      email: userData.email || "",
-      name: userData.name || "",
-      title: userData.title || "",
+      email: userData?.email || "",
+      name: userData?.name || "",
+      title: userData?.title || "",
       type: "fund",
       entity_name: "",
       byline: "",
@@ -468,7 +468,10 @@ export default function AccountForm({
       <AuthRefresh />
       <h1 className="text-2xl font-bold">Account</h1>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2 w-full">
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="space-y-2 w-full"
+        >
           <div className="pt-4">
             <Label className="text-md font-bold">Personal Information</Label>
           </div>

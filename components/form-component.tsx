@@ -6,9 +6,6 @@ import { createClient } from "@/utils/supabase/client"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { CalendarIcon } from "@radix-ui/react-icons"
 import { format } from "date-fns"
-import Docxtemplater from "docxtemplater"
-import mammoth from "mammoth"
-import PizZip from "pizzip"
 import Confetti from "react-confetti"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -93,6 +90,7 @@ type InvestmentData = {
   major_investor_rights?: string
   termination?: string
   miscellaneous?: string
+  side_letter_id?: string | null
 }
 
 export default function FormComponent({ userData }: { userData: any }) {
@@ -255,6 +253,9 @@ export default function FormComponent({ userData }: { userData: any }) {
       if (userData.auth_id !== data.created_by) {
         setIsOwner(false)
       }
+      if (data.side_letter) {
+        setSideLetterId(data.side_letter.id)
+      }
     }
   }
 
@@ -362,7 +363,7 @@ export default function FormComponent({ userData }: { userData: any }) {
       values.fundCityStateZip === ""
     )
       return null
-
+  
     try {
       const fundData = {
         name: values.fundName,
@@ -371,23 +372,25 @@ export default function FormComponent({ userData }: { userData: any }) {
         city_state_zip: values.fundCityStateZip,
         investor_id: investorId,
       }
-
+  
       // Check if fund already exists
       const { data: existingFund, error: existingFundError } = await supabase
         .from("funds")
         .select("id, investor_id")
         .eq("name", values.fundName)
         .maybeSingle()
-
+  
       if (existingFund) {
-        // If fund exists but doesn't have an investor_id, or if we have a new investor_id, update it
-        if ((!existingFund.investor_id && investorId) || (investorId && existingFund.investor_id !== investorId)) {
-          const { error: updateError } = await supabase
-            .from("funds")
-            .update(fundData)
-            .eq("id", existingFund.id)
-          if (updateError) throw updateError
+        // Update the fund, keeping the existing investor_id if no new one is provided
+        const updateData = {
+          ...fundData,
+          investor_id: investorId || existingFund.investor_id,
         }
+        const { error: updateError } = await supabase
+          .from("funds")
+          .update(updateData)
+          .eq("id", existingFund.id)
+        if (updateError) throw updateError
         return existingFund.id
       } else {
         // Insert new fund
@@ -459,7 +462,7 @@ export default function FormComponent({ userData }: { userData: any }) {
       values.stateOfIncorporation === ""
     )
       return null
-
+  
     try {
       const companyData = {
         name: values.companyName,
@@ -468,23 +471,26 @@ export default function FormComponent({ userData }: { userData: any }) {
         state_of_incorporation: values.stateOfIncorporation,
         founder_id: founderId,
       }
-
+  
       // Check if company already exists
-      const { data: existingCompany, error: existingCompanyError } = await supabase
-        .from("companies")
-        .select("id, founder_id")
-        .eq("name", values.companyName)
-        .maybeSingle()
-
+      const { data: existingCompany, error: existingCompanyError } =
+        await supabase
+          .from("companies")
+          .select("id, founder_id")
+          .eq("name", values.companyName)
+          .maybeSingle()
+  
       if (existingCompany) {
-        // If company exists but doesn't have a founder_id, or if we have a new founder_id, update it
-        if ((!existingCompany.founder_id && founderId) || (founderId && existingCompany.founder_id !== founderId)) {
-          const { error: updateError } = await supabase
-            .from("companies")
-            .update(companyData)
-            .eq("id", existingCompany.id)
-          if (updateError) throw updateError
+        // Update the company, keeping the existing founder_id if no new one is provided
+        const updateData = {
+          ...companyData,
+          founder_id: founderId || existingCompany.founder_id,
         }
+        const { error: updateError } = await supabase
+          .from("companies")
+          .update(updateData)
+          .eq("id", existingCompany.id)
+        if (updateError) throw updateError
         return existingCompany.id
       } else {
         // Insert new company
@@ -497,41 +503,6 @@ export default function FormComponent({ userData }: { userData: any }) {
       }
     } catch (error) {
       console.error("Error processing company details:", error)
-    }
-  }
-
-  async function processSideLetter(values: FormComponentValues) {
-    // Only process if the side letter is not empty
-    if (
-      values.infoRights === false &&
-      values.proRataRights === false &&
-      values.majorInvestorRights === false &&
-      values.termination === false &&
-      values.miscellaneous === false
-    )
-      return null
-    try {
-      const sideLetterDoc = await generateSideLetter(values)
-      const sideLetterUrl = await createSideLetterUrl(sideLetterDoc)
-      const sideLetter = {
-        ...(sideLetterId && { id: sideLetterId }), // Include the existing side letter ID if provided
-        info_rights: values.infoRights,
-        pro_rata_rights: values.proRataRights,
-        major_investor_rights: values.majorInvestorRights,
-        termination: values.termination,
-        miscellaneous: values.miscellaneous,
-        side_letter_url: sideLetterUrl,
-      }
-      // Upsert the side_letters table with this data using the id of the investment
-      const { data: sideLetterData, error: sideLetterError } = await supabase
-        .from("side_letters")
-        .upsert({ ...sideLetter })
-        .select("id")
-      if (sideLetterError) throw sideLetterError
-      setSideLetterId(sideLetterData[0].id)
-      return sideLetterData[0].id
-    } catch (error) {
-      console.error("Error processing side letter:", error)
     }
   }
 
@@ -554,291 +525,87 @@ export default function FormComponent({ userData }: { userData: any }) {
         ...(values.discount && { discount: values.discount }),
         date: values.date,
       }
-
+  
       let investmentIdResult: string | null = null
-
+  
+      // Process side letter data only if at least one value is true
+      const sideLetter = {
+        info_rights: values.infoRights,
+        pro_rata_rights: values.proRataRights,
+        major_investor_rights: values.majorInvestorRights,
+        termination: values.termination,
+        miscellaneous: values.miscellaneous,
+      }
+  
+      const hasSideLetterContent = Object.values(sideLetter).some(Boolean)
+  
       if (!investmentId) {
         investmentData.created_by = userData.auth_id
+        
+        if (hasSideLetterContent) {
+          // Insert side letter
+          const { data: sideLetterData, error: sideLetterError } = await supabase
+            .from('side_letters')
+            .insert(sideLetter)
+            .select('id')
+          
+          if (sideLetterError) throw sideLetterError
+          
+          investmentData.side_letter_id = sideLetterData[0].id
+        }
+  
+        // Insert investment
         const { data: investmentInsertData, error: investmentInsertError } =
           await supabase.from("investments").insert(investmentData).select("id")
         if (investmentInsertError) throw investmentInsertError
         investmentIdResult = investmentInsertData[0].id
-        setInvestmentId(investmentIdResult)
       } else {
-        const safeDoc = await generateSafe(values)
-        const safeUrl = await createSafeUrl(safeDoc)
-        const investmentSummary = await summarizeInvestment(safeDoc)
-        const sideLetterId = await processSideLetter(values)
+        if (hasSideLetterContent) {
+          if (sideLetterId) {
+            // Update side letter
+            const { error: sideLetterUpdateError } = await supabase
+              .from('side_letters')
+              .update(sideLetter)
+              .eq('id', sideLetterId)
+            
+            if (sideLetterUpdateError) throw sideLetterUpdateError
+          } else {
+            // Insert new side letter
+            const { data: sideLetterData, error: sideLetterError } = await supabase
+              .from('side_letters')
+              .insert(sideLetter)
+              .select('id')
+            
+            if (sideLetterError) throw sideLetterError
+            
+            investmentData.side_letter_id = sideLetterData[0].id
+          }
+        } else if (sideLetterId) {
+          // Remove side letter if all values are false
+          const { error: sideLetterDeleteError } = await supabase
+            .from('side_letters')
+            .delete()
+            .eq('id', sideLetterId)
+          
+          if (sideLetterDeleteError) throw sideLetterDeleteError
+          
+          investmentData.side_letter_id = null
+        }
+  
+        // Update investment
         const { data: investmentUpdateData, error: investmentUpdateError } =
           await supabase
             .from("investments")
-            .upsert({
-              ...investmentData,
-              safe_url: safeUrl,
-              side_letter_id: sideLetterId,
-              summary: investmentSummary,
-              id: investmentId,
-            })
+            .update(investmentData)
+            .eq("id", investmentId)
             .select("id")
         if (investmentUpdateError) throw investmentUpdateError
         investmentIdResult = investmentUpdateData[0].id
-        setInvestmentId(investmentIdResult)
       }
-
+      setInvestmentId(investmentIdResult)
       return investmentIdResult
     } catch (error) {
       console.error("Error processing investment details:", error)
-      return null
-    }
-  }
-
-  async function createSafeUrl(doc: Docxtemplater): Promise<string | null> {
-    const filepath = `${investmentId}.docx`
-
-    try {
-      // If the file does not exist, generate and upload it
-      const file = doc.getZip().generate({ type: "nodebuffer" })
-      const { error: uploadError } = await supabase.storage
-        .from("documents")
-        .upload(filepath, file, {
-          upsert: true,
-          contentType:
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          cacheControl: "3600",
-        })
-
-      if (uploadError) {
-        console.error("Upload error:", uploadError)
-        return null
-      }
-
-      // After uploading, attempt to create a signed URL again
-      const { data: newSignedUrlData, error: newSignedUrlError } =
-        await supabase.storage.from("documents").createSignedUrl(filepath, 3600)
-      if (newSignedUrlError) {
-        console.error(
-          "Failed to create signed URL after upload:",
-          newSignedUrlError
-        )
-        return null
-      }
-
-      return newSignedUrlData?.signedUrl || null
-    } catch (error) {
-      console.error("Error in createUrl function:", error)
-      return null
-    }
-  }
-
-  async function createSideLetterUrl(
-    doc: Docxtemplater
-  ): Promise<string | null> {
-    const filepath = `${investmentId}-side-letter.docx`
-
-    try {
-      const file = doc.getZip().generate({ type: "nodebuffer" })
-      const { error: uploadError } = await supabase.storage
-        .from("documents")
-        .upload(filepath, file, {
-          upsert: true,
-          contentType:
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          cacheControl: "3600",
-        })
-
-      if (uploadError) {
-        console.error("Upload error:", uploadError)
-        return null
-      }
-
-      const { data: newSignedUrlData, error: newSignedUrlError } =
-        await supabase.storage.from("documents").createSignedUrl(filepath, 3600)
-      if (newSignedUrlError) {
-        console.error(
-          "Failed to create signed URL after upload:",
-          newSignedUrlError
-        )
-        return null
-      }
-
-      return newSignedUrlData?.signedUrl || null
-    } catch (error) {
-      console.error("Error in createSideLetterUrl function:", error)
-      return null
-    }
-  }
-
-  async function generateSafe(values: FormComponentValues) {
-    const formattedDate = formatSubmissionDate(values.date)
-    const templateFileName = selectTemplate(values.type || "mfn")
-    const doc = await loadAndPrepareTemplate(
-      templateFileName,
-      values,
-      formattedDate
-    )
-    return doc
-  }
-
-  async function generateSideLetter(values: FormComponentValues) {
-    const formattedDate = formatSubmissionDate(values.date)
-    const doc = await loadAndPrepareSideLetterTemplate(values, formattedDate)
-    return doc
-  }
-
-  function formatSubmissionDate(date: Date): string {
-    const monthName = new Intl.DateTimeFormat("en-US", {
-      month: "long",
-    }).format(date)
-    const day = date.getDate()
-    const year = date.getFullYear()
-    const suffix = getNumberSuffix(day)
-    return `${monthName} ${day}${suffix}, ${year}`
-  }
-
-  function getNumberSuffix(day: number): string {
-    if (day >= 11 && day <= 13) {
-      return "th"
-    }
-    switch (day % 10) {
-      case 1:
-        return "st"
-      case 2:
-        return "nd"
-      case 3:
-        return "rd"
-      default:
-        return "th"
-    }
-  }
-
-  function selectTemplate(type: string): string {
-    switch (type) {
-      case "valuation-cap":
-        return "SAFE-Valuation-Cap.docx"
-      case "discount":
-        return "SAFE-Discount.docx"
-      case "mfn":
-        return "SAFE-MFN.docx"
-      default:
-        return "SAFE-MFN.docx"
-    }
-  }
-
-  async function loadAndPrepareTemplate(
-    templateFileName: string,
-    values: any,
-    formattedDate: string
-  ): Promise<Docxtemplater> {
-    const response = await fetch(`/${templateFileName}`)
-    const arrayBuffer = await response.arrayBuffer()
-    const zip = new PizZip(arrayBuffer)
-    const doc = new Docxtemplater().loadZip(zip)
-    doc.setData({
-      company_name: values.companyName || "{company_name}",
-      investing_entity_name: values.fundName || "{investing_entity_name}",
-      byline: values.fundByline || "",
-      purchase_amount: values.purchaseAmount || "{purchase_amount}",
-      valuation_cap: values.valuationCap || "{valuation_cap}",
-      discount: values.discount
-        ? (100 - Number(values.discount)).toString()
-        : "{discount}",
-      state_of_incorporation:
-        values.stateOfIncorporation || "{state_of_incorporation}",
-      date: formattedDate || "{date}",
-      investor_name: values.investorName || "{investor_name}",
-      investor_title: values.investorTitle || "{investor_title}",
-      investor_email: values.investorEmail || "{investor_email}",
-      investor_address_1: values.fundStreet || "{investor_address_1}",
-      investor_address_2: values.fundCityStateZip || "{investor_address_2}",
-      founder_name: values.founderName || "{founder_name}",
-      founder_title: values.founderTitle || "{founder_title}",
-      founder_email: values.founderEmail || "{founder_email}",
-      company_address_1: values.companyStreet || "{company_address_1}",
-      company_address_2: values.companyCityStateZip || "{company_address_2}",
-    })
-    doc.render()
-    return doc
-  }
-
-  async function loadAndPrepareSideLetterTemplate(
-    values: FormComponentValues,
-    formattedDate: string
-  ): Promise<Docxtemplater> {
-    const response = await fetch(`/Side-Letter.docx`)
-    const arrayBuffer = await response.arrayBuffer()
-    const zip = new PizZip(arrayBuffer)
-    const doc = new Docxtemplater(zip, { linebreaks: true })
-    doc.setData({
-      company_name: values.companyName || "{company_name}",
-      investing_entity_name: values.fundName || "{investing_entity_name}",
-      byline: values.fundByline || "",
-      purchase_amount: values.purchaseAmount || "{purchase_amount}",
-      valuation_cap: values.valuationCap || "{valuation_cap}",
-      discount: values.discount
-        ? (100 - Number(values.discount)).toString()
-        : "{discount}",
-      state_of_incorporation:
-        values.stateOfIncorporation || "{state_of_incorporation}",
-      date: formattedDate || "{date}",
-      investor_name: values.investorName || "{investor_name}",
-      investor_title: values.investorTitle || "{investor_title}",
-      investor_email: values.investorEmail || "{investor_email}",
-      investor_address_1: values.fundStreet || "{investor_address_1}",
-      investor_address_2: values.fundCityStateZip || "{investor_address_2}",
-      founder_name: values.founderName || "{founder_name}",
-      founder_title: values.founderTitle || "{founder_title}",
-      founder_email: values.founderEmail || "{founder_email}",
-      company_address_1: values.companyStreet || "{company_address_1}",
-      company_address_2: values.companyCityStateZip || "{company_address_2}",
-      info_rights: values.infoRights || false,
-      pro_rata_rights: values.proRataRights || false,
-      major_investor_rights: values.majorInvestorRights || false,
-      termination: values.termination || false,
-      miscellaneous: values.miscellaneous || false,
-    })
-    doc.render()
-    return doc
-  }
-
-  async function summarizeInvestment(
-    doc: Docxtemplater
-  ): Promise<string | null> {
-    try {
-      const blob = doc.getZip().generate({ type: "blob" })
-      const arrayBuffer = await blob.arrayBuffer()
-      const { value: htmlContent } = await mammoth.convertToHtml({
-        arrayBuffer,
-      })
-
-      const response = await fetch("/generate-summary", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ content: htmlContent }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        toast({
-          title: "Error",
-          description: "Failed to summarize investment",
-        })
-        throw new Error("Failed to summarize investment")
-      }
-
-      if (data.summary.length === 0) {
-        toast({
-          title: "Error",
-          description: "Failed to summarize investment",
-        })
-        throw new Error("Failed to summarize investment")
-      }
-
-      return data.summary
-    } catch (error) {
-      console.error("Error in summarizing investment:", error)
       return null
     }
   }

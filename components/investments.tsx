@@ -31,6 +31,7 @@ import {
 } from "./ui/table"
 import { toast } from "./ui/use-toast"
 import "react-quill/dist/quill.snow.css"
+import { useCompletion } from "ai/react"
 import Docxtemplater from "docxtemplater"
 import mammoth from "mammoth"
 import PizZip from "pizzip"
@@ -128,74 +129,56 @@ export default function Investments({
     router.refresh()
   }
 
-  const emailContent = (investment: any) => {
-    return `
-      <div>
-        <p>Hi ${investment.founder.name.split(" ")[0]},</p><br>
-        <p>
-          ${investment.fund.name} has shared a SAFE agreement with you.
-          Please find the document attached to this email and find a brief
-          summary of the document and its terms below.
-        </p><br>
-        <p>Summary: ${investment.summary}</p><br>
-        <p>
-          Disclaimer: This summary is for informational purposes only and does
-          not constitute legal advice. For any legal matters or specific
-          questions, you should consult with a qualified attorney.
-        </p>
-      </div>
-    `
-  }
-
-  const setSelectedInvestmentAndEmailContent = (investment: any) => {
+  const setSelectedInvestmentAndEmailContent = async (investment: any) => {
     setSelectedInvestment(investment)
-    setEditableEmailContent(emailContent(investment))
+    setEditableEmailContent("") // Clear the content initially
+    setDialogOpen(true)
   }
 
-  async function summarizeInvestment(
-    doc: Docxtemplater
-  ): Promise<string | null> {
+  const { complete, isLoading: isGeneratingSummary } = useCompletion({
+    api: "/api/summarize",
+  })
+
+  const generateEmailContent = async (investment: any) => {
     try {
-      const blob = doc.getZip().generate({ type: "blob" })
-      const arrayBuffer = await blob.arrayBuffer()
-      const { value: htmlContent } = await mammoth.convertToHtml({
-        arrayBuffer,
-      })
-
-      const response = await fetch("/generate-summary", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ content: htmlContent }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        toast({
-          title: "Error",
-          description: "Failed to summarize investment",
-        })
-        throw new Error("Failed to summarize investment")
-      }
-
-      if (data.summary.length === 0) {
-        toast({
-          title: "Error",
-          description: "Failed to summarize investment",
-        })
-        throw new Error("Failed to summarize investment")
-      }
-
-      return data.summary
+      const investmentSummary = await summarizeInvestment(investment)
+      const content = `
+        <div>
+          <p>Hi ${investment.founder.name.split(" ")[0]},</p><br>
+          <p>
+            ${investment.fund.name} has shared a SAFE agreement with you.
+            Please find the document attached to this email and find a brief
+            summary of the document and its terms below.
+          </p><br>
+          <p>Summary: ${investmentSummary}</p><br>
+          <p>
+            Disclaimer: This summary is for informational purposes only and does
+            not constitute legal advice. For any legal matters or specific
+            questions, you should consult with a qualified attorney.
+          </p>
+        </div>
+      `
+      setEditableEmailContent(content)
     } catch (error) {
-      console.error("Error in summarizing investment:", error)
-      return null
+      console.error("Error generating email content:", error)
+      toast({
+        title: "Error",
+        description: "Failed to generate email content. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 
   async function sendEmail(investment: any) {
+    if (!editableEmailContent) {
+      toast({
+        title: "Error",
+        description: "Please generate the email content first.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsSendingEmail(true)
     const safeFilepath = `${investment.id}.docx`
     const sideLetterFilepath = `${investment.id}-side-letter.docx`
@@ -371,13 +354,12 @@ export default function Investments({
     try {
       const safeDoc = await generateSafe(investment)
       const safeUrl = await createSafeUrl(investment, safeDoc)
-      const investmentSummary = await summarizeInvestment(safeDoc)
 
       if (safeUrl) {
         // Update the investment in the database with the new safe_url
         const { error: updateError } = await supabase
           .from("investments")
-          .update({ safe_url: safeUrl, summary: investmentSummary })
+          .update({ safe_url: safeUrl })
           .eq("id", investment.id)
 
         if (updateError) throw updateError
@@ -597,6 +579,35 @@ export default function Investments({
     }
   }
 
+  async function summarizeInvestment(investment: any): Promise<void> {
+    try {
+      console.log(investment)
+
+      let result = await complete("", {
+        body: {
+          company_name: investment.company.name,
+          investing_entity_name: investment.fund.name,
+          investment_type: investment.investment_type,
+          purchase_amount: investment.purchase_amount,
+          valuation_cap: investment.valuation_cap,
+          discount: investment.discount,
+          date: investment.date,
+          side_letter: investment.side_letter_id,
+          info_rights: investment.side_letter.info_rights,
+          pro_rata_rights: investment.side_letter.pro_rata_rights,
+          major_investor_rights: investment.side_letter.major_investor_rights,
+          termination: investment.side_letter.termination,
+        },
+      })
+
+      if (result) {
+        console.log(result)
+      }
+    } catch (error) {
+      console.error("Error in summarizing investment:", error)
+    }
+  }
+
   return (
     <div className="flex flex-col items-center min-h-screen py-2 w-4/5">
       <div className="flex justify-between items-center w-full">
@@ -695,7 +706,6 @@ export default function Investments({
                           <DropdownMenuItem
                             onClick={() => {
                               setSelectedInvestmentAndEmailContent(investment)
-                              setDialogOpen(true)
                             }}
                           >
                             Send
@@ -736,13 +746,21 @@ export default function Investments({
                   theme="snow"
                   value={editableEmailContent}
                   onChange={setEditableEmailContent}
-                  placeholder={emailContent(selectedInvestment)}
+                  placeholder="Email content will be generated here..."
                 />
               </div>
-              <div className="w-full">
+              <div className="w-full flex space-x-2">
                 <Button
-                  className="w-full"
+                  className="w-1/2"
+                  onClick={() => generateEmailContent(selectedInvestment)}
+                  disabled={isGeneratingSummary}
+                >
+                  {isGeneratingSummary ? <Icons.spinner /> : "Generate Content"}
+                </Button>
+                <Button
+                  className="w-1/2"
                   onClick={() => sendEmail(selectedInvestment)}
+                  disabled={isSendingEmail || !editableEmailContent}
                 >
                   {isSendingEmail ? <Icons.spinner /> : "Send"}
                 </Button>

@@ -353,7 +353,7 @@ export default function FormComponent({ userData }: { userData: any }) {
 
   async function processFundDetails(
     values: FormComponentValues,
-    investorId: string
+    investorId: string | null
   ) {
     if (
       values.fundName === "" &&
@@ -362,6 +362,7 @@ export default function FormComponent({ userData }: { userData: any }) {
       values.fundCityStateZip === ""
     )
       return null
+
     try {
       const fundData = {
         name: values.fundName,
@@ -371,23 +372,25 @@ export default function FormComponent({ userData }: { userData: any }) {
         investor_id: investorId,
       }
 
-      // Check if fund already exists and update
+      // Check if fund already exists
       const { data: existingFund, error: existingFundError } = await supabase
         .from("funds")
-        .select("id")
+        .select("id, investor_id")
         .eq("name", values.fundName)
-        .eq("investor_id", investorId)
+        .maybeSingle()
 
-      if (existingFund && existingFund.length > 0) {
-        const { error: updateError } = await supabase
-          .from("funds")
-          .update(fundData)
-          .eq("id", existingFund[0].id)
-        if (updateError) throw updateError
-        return existingFund[0].id
-
-        // Insert new fund
+      if (existingFund) {
+        // If fund exists but doesn't have an investor_id, or if we have a new investor_id, update it
+        if ((!existingFund.investor_id && investorId) || (investorId && existingFund.investor_id !== investorId)) {
+          const { error: updateError } = await supabase
+            .from("funds")
+            .update(fundData)
+            .eq("id", existingFund.id)
+          if (updateError) throw updateError
+        }
+        return existingFund.id
       } else {
+        // Insert new fund
         const { data: newFund, error: newFundError } = await supabase
           .from("funds")
           .insert(fundData)
@@ -447,7 +450,7 @@ export default function FormComponent({ userData }: { userData: any }) {
 
   async function processCompanyDetails(
     values: FormComponentValues,
-    founderId: string
+    founderId: string | null
   ) {
     if (
       values.companyName === "" &&
@@ -466,24 +469,25 @@ export default function FormComponent({ userData }: { userData: any }) {
         founder_id: founderId,
       }
 
-      // Check if company already exists and update
-      const { data: existingCompany, error: existingCompanyError } =
-        await supabase
-          .from("companies")
-          .select("id")
-          .eq("name", values.companyName)
-          .eq("founder_id", founderId)
+      // Check if company already exists
+      const { data: existingCompany, error: existingCompanyError } = await supabase
+        .from("companies")
+        .select("id, founder_id")
+        .eq("name", values.companyName)
+        .maybeSingle()
 
-      if (existingCompany && existingCompany.length > 0) {
-        const { error: updateError } = await supabase
-          .from("companies")
-          .update(companyData)
-          .eq("id", existingCompany[0].id)
-        if (updateError) throw updateError
-        return existingCompany[0].id
-
-        // Insert new company
+      if (existingCompany) {
+        // If company exists but doesn't have a founder_id, or if we have a new founder_id, update it
+        if ((!existingCompany.founder_id && founderId) || (founderId && existingCompany.founder_id !== founderId)) {
+          const { error: updateError } = await supabase
+            .from("companies")
+            .update(companyData)
+            .eq("id", existingCompany.id)
+          if (updateError) throw updateError
+        }
+        return existingCompany.id
       } else {
+        // Insert new company
         const { data: newCompany, error: newCompanyError } = await supabase
           .from("companies")
           .insert(companyData)

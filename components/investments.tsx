@@ -697,14 +697,16 @@ export default function Investments({
                                 Download Side Letter
                               </DropdownMenuItem>
                             )}
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedInvestmentAndEmailContent(investment)
-                              setDialogOpen(true)
-                            }}
-                          >
-                            Send
-                          </DropdownMenuItem>
+                          {investment.safe_url && investment.summary && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedInvestmentAndEmailContent(investment)
+                                setDialogOpen(true)
+                              }}
+                            >
+                              Send
+                            </DropdownMenuItem>
+                          )}
                         </>
                       )}
                       <DropdownMenuItem

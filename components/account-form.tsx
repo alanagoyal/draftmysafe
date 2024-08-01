@@ -481,7 +481,7 @@ export default function AccountForm({
               <FormItem>
                 <FormLabel>Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="Your name" {...field} />
+                  <Input {...field} />
                 </FormControl>
                 <FormDescription>
                   This is the name that will be used in your signature block

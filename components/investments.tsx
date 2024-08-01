@@ -215,7 +215,7 @@ export default function Investments({
         }
       }
 
-      if (investment.side_letter && investment.side_letter.side_letter_url) {
+      if (investment.side_letter_id && investment.side_letter.side_letter_url) {
         const { data: sideLetterDoc, error: sideLetterDocError } =
           await supabase.storage.from("documents").download(sideLetterFilepath)
 
@@ -425,7 +425,7 @@ export default function Investments({
       const sideLetterDoc = await generateSideLetter(investment)
       const sideLetterUrl = await createSideLetterUrl(investment, sideLetterDoc)
       const sideLetter = {
-        ...(investment.side_letter.id && { id: investment.side_letter.id }),
+        ...(investment.side_letter_id && { id: investment.side_letter_id }),
         info_rights: investment.side_letter.info_rights,
         pro_rata_rights: investment.side_letter.pro_rata_rights,
         major_investor_rights: investment.side_letter.major_investor_rights,
@@ -678,20 +678,25 @@ export default function Investments({
                               Download SAFE Agreement
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem
-                            onClick={() => processSideLetter(investment)}
-                          >
-                            Generate Side Letter
-                          </DropdownMenuItem>
-                          {investment.side_letter.side_letter_url && (
+                          {investment.side_letter_id && (
                             <DropdownMenuItem
-                              onClick={() =>
-                                downloadDocument(investment.side_letter_url)
-                              }
+                              onClick={() => processSideLetter(investment)}
                             >
-                              Download Side Letter
+                              Generate Side Letter
                             </DropdownMenuItem>
                           )}
+                          {investment.side_letter_id &&
+                            investment.side_letter.side_letter_url && (
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  downloadDocument(
+                                    investment.side_letter.side_letter_url
+                                  )
+                                }
+                              >
+                                Download Side Letter
+                              </DropdownMenuItem>
+                            )}
                           <DropdownMenuItem
                             onClick={() => {
                               setSelectedInvestmentAndEmailContent(investment)

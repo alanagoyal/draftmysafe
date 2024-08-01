@@ -39,7 +39,6 @@ create table "public"."investments" (
     "created_by" uuid,
     "summary" text,
     "safe_url" text,
-    "side_letter_url" text,
     "side_letter_id" uuid
 );
 
@@ -72,6 +71,7 @@ create table "public"."users" (
 
 
 alter table "public"."users" enable row level security;
+
 
 CREATE UNIQUE INDEX companies_pkey ON public.companies USING btree (id);
 
@@ -495,7 +495,7 @@ on "public"."investments"
 as permissive
 for delete
 to public
-using (((auth.uid() = ( SELECT users.auth_id
+using (((auth.uid() = created_by) OR ((auth.uid() = ( SELECT users.auth_id
    FROM users
   WHERE (users.id = investments.founder_id))) OR (auth.uid() = ( SELECT users.auth_id
    FROM users
@@ -507,7 +507,7 @@ using (((auth.uid() = ( SELECT users.auth_id
    FROM users
   WHERE (users.id IN ( SELECT companies.founder_id
            FROM companies
-          WHERE (companies.id = investments.company_id)))))));
+          WHERE (companies.id = investments.company_id))))))));
 
 
 create policy "Authenticated can do all"
@@ -550,7 +550,6 @@ to authenticated
 using (true);
 
 
-
 create type "auth"."one_time_token_type" as enum ('confirmation_token', 'reauthentication_token', 'recovery_token', 'email_change_token_new', 'email_change_token_current', 'phone_change_token');
 
 create table "auth"."one_time_tokens" (
@@ -563,6 +562,38 @@ create table "auth"."one_time_tokens" (
     "updated_at" timestamp without time zone not null default now()
 );
 
+
+alter table "auth"."one_time_tokens" enable row level security;
+
+alter table "auth"."audit_log_entries" enable row level security;
+
+alter table "auth"."flow_state" enable row level security;
+
+alter table "auth"."identities" enable row level security;
+
+alter table "auth"."instances" enable row level security;
+
+alter table "auth"."mfa_amr_claims" enable row level security;
+
+alter table "auth"."mfa_challenges" enable row level security;
+
+alter table "auth"."mfa_factors" enable row level security;
+
+alter table "auth"."refresh_tokens" enable row level security;
+
+alter table "auth"."saml_providers" enable row level security;
+
+alter table "auth"."saml_relay_states" enable row level security;
+
+alter table "auth"."schema_migrations" enable row level security;
+
+alter table "auth"."sessions" enable row level security;
+
+alter table "auth"."sso_domains" enable row level security;
+
+alter table "auth"."sso_providers" enable row level security;
+
+alter table "auth"."users" enable row level security;
 
 CREATE UNIQUE INDEX one_time_tokens_pkey ON auth.one_time_tokens USING btree (id);
 
@@ -612,6 +643,19 @@ grant update on table "auth"."one_time_tokens" to "postgres";
 
 CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
+
+set check_function_bodies = off;
+
+CREATE OR REPLACE FUNCTION storage.operation()
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE
+AS $function$
+BEGIN
+    RETURN current_setting('storage.operation', true);
+END;
+$function$
+;
 
 create policy "Authenticated users can do all flreew_0"
 on "storage"."objects"

@@ -62,11 +62,11 @@ export default function AccountForm({
   )
   const [showAdditionalFields, setShowAdditionalFields] = useState(false)
 
-  const { isLoaded } = useLoadScript({
+  useLoadScript({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
     libraries,
   });
-
+  
   const form = useForm<AccountFormValues>({
     resolver: zodResolver(accountFormSchema),
     defaultValues: {

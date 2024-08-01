@@ -120,11 +120,10 @@ export default function FormComponent({ userData }: { userData: any }) {
   const [isLoadingSave, setIsLoadingSave] = useState(false)
   const [isLoadingNext, setIsLoadingNext] = useState(false)
 
-  const { isLoaded } = useLoadScript({
+  useLoadScript({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
     libraries,
   });
-
 
   const handleStepChange = (newStep: number) => {
     setStep(newStep)

@@ -6,9 +6,11 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form"
 import usePlacesAutocomplete from "use-places-autocomplete"
 import { UseFormReturn } from "react-hook-form"
+import { formDescriptions } from "@/lib/utils"
 
 interface PlacesAutocompleteProps {
   form: UseFormReturn<any>
@@ -33,6 +35,7 @@ export function PlacesAutocomplete({
   const streetInputRef = useRef<HTMLInputElement>(null)
   const [street, setStreet] = useState(initialStreet || "")
   const [cityStateZip, setCityStateZip] = useState(initialCityStateZip || "")
+  const [showSuggestions, setShowSuggestions] = useState(false)
 
   const {
     value,
@@ -93,6 +96,29 @@ export function PlacesAutocomplete({
     onAddressChange(newStreet, newCityStateZip)
   }
 
+  const handleInputChange = (newValue: string, isStreet: boolean) => {
+    if (isStreet) {
+      setStreet(newValue)
+      setValue(newValue + (cityStateZip ? `, ${cityStateZip}` : ''))
+      form.setValue(streetName, newValue)
+    } else {
+      setCityStateZip(newValue)
+      setValue(street + (newValue ? `, ${newValue}` : ''))
+      form.setValue(cityStateZipName, newValue)
+    }
+    onAddressChange(isStreet ? newValue : street, isStreet ? cityStateZip : newValue)
+    setShowSuggestions(true)
+  }
+
+  const handleInputFocus = () => {
+    setShowSuggestions(true)
+  }
+
+  const handleInputBlur = () => {
+    // Delay hiding suggestions to allow clicking on them
+    setTimeout(() => setShowSuggestions(false), 200)
+  }
+
   return (
     <>
       <FormField
@@ -109,16 +135,13 @@ export function PlacesAutocomplete({
                 className="w-full text-sm mb-2"
                 disabled={disabled}
                 value={street}
-                onChange={(e) => {
-                  const newStreet = e.target.value
-                  setStreet(newStreet)
-                  setValue(newStreet + (cityStateZip ? `, ${cityStateZip}` : ''))
-                  field.onChange(newStreet)
-                  onAddressChange(newStreet, cityStateZip)
-                }}
+                onChange={(e) => handleInputChange(e.target.value, true)}
                 onKeyDown={handleKeyDown}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
               />
             </FormControl>
+            <FormDescription>{formDescriptions.street}</FormDescription>
             <FormMessage />
           </FormItem>
         )}
@@ -136,20 +159,17 @@ export function PlacesAutocomplete({
                 className="w-full text-sm"
                 disabled={disabled}
                 value={cityStateZip}
-                onChange={(e) => {
-                  const newCityStateZip = e.target.value
-                  setCityStateZip(newCityStateZip)
-                  setValue(street + (newCityStateZip ? `, ${newCityStateZip}` : ''))
-                  field.onChange(newCityStateZip)
-                  onAddressChange(street, newCityStateZip)
-                }}
+                onChange={(e) => handleInputChange(e.target.value, false)}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
               />
             </FormControl>
+            <FormDescription>{formDescriptions.cityStateZip}</FormDescription>
             <FormMessage />
           </FormItem>
         )}
       />
-      {status === "OK" && (
+      {status === "OK" && showSuggestions && (
         <ul className="mt-2 bg-white border rounded-md shadow-lg">
           {data.map((suggestion, index) => (
             <li

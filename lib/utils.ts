@@ -20,13 +20,11 @@ export const formDescriptions = {
   investorName: "The full legal name of the investing entity's signatory",
   investorTitle: "The title of the investing entity's signatory",
   investorEmail: "The email address of the investing entity's signatory",
-  fundStreet: "The street address of the investing entity",
-  fundCityStateZip: "The city, state, and ZIP code of the investing entity",
+  street: "The street address of the entity",
+  cityStateZip: "The city, state, and ZIP code of the entity",
   founderName: "The full legal name of the company's signatory",
   founderTitle: "The title of the company's signatory",
   founderEmail: "The email address of the company's signatory",
-  companyStreet: "The street address of the company",
-  companyCityStateZip: "The city, state, and ZIP code of the company",
   infoRights:
     "Grants the investor the right to quarterly and annual financial statements, progress metrics, an updated capitalization table, and an annual budget from the company upon request",
   proRataRights:

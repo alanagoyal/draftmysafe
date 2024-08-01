@@ -27,6 +27,9 @@ import { Input } from "./ui/input"
 import { Textarea } from "./ui/textarea"
 import { ToastAction } from "./ui/toast"
 import { toast } from "./ui/use-toast"
+import { PlacesAutocomplete } from "./places-autocomplete"
+import type { Libraries } from "@react-google-maps/api";
+import { useLoadScript } from "@react-google-maps/api";
 
 const accountFormSchema = z.object({
   email: z.string().email(),
@@ -39,6 +42,8 @@ const accountFormSchema = z.object({
   city_state_zip: z.string().optional(),
   state_of_incorporation: z.string().optional(),
 })
+
+const libraries: Libraries = ["places"];
 
 type AccountFormValues = z.infer<typeof accountFormSchema>
 
@@ -57,6 +62,11 @@ export default function AccountForm({
   )
   const [showAdditionalFields, setShowAdditionalFields] = useState(false)
 
+  useLoadScript({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
+    libraries,
+  });
+  
   const form = useForm<AccountFormValues>({
     resolver: zodResolver(accountFormSchema),
     defaultValues: {
@@ -403,41 +413,17 @@ export default function AccountForm({
               )}
             />
           )}
-          <FormField
-            control={form.control}
-            name="street"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Street Address</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormDescription>
-                  {form.watch("type") === "fund"
-                    ? formDescriptions.fundStreet
-                    : formDescriptions.companyStreet}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="city_state_zip"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>City, State, Zip Code</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormDescription>
-                  {form.watch("type") === "fund"
-                    ? formDescriptions.fundCityStateZip
-                    : formDescriptions.companyCityStateZip}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
+          <PlacesAutocomplete
+            form={form}
+            streetName="street"
+            cityStateZipName="city_state_zip"
+            disabled={false}
+            onAddressChange={(street, cityStateZip) => {
+              form.setValue("street", street)
+              form.setValue("city_state_zip", cityStateZip)
+            }}
+            initialStreet={form.watch("street")}
+            initialCityStateZip={form.watch("city_state_zip")}
           />
           {form.watch("type") === "company" && (
             <FormField

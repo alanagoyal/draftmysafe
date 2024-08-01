@@ -40,6 +40,11 @@ import {
 import { Switch } from "./ui/switch"
 import { Textarea } from "./ui/textarea"
 import { toast } from "./ui/use-toast"
+import { PlacesAutocomplete } from "./places-autocomplete"
+import type { Libraries } from "@react-google-maps/api";
+import { useLoadScript } from "@react-google-maps/api";
+
+const libraries: Libraries = ["places"];
 
 const FormComponentSchema = z.object({
   companyName: z.string().optional(),
@@ -114,6 +119,11 @@ export default function FormComponent({ userData }: { userData: any }) {
   const [isOwner, setIsOwner] = useState(true)
   const [isLoadingSave, setIsLoadingSave] = useState(false)
   const [isLoadingNext, setIsLoadingNext] = useState(false)
+
+  useLoadScript({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
+    libraries,
+  });
 
   const handleStepChange = (newStep: number) => {
     setStep(newStep)
@@ -614,48 +624,63 @@ export default function FormComponent({ userData }: { userData: any }) {
     setSelectedEntity(value)
     const selectedEntityDetails = entities.find((entity) => entity.id === value)
 
-    if (showFundSelector && selectedEntityDetails.type === "fund") {
-      form.reset({
-        ...form.getValues(),
-        fundName: selectedEntityDetails.name,
-        fundByline: selectedEntityDetails.byline,
-        fundStreet: selectedEntityDetails.street,
-        fundCityStateZip: selectedEntityDetails.city_state_zip,
-      })
+    if (selectedEntityDetails) {
+      if (showFundSelector && selectedEntityDetails.type === "fund") {
+        form.setValue("fundName", selectedEntityDetails.name || "")
+        form.setValue("fundByline", selectedEntityDetails.byline || "")
+        form.setValue("fundStreet", selectedEntityDetails.street || "")
+        form.setValue("fundCityStateZip", selectedEntityDetails.city_state_zip || "")
 
-      const { data: investorData, error: investorError } = await supabase
-        .from("users")
-        .select("name, title, email")
-        .eq("id", selectedEntityDetails.investor_id)
-      if (investorError) throw investorError
-      form.reset({
-        ...form.getValues(),
-        investorName: investorData[0].name,
-        investorTitle: investorData[0].title,
-        investorEmail: investorData[0].email,
-      })
-    } else if (
-      showCompanySelector &&
-      selectedEntityDetails.type === "company"
-    ) {
-      form.reset({
-        ...form.getValues(),
-        companyName: selectedEntityDetails.name,
-        companyStreet: selectedEntityDetails.street,
-        companyCityStateZip: selectedEntityDetails.city_state_zip,
-        stateOfIncorporation: selectedEntityDetails.state_of_incorporation,
-      })
-      const { data: founderData, error: founderError } = await supabase
-        .from("users")
-        .select("name, title, email")
-        .eq("id", selectedEntityDetails.founder_id)
-      if (founderError) throw founderError
-      form.reset({
-        ...form.getValues(),
-        founderName: founderData[0].name,
-        founderTitle: founderData[0].title,
-        founderEmail: founderData[0].email,
-      })
+        // Fetch investor details
+        const { data: investorData, error: investorError } = await supabase
+          .from("users")
+          .select("name, title, email")
+          .eq("id", selectedEntityDetails.investor_id)
+          .single()
+
+        if (!investorError && investorData) {
+          form.setValue("investorName", investorData.name || "")
+          form.setValue("investorTitle", investorData.title || "")
+          form.setValue("investorEmail", investorData.email || "")
+        }
+      } else if (showCompanySelector && selectedEntityDetails.type === "company") {
+        form.setValue("companyName", selectedEntityDetails.name || "")
+        form.setValue("companyStreet", selectedEntityDetails.street || "")
+        form.setValue("companyCityStateZip", selectedEntityDetails.city_state_zip || "")
+        form.setValue("stateOfIncorporation", selectedEntityDetails.state_of_incorporation || "")
+
+        // Fetch founder details
+        const { data: founderData, error: founderError } = await supabase
+          .from("users")
+          .select("name, title, email")
+          .eq("id", selectedEntityDetails.founder_id)
+          .single()
+
+        if (!founderError && founderData) {
+          form.setValue("founderName", founderData.name || "")
+          form.setValue("founderTitle", founderData.title || "")
+          form.setValue("founderEmail", founderData.email || "")
+        }
+      }
+    } else {
+      // Reset form fields if "Add new" is selected
+      if (showFundSelector) {
+        form.setValue("fundName", "")
+        form.setValue("fundByline", "")
+        form.setValue("fundStreet", "")
+        form.setValue("fundCityStateZip", "")
+        form.setValue("investorName", "")
+        form.setValue("investorTitle", "")
+        form.setValue("investorEmail", "")
+      } else if (showCompanySelector) {
+        form.setValue("companyName", "")
+        form.setValue("companyStreet", "")
+        form.setValue("companyCityStateZip", "")
+        form.setValue("stateOfIncorporation", "")
+        form.setValue("founderName", "")
+        form.setValue("founderTitle", "")
+        form.setValue("founderEmail", "")
+      }
     }
   }
 
@@ -800,37 +825,17 @@ export default function FormComponent({ userData }: { userData: any }) {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="fundStreet"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Street Address</FormLabel>
-                    <FormControl>
-                      <Input {...field} disabled={!isOwner} />
-                    </FormControl>
-                    <FormDescription>
-                      {formDescriptions.fundStreet}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="fundCityStateZip"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>City, State, ZIP Code</FormLabel>
-                    <FormControl>
-                      <Input {...field} disabled={!isOwner} />
-                    </FormControl>
-                    <FormDescription>
-                      {formDescriptions.fundCityStateZip}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+              <PlacesAutocomplete
+                form={form}
+                streetName="fundStreet"
+                cityStateZipName="fundCityStateZip"
+                disabled={!isOwner}
+                onAddressChange={(street, cityStateZip) => {
+                  form.setValue("fundStreet", street)
+                  form.setValue("fundCityStateZip", cityStateZip)
+                }}
+                initialStreet={form.watch("fundStreet")}
+                initialCityStateZip={form.watch("fundCityStateZip")}
               />
               <div className="pt-4">
                 <Label className="text-md font-bold">Signatory Details</Label>
@@ -948,37 +953,17 @@ export default function FormComponent({ userData }: { userData: any }) {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="companyStreet"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Street Address</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      {formDescriptions.companyStreet}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="companyCityStateZip"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>City, State, ZIP Code</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      {formDescriptions.companyCityStateZip}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+              <PlacesAutocomplete
+                form={form}
+                streetName="companyStreet"
+                cityStateZipName="companyCityStateZip"
+                disabled={!isOwner}
+                onAddressChange={(street, cityStateZip) => {
+                  form.setValue("companyStreet", street)
+                  form.setValue("companyCityStateZip", cityStateZip)
+                }}
+                initialStreet={form.watch("companyStreet")}
+                initialCityStateZip={form.watch("companyCityStateZip")}
               />
               <FormField
                 control={form.control}
